@@ -1,0 +1,52 @@
+/* Mobile view: Card display for each record */
+@media (max-width: 768px) {
+  .data-card {
+    background-color: #fff;
+    margin: 15px 0;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .data-card-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 5px 0;
+    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .data-card-row:last-child {
+    border-bottom: none;
+  }
+
+  .data-card-row strong {
+    font-weight: 600;
+    margin-right: 10px;
+  }
+
+  .data-card-row button {
+    margin-top: 10px;
+  }
+}
+
+/* Default table view styles for desktop */
+.table-responsive {
+  overflow-x: auto;
+}
+
+.custom-data-table-react {
+  margin-bottom: 20px;
+}
+
+/* Add some padding to the card title */
+.card-title {
+  margin-bottom: 20px;
+}
+
+/* Search input styling */
+.dataTables_filter input {
+  margin-left: 10px;
+  padding: 5px;
+  border-radius: 4px;
+  border: 1px solid #ddd;
+}

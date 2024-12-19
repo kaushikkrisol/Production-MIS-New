@@ -1,0 +1,31 @@
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.875rem;
+    /* Setting the default font size */
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'IBM Plex Sans', sans-serif;
+}
+
+.table thead th {
+    background-color: #343a40;
+    /* Dark background color */
+    color: white;
+    /* White text color */
+}
+
+.table th,
+.table td {
+    font-size: 0.875rem;
+    /* Ensure table text is also the correct size */
+}
+
+.disappear {
+    display: none;
+}

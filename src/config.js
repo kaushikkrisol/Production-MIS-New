@@ -1,0 +1,55 @@
+let BaseURL = "https://localhost:7035";
+
+// let BaseURL ='https://productionapi.comart.in'
+
+const config ={
+
+    User: {
+        URL: {
+            Checkuser: BaseURL + '/User/Checkuser',
+        }
+    },
+    JobSummary: {
+        URL: {
+            AddJobSummary: BaseURL + '/api/JobSummary',
+            Getalljob: BaseURL + '/api/JobSummary/Getalljob',
+            TotalJobcount: BaseURL + '/api/JobSummary/TotalJobcount',
+        }
+    },
+    Design: {
+        URL: {
+            AddDesign: BaseURL + '/api/Design',
+            Getalldesign: BaseURL + '/api/Design/Getalldesign',
+            AddStart: BaseURL + '/api/Design/Addesignstart',
+            AddStop: BaseURL + '/api/Design/Addesignstop',
+            TotalHoursWork: BaseURL + '/api/Design/TotalHoursWork',
+        }
+    },
+    Printing: {
+        URL: {
+            AddPrinting: BaseURL + '/api/Printing',
+            UpdateProductionData: BaseURL + '/api/Printing/UpdateProductionData',
+            Getallprinting: BaseURL + '/api/Printing/Getallprinting',
+            AddPrintingStart: BaseURL + '/api/Printing/Addprintingstart',
+            AddPrintingStop: BaseURL + '/api/Printing/Addprintingstop',
+            TotalPrintingJobcount: BaseURL + '/api/Printing/TotalPrintingJobcount',
+        }
+    },
+    Delivery: {
+        URL: {
+            AddDelivery: BaseURL + '/api/Delivery',
+            Getalldelivery: BaseURL + '/api/Delivery/Getalldelivery',
+            Addeliverystart: BaseURL + '/api/Delivery/Addeliverystart',
+            Addeliverystop: BaseURL + '/api/Delivery/Addeliverystop',
+            Getalldeliveryjobs: BaseURL + '/api/Delivery/Getalldeliveryjobs',
+        }
+    },
+    Report: {
+        URL: {
+            AddReport: BaseURL + '/api/Report',
+            Getallreport: BaseURL + '/api/Report/Getallreport',
+        }
+    }
+}
+
+export default config;
