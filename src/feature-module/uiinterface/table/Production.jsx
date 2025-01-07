@@ -312,7 +312,7 @@ const Production = () => {
                 deadline: row.deadline,
                 lamination: row.lamination, // Lamination
                 mounting: row.mounting, // Mounting
-                implementation: row.implementation, // Implementation
+                // implementation: row.implementation, // Implementation
                 salonAddress: row.salonAddress, // Salon Address
                 dispatchAddress: row.dispatchAddress, // Dispatch Address
                 remarks: row.remarks, // Remarks
@@ -719,12 +719,13 @@ const Production = () => {
                                                     <th>Job Deadline</th>
                                                     <th>Lamination</th>
                                                     <th>Mounting</th>
-                                                    <th>Implementation</th>
+                                                    {/* <th>Implementation</th> */}
                                                     <th>Salon Address</th>
                                                     <th>Dispatch Address</th>
                                                     <th>Remarks</th>
                                                     <th>Actual Complete Time</th>
                                                     <th>On Time Delayed</th>
+                                                    <th>Sub Client</th>
                                                     {/* <th>IP Address</th> */}
                                                     <th>Start Job</th>
                                                     <th>Stop Job</th>
@@ -781,12 +782,13 @@ const Production = () => {
                                                             <td>{row.deadline}</td>
                                                             <td>{row.lamination}</td>
                                                             <td>{row.mounting}</td>
-                                                            <td>{row.implementation}</td>
+                                                            {/* <td>{row.implementation}</td> */}
                                                             <td>{row.salonAddress}</td>
                                                             <td>{row.dispatchAddress}</td>
                                                             <td>{row.remarks}</td>
                                                             <td>{row.actCompleteTime}</td>
                                                             <td>{row.onTimeDelayed}</td>
+                                                            <td>{row.subClient}</td>
                                                             {/* <td>{row.ipaddress}</td> */}
                                                             <td>{row.startdate || '-'}</td>
                                                             <td>{row.enddate || '-'}</td>

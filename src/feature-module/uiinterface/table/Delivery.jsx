@@ -141,7 +141,7 @@ const Delivery = () => {
                 media: row.media,                // Media
                 lamination: row.lamination,      // Lamination
                 mounting: row.mounting,          // Mounting
-                implementation: row.implementation,  // Implementation
+                // implementation: row.implementation,  // Implementation
                 salonAddress: row.salonAddress,  // Salon Address
                 dispatchAddress: row.dispatchAddress, // Dispatch Address
                 deadline: row.deadline,          // Deadline
@@ -149,6 +149,7 @@ const Delivery = () => {
                 actCompleteTime: row.actCompleteTime,  // Actual Completion Time
                 onTimeDelayed: row.onTimeDelayed, // On Time or Delayed status
                 enteredby: row.enteredby,        // Entered By
+                subClient: row.subClient,        // Entered By
                 entereddt: row.entereddt,    // Entered Date
                 lstupdatedt: row.lstupdatedt,  // Last Updated By
                 width: row.width,                // Width
@@ -348,7 +349,7 @@ const Delivery = () => {
                                                     <th>Media</th>
                                                     <th>Lamination</th>
                                                     <th>Mounting</th>
-                                                    <th>Implementation</th>
+                                                    {/* <th>Implementation</th> */}
                                                     <th>Salon Address</th>
                                                     <th>Dispatch Address</th>
                                                     <th>Deadline</th>
@@ -356,6 +357,7 @@ const Delivery = () => {
                                                     <th>Actual Complete Time</th>
                                                     <th>On Time Delayed</th>
                                                     <th>Entered By</th>
+                                                    <th>Sub Client</th>
                                                     <th>Entered Date</th>
                                                     <th>Last Update By</th>
                                                     <th>Last Updated By</th>
@@ -402,7 +404,7 @@ const Delivery = () => {
                                                             <td>{row.media}</td>
                                                             <td>{row.lamination}</td>
                                                             <td>{row.mounting}</td>
-                                                            <td>{row.implementation}</td>
+                                                            {/* <td>{row.implementation}</td> */}
                                                             <td>{row.salonAddress}</td>
                                                             <td>{row.dispatchAddress}</td>
                                                             <td>{row.deadline}</td>
@@ -410,6 +412,7 @@ const Delivery = () => {
                                                             <td>{row.actCompleteTime}</td>
                                                             <td>{row.onTimeDelayed}</td>
                                                             <td>{row.enteredby}</td>
+                                                            <td>{row.subClient}</td>
                                                             <td>{row.entereddt}</td>
                                                             <td>{row.lstupateby}</td>
                                                             <td>{row.lstupdatedt}</td>

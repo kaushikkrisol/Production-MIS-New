@@ -659,7 +659,7 @@ const DataTables = () => {
                           <th>Job Deadline</th>
                           <th>Lamination</th>
                           <th>Mounting</th>
-                          <th>Implementation</th>
+                          {/* <th>Implementation</th> */}
                           <th>Salon Address</th>
                           <th>Dispatch Address</th>
                           <th>Deadline</th>
@@ -668,6 +668,7 @@ const DataTables = () => {
                           <th>Remarks/Instructions</th>
                           <th>Actual Complete Time</th>
                           <th>On Time Delayed</th>
+                          <th>Sub Client</th>
                          
                           {/* <th>Start Job</th>
                           <th>Stop Job</th>
@@ -713,7 +714,7 @@ const DataTables = () => {
                               <td>{row.deadline}</td>
                               <td>{row.lamination}</td>
                               <td>{row.mounting}</td>
-                              <td>{row.implementation}</td>
+                              {/* <td>{row.implementation}</td> */}
                               <td>{row.salonAddress}</td>
                               <td>{row.dispatchAddress}</td>
                               <td>{row.deadline}</td>
@@ -722,6 +723,7 @@ const DataTables = () => {
                               <td>{row.remarks}</td>
                               <td>{row.actCompleteTime}</td>
                               <td>{row.onTimeDelayed}</td>
+                              <td>{row.subClient}</td>
                               
                               {/* <td>{row.startJobTime || '-'}</td>
                               <td>{row.stopJobTime || '-'}</td>

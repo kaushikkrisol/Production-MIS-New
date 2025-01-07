@@ -199,8 +199,8 @@ const MisReport = () => {
             data: csData,
             headers: [
                 "Job No", "Date", "Client", "User Name", "Region", "Visual Code", "Name Sub Code",
-                "City", "Qty", "Media", "Implementation", "Deadline", "Lamination", "Mounting", "Implementation",
-                "Salon Address", "Dispatch Address", "Remarks", "Actual Complete Time",
+                "City", "Qty", "Media", "Implementation", "Deadline", "Lamination", "Mounting",
+                "Salon Address", "Dispatch Address", "Remarks", "Sub Client", "Actual Complete Time",
                 "On-Time/Delayed", "Width", "Height", "Total SqFt"
             ],
             renderRow: (row) => (
@@ -219,10 +219,11 @@ const MisReport = () => {
                     <td>{row.deadline}</td>
                     <td>{row.lamination}</td>
                     <td>{row.mounting}</td>
-                    <td>{row.implementation}</td>
+                    {/* <td>{row.implementation}</td> */}
                     <td>{row.salonAddress}</td>
                     <td>{row.dispatchAddress}</td>
                     <td>{row.remarks}</td>
+                    <td>{row.subClient}</td>
                     <td>{row.actCompleteTime}</td>
                     <td>{row.onTimeDelayed}</td>
                     <td>{row.width}</td>
@@ -260,8 +261,8 @@ const MisReport = () => {
         Printing: {
             data: printingData,
             headers: ["Job No", "Date", "Client Name", "User Name", "Location", "Visual Code", "Name Sub Code",
-                "City", "Quantity", "Media", "Installation", "Deadline", "Lamination", "Mounting", "Implementation", "Salon Address",
-                "Dispatch Address", "Deadline", "Remarks", "Actual Complete Time", "On Time Delayed", "Entered By", "Entered Date",
+                "City", "Quantity", "Media", "Installation", "Deadline", "Lamination", "Mounting", "Salon Address",
+                "Dispatch Address", "Deadline", "Remarks", "Actual Complete Time", "On Time Delayed", "Entered By", "SubClient", "Entered Date",
                 "Last Update By", "Last Updated By", "IP Address", "Width", "Height", "Total Sq Ft", "Start Job", "Stop Job"],
             renderRow: (row) => (
                 <tr key={row.id}>
@@ -287,13 +288,14 @@ const MisReport = () => {
                     <td>{row.media}</td>
                     <td>{row.lamination}</td>
                     <td>{row.mounting}</td>
-                    <td>{row.implementation}</td>
+                    {/* <td>{row.implementation}</td> */}
                     <td>{row.salonAddress}</td>
                     <td>{row.dispatchAddress}</td>
                     <td>{row.remarks}</td>
                     <td>{row.actCompleteTime}</td>
                     <td>{row.onTimeDelayed}</td>
                     <td>{row.enteredby}</td>
+                    <td>{row.subClient}</td>
                     <td>{row.entereddt}</td>
                     <td>{row.lstupateby}</td>
                     <td>{row.lstupdatedt}</td>
@@ -311,7 +313,7 @@ const MisReport = () => {
             headers: ["Job No", "Date", "Client Name", "User Name", "Location", "Visual Code", "Name Sub Code",
                 "City", "Quantity", "Media", "Lamination", "Mounting", "Implementation", "Salon Address",
                 "Dispatch Address", "Deadline", "Remarks", "Actual Complete Time", "On Time Delayed", "Entered By", "Entered Date",
-                "Last Update By", "Last Updated By", "Width", "Height", "Total Sq Ft", "Delivery By", "Delivery Date", "Delivery To"],
+                "Last Update By", "Last Updated By", "Width", "Height", "Total Sq Ft", "Delivery By", "Delivery Date", "Delivery To", "Sub Client"],
             renderRow: (row) => (
                 <tr key={row.id}>
                     <td>{row.jobNo}</td>
@@ -341,6 +343,7 @@ const MisReport = () => {
                     <td>{row.dispatchAddress}</td>
                     <td>{row.deadline}</td>
                     <td>{row.remarks}</td>
+                    <td>{row.subClient}</td>
                     <td>{row.actCompleteTime}</td>
                     <td>{row.onTimeDelayed}</td>
                     <td>{row.enteredby}</td>
