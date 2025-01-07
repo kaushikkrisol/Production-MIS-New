@@ -131,6 +131,7 @@ const Delivery = () => {
                 productionid: row.productionid,
                 jobNo: row.jobNo,                // Job Number
                 clientName: row.client,
+                subClient: row.subClient,
                 date: row.date,
                 userName: row.userName,          // User Name
                 location: row.region,          // Location
@@ -149,7 +150,6 @@ const Delivery = () => {
                 actCompleteTime: row.actCompleteTime,  // Actual Completion Time
                 onTimeDelayed: row.onTimeDelayed, // On Time or Delayed status
                 enteredby: row.enteredby,        // Entered By
-                subClient: row.subClient,        // Entered By
                 entereddt: row.entereddt,    // Entered Date
                 lstupdatedt: row.lstupdatedt,  // Last Updated By
                 width: row.width,                // Width
@@ -340,6 +340,7 @@ const Delivery = () => {
                                                     <th>Job No</th>
                                                     <th>Date</th>
                                                     <th>Client Name</th>
+                                                    <th>Sub Client</th>
                                                     <th>User Name</th>
                                                     <th>Location</th>
                                                     <th>Visual Code</th>
@@ -357,7 +358,6 @@ const Delivery = () => {
                                                     <th>Actual Complete Time</th>
                                                     <th>On Time Delayed</th>
                                                     <th>Entered By</th>
-                                                    <th>Sub Client</th>
                                                     <th>Entered Date</th>
                                                     <th>Last Update By</th>
                                                     <th>Last Updated By</th>
@@ -389,6 +389,7 @@ const Delivery = () => {
                                                             <td>
                                                                 {row.client}
                                                             </td>
+                                                            <td>{row.subClient}</td>
                                                             <td>{row.userName}</td>
                                                             <td>{row.region}</td>
                                                             <td>
@@ -412,7 +413,6 @@ const Delivery = () => {
                                                             <td>{row.actCompleteTime}</td>
                                                             <td>{row.onTimeDelayed}</td>
                                                             <td>{row.enteredby}</td>
-                                                            <td>{row.subClient}</td>
                                                             <td>{row.entereddt}</td>
                                                             <td>{row.lstupateby}</td>
                                                             <td>{row.lstupdatedt}</td>

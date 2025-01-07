@@ -198,9 +198,9 @@ const MisReport = () => {
         CS: {
             data: csData,
             headers: [
-                "Job No", "Date", "Client", "User Name", "Region", "Visual Code", "Name Sub Code",
+                "Job No", "Date", "Client", "Sub Client", "User Name", "Region", "Visual Code", "Name Sub Code",
                 "City", "Qty", "Media", "Implementation", "Deadline", "Lamination", "Mounting",
-                "Salon Address", "Dispatch Address", "Remarks", "Sub Client", "Actual Complete Time",
+                "Salon Address", "Dispatch Address", "Remarks", "Actual Complete Time",
                 "On-Time/Delayed", "Width", "Height", "Total SqFt"
             ],
             renderRow: (row) => (
@@ -208,6 +208,7 @@ const MisReport = () => {
                     <td>{row.jobNo}</td>
                     <td>{row.date}</td>
                     <td>{row.client}</td>
+                    <td>{row.subClient}</td>
                     <td>{row.userName}</td>
                     <td>{row.region}</td>
                     <td>{row.visualCode}</td>
@@ -223,7 +224,6 @@ const MisReport = () => {
                     <td>{row.salonAddress}</td>
                     <td>{row.dispatchAddress}</td>
                     <td>{row.remarks}</td>
-                    <td>{row.subClient}</td>
                     <td>{row.actCompleteTime}</td>
                     <td>{row.onTimeDelayed}</td>
                     <td>{row.width}</td>
@@ -260,9 +260,9 @@ const MisReport = () => {
         },
         Printing: {
             data: printingData,
-            headers: ["Job No", "Date", "Client Name", "User Name", "Location", "Visual Code", "Name Sub Code",
+            headers: ["Job No", "Date", "Client Name", "Sub Client", "User Name", "Location", "Visual Code", "Name Sub Code",
                 "City", "Quantity", "Media", "Installation", "Deadline", "Lamination", "Mounting", "Salon Address",
-                "Dispatch Address", "Deadline", "Remarks", "Actual Complete Time", "On Time Delayed", "Entered By", "SubClient", "Entered Date",
+                "Dispatch Address", "Deadline", "Remarks", "Actual Complete Time", "On Time Delayed", "Entered By", "Entered Date",
                 "Last Update By", "Last Updated By", "IP Address", "Width", "Height", "Total Sq Ft", "Start Job", "Stop Job"],
             renderRow: (row) => (
                 <tr key={row.id}>
@@ -273,6 +273,7 @@ const MisReport = () => {
                     <td>
                         {row.client}
                     </td>
+                    <td>{row.subClient}</td>
                     <td>{row.userName}</td>
                     <td>{row.region}</td>
                     <td>{row.installation}</td>
@@ -295,7 +296,6 @@ const MisReport = () => {
                     <td>{row.actCompleteTime}</td>
                     <td>{row.onTimeDelayed}</td>
                     <td>{row.enteredby}</td>
-                    <td>{row.subClient}</td>
                     <td>{row.entereddt}</td>
                     <td>{row.lstupateby}</td>
                     <td>{row.lstupdatedt}</td>
@@ -310,10 +310,10 @@ const MisReport = () => {
         },
         Delivery: {
             data: deliveryData,
-            headers: ["Job No", "Date", "Client Name", "User Name", "Location", "Visual Code", "Name Sub Code",
+            headers: ["Job No", "Date", "Client Name", "Sub Client", "User Name", "Location", "Visual Code", "Name Sub Code",
                 "City", "Quantity", "Media", "Lamination", "Mounting", "Implementation", "Salon Address",
                 "Dispatch Address", "Deadline", "Remarks", "Actual Complete Time", "On Time Delayed", "Entered By", "Entered Date",
-                "Last Update By", "Last Updated By", "Width", "Height", "Total Sq Ft", "Delivery By", "Delivery Date", "Delivery To", "Sub Client"],
+                "Last Update By", "Last Updated By", "Width", "Height", "Total Sq Ft", "Delivery By", "Delivery Date", "Delivery To"],
             renderRow: (row) => (
                 <tr key={row.id}>
                     <td>{row.jobNo}</td>
@@ -323,6 +323,7 @@ const MisReport = () => {
                     <td>
                         {row.client}
                     </td>
+                    <td>{row.subClient}</td>
                     <td>{row.userName}</td>
                     <td>{row.region}</td>
                     <td>
@@ -343,7 +344,6 @@ const MisReport = () => {
                     <td>{row.dispatchAddress}</td>
                     <td>{row.deadline}</td>
                     <td>{row.remarks}</td>
-                    <td>{row.subClient}</td>
                     <td>{row.actCompleteTime}</td>
                     <td>{row.onTimeDelayed}</td>
                     <td>{row.enteredby}</td>

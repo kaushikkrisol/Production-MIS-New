@@ -297,6 +297,7 @@ const Production = () => {
                 id: row.id,
                 jobNo: row.jobNo, // Job Number
                 client: row.client,
+                subClient: row.subClient,
                 date: row.date,
                 userName: username, // User Name
                 region: row.region, // Location
@@ -702,6 +703,7 @@ const Production = () => {
                                                     <th>Job No</th>
                                                     <th>Date</th>
                                                     <th>Client Name</th>
+                                                    <th>Sub Client</th>
                                                     <th>User Name</th>
                                                     <th>Width</th>
                                                     <th>Height</th>
@@ -725,7 +727,6 @@ const Production = () => {
                                                     <th>Remarks</th>
                                                     <th>Actual Complete Time</th>
                                                     <th>On Time Delayed</th>
-                                                    <th>Sub Client</th>
                                                     {/* <th>IP Address</th> */}
                                                     <th>Start Job</th>
                                                     <th>Stop Job</th>
@@ -751,6 +752,7 @@ const Production = () => {
                                                             <td>
                                                                 {row.client}
                                                             </td>
+                                                            <td>{row.subClient}</td>
                                                             <td>{row.userName}</td>
                                                             <td>
                                                                 {row.width}
@@ -788,7 +790,6 @@ const Production = () => {
                                                             <td>{row.remarks}</td>
                                                             <td>{row.actCompleteTime}</td>
                                                             <td>{row.onTimeDelayed}</td>
-                                                            <td>{row.subClient}</td>
                                                             {/* <td>{row.ipaddress}</td> */}
                                                             <td>{row.startdate || '-'}</td>
                                                             <td>{row.enddate || '-'}</td>
