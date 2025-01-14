@@ -45,6 +45,7 @@ export const all_routes = {
   designn: "/Designn",
   production: "/Production",
   delivery: "/Delivery",
+  implementation: "/Implementation",
 
   misreport: "/MisReport",
   jobtracker: "/JobTracker",

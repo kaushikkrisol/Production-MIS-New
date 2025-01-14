@@ -1,14 +1,15 @@
 // https://production.comart.in
 
-// let BaseURL = "https://localhost:7035";
+let BaseURL = "https://localhost:7035";
 
-let BaseURL ='https://productionapi.comart.in'
+// let BaseURL ='https://productionapi.comart.in'
 
 const config ={
 
     User: {
         URL: {
             Checkuser: BaseURL + '/User/Checkuser',
+            GetAllUserrole: BaseURL + '/User/getalluserrole/getalluserrole',
         }
     },
     JobSummary: {
@@ -44,6 +45,15 @@ const config ={
             Addeliverystart: BaseURL + '/api/Delivery/Addeliverystart',
             Addeliverystop: BaseURL + '/api/Delivery/Addeliverystop',
             Getalldeliveryjobs: BaseURL + '/api/Delivery/Getalldeliveryjobs',
+        }
+    },
+    Implementation: {
+        URL: {
+            AddImplementation: BaseURL + '/api/Implementation',
+            GetallImplementation: BaseURL + '/api/Implementation/GetAllImplementation',
+            AddImplementationStart: BaseURL + '/api/Implementation/AddImplementationStart',
+            AddImplementationStop: BaseURL + '/api/Delivery/AddImplementationStop',
+            GetallImplementationJobs: BaseURL + '/api/Delivery/GetAllImplementationjobs',
         }
     },
     Report: {
