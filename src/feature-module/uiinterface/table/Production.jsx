@@ -45,6 +45,15 @@ const Production = () => {
 
     const [printingData, setPrintingData] = useState([]);
     const [mediaHeight, setMediaHeight] = useState(0);
+    const [mediaSqFt, setMediaSqFt] = useState(0);
+
+    // Recalculate square footage whenever mediaWidth or mediaHeight changes
+    useEffect(() => {
+        if (mediaWidth && mediaHeight) {
+            setMediaSqFt((parseFloat(mediaWidth) * parseFloat(mediaHeight)).toFixed(2));
+        }
+    }, [mediaWidth, mediaHeight]);
+
     console.log(setPrintingData);
     console.log(printingData);
     let  location_id = 1;
@@ -308,12 +317,13 @@ const Production = () => {
                 media: row.media,
                 mediaWidth: mediaWidth, // Updated with state value
                 mediaHeight: mediaHeight, // Updated with state value
+                mediaSqFt: mediaSqFt, // Updated with state value
                 printerName: selectedPrinter, // Selected printer
                 installation: row.installation,
                 deadline: row.deadline,
                 lamination: row.lamination, // Lamination
                 mounting: row.mounting, // Mounting
-                // implementation: row.implementation, // Implementation
+                implementation: row.implementation, // Implementation
                 salonAddress: row.salonAddress, // Salon Address
                 dispatchAddress: row.dispatchAddress, // Dispatch Address
                 remarks: row.remarks, // Remarks
@@ -691,7 +701,7 @@ const Production = () => {
                                             />
                                         </Form.Group>
                                     </Row>
-                                    <div style={{ overflowX: 'auto', position: 'sticky', bottom: 0 }}>
+                                    <div style={{ overflowX: 'auto', position: 'sticky'}}>
                                         <Table striped bordered hover>
                                             <thead>
                                                 <tr>
@@ -700,36 +710,37 @@ const Production = () => {
                                                         onChange={handleSelectAllChange}
                                                         checked={isSelectAllChecked}
                                                     /></th>
-                                                    <th>Job No</th>
                                                     <th>Date</th>
-                                                    <th>Client Name</th>
+                                                    <th>Job ID</th>
+                                                    <th>Client</th>
                                                     <th>Sub Client</th>
-                                                    <th>User Name</th>
-                                                    <th>Width</th>
-                                                    <th>Height</th>
-                                                    <th>Total Sq Ft</th>
-                                                    <th>Printer Name</th>
-                                                    <th>Location</th>
+                                                    <th>Account Manager</th>
                                                     <th>Media</th>
+                                                    <th>Print W.</th>
+                                                    <th>Print H.</th>
+                                                    <th>Print SQ.Ft.</th>
+                                                    <th>Printer Name</th>
+                                                    <th>Region</th>
                                                     <th>Visual Code</th>
                                                     <th>Name Sub Code</th>
-                                                    <th>City</th>
-                                                    <th>Quantity</th>
-                                                    <th>Media Width</th>
-                                                    <th>Media Height</th>
-                                                    <th>Installation</th>
+                                                    <th>Region</th>
+                                                    <th>Qty</th>
+                                                    <th>Media W</th>
+                                                    <th>Media H</th>
+                                                    <th>Media Sq.Ft.</th>
+                                                    <th>Implementation</th>
                                                     <th>Job Deadline</th>
-                                                    <th>Lamination</th>
+                                                    <th>Lamination Media Type</th>
                                                     <th>Mounting</th>
                                                     {/* <th>Implementation</th> */}
                                                     <th>Salon Address</th>
-                                                    <th>Dispatch Address</th>
+                                                    {/* <th>Dispatch Address</th> */}
                                                     <th>Remarks</th>
                                                     <th>Actual Complete Time</th>
                                                     <th>On Time Delayed</th>
                                                     {/* <th>IP Address</th> */}
-                                                    <th>Start Job</th>
-                                                    <th>Stop Job</th>
+                                                    <th>Job Start Date/Time</th>
+                                                    <th>Job End Date/Time</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -745,15 +756,16 @@ const Production = () => {
                                                                     disabled={row.isCompleted}
                                                                 />
                                                             </td>
-                                                            <td>{row.jobNo}</td>
                                                             <td>
                                                                 {row.date}
                                                             </td>
+                                                            <td>{row.jobNo}</td>
                                                             <td>
                                                                 {row.client}
                                                             </td>
                                                             <td>{row.subClient}</td>
                                                             <td>{row.userName}</td>
+                                                            <td>{row.media}</td>
                                                             <td>
                                                                 {row.width}
                                                             </td>
@@ -763,7 +775,6 @@ const Production = () => {
                                                             <td>{row.totalSqFt}</td>
                                                             <td>{selectedPrinter}</td>
                                                             <td>{row.region}</td>
-                                                            <td>{row.media}</td>
                                                             <td>
                                                                 {row.visualCode}
                                                             </td>
@@ -780,13 +791,14 @@ const Production = () => {
                                                             <td>
                                                                 {isJobRunning ? mediaHeight : row.mediaHeight || '-'}
                                                             </td>
-                                                            <td>{row.installation}</td>
+                                                            <td>{mediaSqFt}</td>
+                                                            <td>{row.implementation}</td>
                                                             <td>{row.deadline}</td>
                                                             <td>{row.lamination}</td>
                                                             <td>{row.mounting}</td>
                                                             {/* <td>{row.implementation}</td> */}
                                                             <td>{row.salonAddress}</td>
-                                                            <td>{row.dispatchAddress}</td>
+                                                            {/* <td>{row.dispatchAddress}</td> */}
                                                             <td>{row.remarks}</td>
                                                             <td>{row.actCompleteTime}</td>
                                                             <td>{row.onTimeDelayed}</td>
@@ -808,11 +820,11 @@ const Production = () => {
                                                 )}
                                                 {/* Row for displaying total values */}
                                                 <tr>
-                                                    <td colSpan="5" className="text-center"><strong>Total</strong></td>
+                                                    <td colSpan="7" className="text-center"><strong>Total</strong></td>
                                                     <td><strong>{totalValues.width}</strong></td>
                                                     <td><strong>{totalValues.height}</strong></td>
                                                     <td><strong>{totalValues.totalSqFt}</strong></td>
-                                                    <td colSpan="13"></td>
+                                                    <td colSpan="19"></td>
                                                 </tr>
                                             </tbody>
                                         </Table>

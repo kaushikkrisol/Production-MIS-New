@@ -642,11 +642,8 @@ const DataTables = () => {
                           </th> */}
                           <th>Job No</th>
                           <th>Date</th>
-                          <th>Client Name</th>
-                          <th>Sub Client</th>
-                          <th>CS Name</th>
-                          <th>Billing Location</th>
-                          <th>Production Location</th>
+                          <th>Client</th>
+                          <th>Region</th>
                           <th>Visual Code</th>
                           <th>Name Sub Code</th>
                           <th>City</th>
@@ -654,21 +651,26 @@ const DataTables = () => {
                           <th>Width</th>
                           <th>Height</th>
                           <th>Total Sq Ft</th>
-                          <th>Billing Sq Ft</th>
                           <th>Media</th>
-                          <th>Installation</th>
-                          <th>Job Deadline</th>
                           <th>Lamination</th>
                           <th>Mounting</th>
-                          {/* <th>Implementation</th> */}
+                          <th>Implementation</th>
                           <th>Salon Address</th>
                           <th>Dispatch Address</th>
                           <th>Deadline</th>
-                          <th>No of Artwork</th>
-                          <th>Artworker Deadline</th>
                           <th>Remarks/Instructions</th>
                           <th>Actual Complete Time</th>
                           <th>On Time Delayed</th>
+
+                          {/* <th>Sub Client</th>
+                          <th>CS Name</th>
+                          <th>Billing Location</th>
+                          <th>Billing Sq Ft</th>
+                          <th>Installation</th>
+                          <th>Job Deadline</th>
+                          <th>No of Artwork</th>
+                          <th>Artworker Deadline</th> */}
+                          
                          
                           {/* <th>Start Job</th>
                           <th>Stop Job</th>
@@ -686,11 +688,6 @@ const DataTables = () => {
                               <td>
                                 {row.client}
                               </td>
-                              <td>{row.subClient}</td>
-                              <td>
-                                {row.userName}
-                              </td>
-                              <td>{row.billingLocation}</td>
                               <td>{row.region}</td>
                               <td>
                                 {row.visualCode}
@@ -709,21 +706,29 @@ const DataTables = () => {
                                 {row.height}
                               </td>
                               <td>{row.totalSqFt}</td>
-                              <td>{row.billingSqFt}</td>
                               <td>{row.media}</td>
-                              <td>{row.installation}</td>
-                              <td>{row.deadline}</td>
                               <td>{row.lamination}</td>
                               <td>{row.mounting}</td>
-                              {/* <td>{row.implementation}</td> */}
+                              <td>{row.implementation}</td>
                               <td>{row.salonAddress}</td>
                               <td>{row.dispatchAddress}</td>
                               <td>{row.deadline}</td>
-                              <td>{row.noOfArtwork}</td>
-                              <td>{row.artworkerDeadline}</td>
                               <td>{row.remarks}</td>
                               <td>{row.actCompleteTime}</td>
                               <td>{row.onTimeDelayed}</td>
+
+
+                              {/* <td>{row.subClient}</td>
+                              <td>
+                                {row.userName}
+                              </td>
+                              <td>{row.billingLocation}</td>
+                              <td>{row.billingSqFt}</td>
+                              <td>{row.installation}</td>
+                              <td>{row.deadline}</td>
+                              <td>{row.noOfArtwork}</td>
+                              <td>{row.artworkerDeadline}</td> */}
+                              
                               
                               {/* <td>{row.startJobTime || '-'}</td>
                               <td>{row.stopJobTime || '-'}</td>

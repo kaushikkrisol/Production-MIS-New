@@ -381,12 +381,14 @@ const Implementation = () => {
                                                         onChange={handleSelectAllChange}
                                                         checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                                                     /></th>
-                                                    <th>Job No</th>
                                                     <th>Date</th>
+                                                    <th>Job ID</th>
                                                     <th>Client Name</th>
-                                                    <th>Sub Client</th>
-                                                    <th>User Name</th>
+                                                    <th>CS Name</th>
                                                     <th>Location</th>
+                                                    <th>Implementation</th>
+                                                    <th>Sub Client</th>
+                                                    
                                                     <th>Visual Code</th>
                                                     <th>Name Sub Code</th>
                                                     <th>City</th>
@@ -394,23 +396,22 @@ const Implementation = () => {
                                                     <th>Media</th>
                                                     <th>Lamination</th>
                                                     <th>Mounting</th>
-                                                    {/* <th>Implementation</th> */}
                                                     <th>Salon Address</th>
-                                                    <th>Dispatch Address</th>
+                                                    {/* <th>Dispatch Address</th> */}
                                                     <th>Deadline</th>
-                                                    <th>Remarks</th>
+                                                    <th>Remark</th>
                                                     <th>Actual Complete Time</th>
                                                     <th>On Time Delayed</th>
-                                                    <th>Entered By</th>
+                                                    {/* <th>Entered By</th>
                                                     <th>Entered Date</th>
                                                     <th>Last Update By</th>
-                                                    <th>Last Updated By</th>
+                                                    <th>Last Updated By</th> */}
                                                     <th>Width</th>
                                                     <th>Height</th>
                                                     <th>Total Sq Ft</th>
-                                                    <th>Implementation By</th>
-                                                    <th>Implementation Date</th>
-                                                    <th>Implementation To</th>
+                                                    <th>Impl Name</th>
+                                                    <th>Implementation Start Date & Time</th>
+                                                    <th>Implementation End Date & Time</th>
                                                     <th>Assigned To</th>
                                                 </tr>
                                             </thead>
@@ -427,16 +428,19 @@ const Implementation = () => {
                                                                     disabled={row.isCompleted}
                                                                 />
                                                             </td>
-                                                            <td>{row.jobNo}</td>
                                                             <td>
                                                                 {row.date}
                                                             </td>
+                                                            <td>{row.jobNo}</td>
                                                             <td>
                                                                 {row.client}
                                                             </td>
-                                                            <td>{row.subClient}</td>
                                                             <td>{row.userName}</td>
                                                             <td>{row.region}</td>
+                                                            <td>{row.installation}</td>
+                                                            
+                                                            <td>{row.subClient}</td>
+                                                            
                                                             <td>
                                                                 {row.visualCode}
                                                             </td>
@@ -450,17 +454,16 @@ const Implementation = () => {
                                                             <td>{row.media}</td>
                                                             <td>{row.lamination}</td>
                                                             <td>{row.mounting}</td>
-                                                            {/* <td>{row.implementation}</td> */}
                                                             <td>{row.salonAddress}</td>
-                                                            <td>{row.dispatchAddress}</td>
+                                                            {/* <td>{row.dispatchAddress}</td> */}
                                                             <td>{row.deadline}</td>
                                                             <td>{row.remarks}</td>
                                                             <td>{row.actCompleteTime}</td>
                                                             <td>{row.onTimeDelayed}</td>
-                                                            <td>{row.enteredby}</td>
+                                                            {/* <td>{row.enteredby}</td>
                                                             <td>{row.entereddt}</td>
                                                             <td>{row.lstupateby}</td>
-                                                            <td>{row.lstupdatedt}</td>
+                                                            <td>{row.lstupdatedt}</td> */}
                                                             <td>
                                                                 {row.width}
                                                             </td>
@@ -489,7 +492,7 @@ const Implementation = () => {
                                                 )}
                                                 {/* Row for displaying total values */}
                                                 <tr>
-                                                    <td colSpan="25" className="text-center"><strong>Total</strong></td>
+                                                    <td colSpan="20" className="text-center"><strong>Total</strong></td>
                                                     <td><strong>{totalValues.width}</strong></td>
                                                     <td><strong>{totalValues.height}</strong></td>
                                                     <td colSpan="10"></td>

@@ -474,7 +474,7 @@ const Designn = () => {
                         <Row className="mb-3 align-items-center">
                             <Col xs={2}>
                                 <Form.Group>
-                                    <Form.Label style={{ width: '200px' }}>Job Number</Form.Label>
+                                    <Form.Label style={{ width: '200px' }}>Job No</Form.Label>
                                     <Form.Select
                                         placeholder="Enter job number"
                                         value={newJobNo}
@@ -620,7 +620,7 @@ const Designn = () => {
                 </div>
                 <div>
                     <Form.Group className="mb-3">
-                        <Form.Label>Search by Job No</Form.Label>
+                        <Form.Label>Search by Job ID</Form.Label>
                         <Form.Control
                             type="text"
                             placeholder="Enter job number"
@@ -639,13 +639,13 @@ const Designn = () => {
                                             checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.designid])}
                                         />
                                     </th>
-                                    <th>Job No</th>
-                                    <th>Client Name</th>
+                                    <th>Job ID</th>
                                     <th>No Of Jobs</th>
+                                    <th>Client Name</th>
                                     <th>Brief</th>
                                     <th>Location</th>
                                     <th>Status</th>
-                                    <th>Query</th>
+                                    <th>Query/Comment</th>
                                     <th>Month</th>
                                     <th>Week</th>
                                     <th>Received Date</th>
@@ -653,9 +653,9 @@ const Designn = () => {
                                     <th>Upload Date</th>
                                     <th>Width</th>
                                     <th>Height</th>
-                                    <th>Start Job</th>
-                                    <th>Stop Job</th>
-                                    <th>Total Time</th>
+                                    <th>Artwork: Start time</th>
+                                    <th>Artwork: End time</th>
+                                    <th>Artwork: Production time</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -672,10 +672,10 @@ const Designn = () => {
                                                 />
                                             </td>
                                             <td>{row.jobNo}</td>
+                                            <td>{row.designNoOfJobs}</td>
                                             <td>
                                                 {row.designClientName}
                                             </td>
-                                            <td>{row.designNoOfJobs}</td>
                                             <td>
                                                 {row.designBrief}
                                             </td>
@@ -708,10 +708,10 @@ const Designn = () => {
                                 )}
                                 {/* Row for displaying total values */}
                                 <tr>
-                                    <td colSpan="14" className="text-center"><strong>Total</strong></td>
+                                    <td colSpan="13" className="text-center"><strong>Total</strong></td>
                                     <td><strong>{totalValues.width}</strong></td>
                                     <td><strong>{totalValues.height}</strong></td>
-                                    <td colSpan="2"></td>
+                                    <td colSpan="3"></td>
                                 </tr>
                             </tbody>
                         </Table>

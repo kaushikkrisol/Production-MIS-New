@@ -23,6 +23,8 @@ const Delivery = () => {
 
     const [deliveryBy, setDeliveryBy] = useState('');
     const [deliveryDate, setDeliveryDate] = useState('');
+    const [deliveryOutDate, setDeliveryOutDate] = useState('');
+    const [handTempoDelivery, setHandTempoDelivery] = useState('');
     const [deliveryTo, setDeliveryTo] = useState('');
 
     console.log(setDeliveryBy, setDeliveryDate, setDeliveryTo);
@@ -32,7 +34,7 @@ const Delivery = () => {
 
     const [printingData, setPrintingData] = useState([]);
     console.log(setPrintingData);
-    console.log(printingData, isJobRunning);
+    console.log(printingData, isJobRunning, totalValues);
 
     const fetchDeliveryJobs = async () => {
         try { 
@@ -87,6 +89,7 @@ const Delivery = () => {
         setDeliveryBy('');
         setDeliveryDate('');
         setDeliveryTo('');
+        setHandTempoDelivery('');
     };
     console.log(resetForm);
 
@@ -157,7 +160,9 @@ const Delivery = () => {
                 totalSqFt: row.totalSqFt,        // Total Square Footage
                 deliveryBy: deliveryBy,
                 deliveryDate: deliveryDate,
+                deliveryOutDate: deliveryOutDate,
                 deliveryTo: deliveryTo,
+                handTempoDelivery: handTempoDelivery,
             }));
 
         console.log("Start Job Data:", selectedJobs);
@@ -281,7 +286,7 @@ const Delivery = () => {
                                             <Row className="mb-3 align-items-center">
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formDeliveryBy">
-                                                        <Form.Label style={{ width: '200px' }}>Delivery From</Form.Label>
+                                                        <Form.Label style={{ width: '200px' }}>Delivery Person</Form.Label>
                                                         <Form.Control
                                                             type='text'
                                                             value={deliveryBy}
@@ -291,16 +296,26 @@ const Delivery = () => {
                                                     </Form.Group>
                                                 </Col>
                                                 <Col xs={2}>
-                                                    <Form.Group controlId="formDeliveryDate">
-                                                        <Form.Label style={{ width: '200px' }}>Delivery Date</Form.Label>
+                                                    <Form.Group controlId="formDeliveryInDate">
+                                                        <Form.Label style={{ width: '200px' }}>Delivery In Time</Form.Label>
                                                         <Form.Control
-                                                            type="date"
+                                                            type="datetime-local"
                                                             value={deliveryDate}
                                                             onChange={(e) => setDeliveryDate(e.target.value)}
                                                         />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col xs={2}>
+                                                    <Form.Group controlId="formDeliveryOutDate">
+                                                        <Form.Label style={{ width: '200px' }}>Delivery Out Time</Form.Label>
+                                                        <Form.Control
+                                                            type="datetime-local"
+                                                            value={deliveryOutDate}
+                                                            onChange={(e) => setDeliveryOutDate(e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                {/* <Col xs={2}>
                                                     <Form.Group controlId="formDeliveryTo">
                                                         <Form.Label style={{ width: '200px' }}>Delivery To</Form.Label>
                                                         <Form.Control
@@ -310,8 +325,18 @@ const Delivery = () => {
                                                             onChange={(e) => setDeliveryTo(e.target.value)}
                                                         />
                                                     </Form.Group>
+                                                </Col> */}
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formhandTempoDelivery">
+                                                        <Form.Label style={{ width: '200px' }}>Hand/Tempo Delivery</Form.Label>
+                                                        <Form.Control
+                                                            type='text'
+                                                            value={handTempoDelivery}
+                                                            onChange={(e) => setHandTempoDelivery(e.target.value)}
+                                                        />
+
+                                                    </Form.Group>
                                                 </Col>
-                                                
                                                 <Col>
                                                     <Button type="submit" variant="primary" onClick={(e) => handleAddDeliveryJob(e)}>Add</Button>
                                                 </Col>
@@ -337,36 +362,38 @@ const Delivery = () => {
                                                         onChange={handleSelectAllChange}
                                                         checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                                                     /></th>
-                                                    <th>Job No</th>
                                                     <th>Date</th>
+                                                    <th>Job ID</th>
                                                     <th>Client Name</th>
-                                                    <th>Sub Client</th>
-                                                    <th>User Name</th>
                                                     <th>Location</th>
+                                                    {/* <th>Sub Client</th>
+                                                    <th>CS Name</th>
                                                     <th>Visual Code</th>
                                                     <th>Name Sub Code</th>
                                                     <th>City</th>
                                                     <th>Quantity</th>
                                                     <th>Media</th>
                                                     <th>Lamination</th>
-                                                    <th>Mounting</th>
+                                                    <th>Mounting</th> */}
                                                     {/* <th>Implementation</th> */}
-                                                    <th>Salon Address</th>
-                                                    <th>Dispatch Address</th>
-                                                    <th>Deadline</th>
+                                                    {/* <th>Salon Address</th> */}
+                                                    {/* <th>Dispatch Address</th> */}
+                                                    {/* <th>Deadline</th>
                                                     <th>Remarks</th>
                                                     <th>Actual Complete Time</th>
-                                                    <th>On Time Delayed</th>
-                                                    <th>Entered By</th>
+                                                    <th>On Time Delayed</th> */}
+                                                    {/* <th>Entered By</th>
                                                     <th>Entered Date</th>
                                                     <th>Last Update By</th>
-                                                    <th>Last Updated By</th>
-                                                    <th>Width</th>
+                                                    <th>Last Updated By</th> */}
+                                                    {/* <th>Width</th>
                                                     <th>Height</th>
-                                                    <th>Total Sq Ft</th>
-                                                    <th>Delivery By</th>
-                                                    <th>Delivery Date</th>
-                                                    <th>Delivery To</th>
+                                                    <th>Total Sq Ft</th> */}
+                                                    <th>Delivery Person</th>
+                                                    <th>Delivery Out Time</th>
+                                                    <th>Delivery In Time</th>
+                                                    <th>Hand/Tempo Delivery</th>
+                                                    {/* <th>Delivery To</th> */}
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -382,17 +409,16 @@ const Delivery = () => {
                                                                     disabled={row.isCompleted}
                                                                 />
                                                             </td>
-                                                            <td>{row.jobNo}</td>
                                                             <td>
                                                                 {row.date}
                                                             </td>
+                                                            <td>{row.jobNo}</td>
                                                             <td>
                                                                 {row.client}
                                                             </td>
-                                                            <td>{row.subClient}</td>
-                                                            <td>{row.userName}</td>
+                                                            {/* <td>{row.subClient}</td> */}
                                                             <td>{row.region}</td>
-                                                            <td>
+                                                            {/* <td>{row.userName}</td>                                                            <td>
                                                                 {row.visualCode}
                                                             </td>
                                                             <td>{row.nameSubCode}</td>
@@ -404,28 +430,30 @@ const Delivery = () => {
                                                             </td>
                                                             <td>{row.media}</td>
                                                             <td>{row.lamination}</td>
-                                                            <td>{row.mounting}</td>
+                                                            <td>{row.mounting}</td> */}
                                                             {/* <td>{row.implementation}</td> */}
-                                                            <td>{row.salonAddress}</td>
-                                                            <td>{row.dispatchAddress}</td>
-                                                            <td>{row.deadline}</td>
+                                                            {/* <td>{row.salonAddress}</td> */}
+                                                            {/* <td>{row.dispatchAddress}</td> */}
+                                                            {/* <td>{row.deadline}</td>
                                                             <td>{row.remarks}</td>
                                                             <td>{row.actCompleteTime}</td>
-                                                            <td>{row.onTimeDelayed}</td>
-                                                            <td>{row.enteredby}</td>
+                                                            <td>{row.onTimeDelayed}</td> */}
+                                                            {/* <td>{row.enteredby}</td>
                                                             <td>{row.entereddt}</td>
                                                             <td>{row.lstupateby}</td>
-                                                            <td>{row.lstupdatedt}</td>
-                                                            <td>
+                                                            <td>{row.lstupdatedt}</td> */}
+                                                            {/* <td>
                                                                 {row.width}
                                                             </td>
                                                             <td>
                                                                 {row.height}
                                                             </td>
-                                                            <td>{row.totalSqFt}</td>
+                                                            <td>{row.totalSqFt}</td> */}
                                                             <td>{row.deliveryBy || '-'}</td>
                                                             <td>{row.deliveryDate || '-'}</td>
-                                                            <td>{row.deliveryTo || '-'}</td>
+                                                            <td>{row.deliveryOutDate || '-'}</td>
+                                                            <td>{row.handTempoDelivery || '-'}</td>
+                                                            {/* <td>{row.deliveryTo || '-'}</td> */}
                                                             {/* <td>{row.startdate || '-'}</td>
                                                             <td>{row.enddate || '-'}</td> */}
                                                             {/* <td>{row.startJobTime || '-'}</td>
@@ -438,16 +466,16 @@ const Delivery = () => {
                                                     ))
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan="10" className="text-center">No results found</td>
+                                                        <td colSpan="8" className="text-center">No results found</td>
                                                     </tr>
                                                 )}
                                                 {/* Row for displaying total values */}
-                                                <tr>
-                                                    <td colSpan="25" className="text-center"><strong>Total</strong></td>
+                                                {/* <tr>
+                                                    <td colSpan="8" className="text-center"><strong>Total</strong></td>
                                                     <td><strong>{totalValues.width}</strong></td>
                                                     <td><strong>{totalValues.height}</strong></td>
                                                     <td colSpan="10"></td>
-                                                </tr>
+                                                </tr> */}
                                             </tbody>
                                         </Table>
                                     </div>
