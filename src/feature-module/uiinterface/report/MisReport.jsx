@@ -234,17 +234,18 @@ const MisReport = () => {
         },
         Design: {
             data: designData,
-            headers: ["Job No", "Client Name", "No Of Jobs", "Brief", "Location", "Status",
+            headers: ["Job No", "Designer Name",  "Client Name", "No Of Jobs", "Brief", "Location", 
                 "Query", "Month", "Week", "Received Date", "Due Date", "Upload Date",
                 "Width", "Height", "Start Job", "Stop Job"],
             renderRow: (row) => (
                 <tr key={row.id}>
                     <td>{row.jobNo}</td>
+                    <td>{row.enteredBy}</td>
                     <td>{row.designClientName}</td>
                     <td>{row.designNoOfJobs}</td>
                     <td>{row.designBrief}</td>
                     <td>{row.designLocation}</td>
-                    <td>{row.designStatus}</td>
+                {/* <td>{row.designStatus}</td> */}
                     <td>{row.designQuery}</td>
                     <td>{row.designMonth}</td>
                     <td>{row.designWeek}</td>
