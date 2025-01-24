@@ -23,6 +23,8 @@ const SalesDashbaord = () => {
   const dispatch = useDispatch();
   const data = useSelector((state) => state.toggle_header);
 
+  const users = localStorage.getItem('users');
+
   const renderRefreshTooltip = (props) => (
     <Tooltip id="refresh-tooltip" {...props}>
       Refresh
@@ -130,7 +132,7 @@ const SalesDashbaord = () => {
             <div className="d-flex align-items-center welcome-text">
               <h3 className="d-flex align-items-center">
                 <ImageWithBasePath src="assets/img/icons/hi.svg" alt="img" />
-                &nbsp;Hi John Smilga,
+                &nbsp;Hi {users.username},
               </h3>
               &nbsp;
               <h6>here&apos;s what&apos;s happening with your store today.</h6>

@@ -41,6 +41,28 @@ const DataTables = () => {
   const totalWidth = totalValues ? totalValues.width : 0;
   const totalHeight = totalValues ? totalValues.height : 0;
 
+  const [user, setUser] = useState('');
+  const users = localStorage.getItem('users');
+  const currentDate = new Date().toISOString().split('T')[0];
+
+  // Check if users data exists and is not null
+  useEffect(() => {
+    // Check if users data exists and is not null
+    if (users) {
+      // Parse the JSON string into an object
+      const usersObject = JSON.parse(users);
+
+      // Access the username
+      const username = usersObject.message && usersObject.message.username;
+      setUser(username);
+
+      // Log the username to the console
+      console.log('Username:', username);
+    } else {
+      console.log('No user data found in localStorage.');
+    }
+  }, []);
+
   // const locationMapping = {
   //   1: "MumbaiNanachowk",
   //   2: "BANGALORE",
@@ -189,6 +211,8 @@ const DataTables = () => {
         user: { 
           user_id: user_id,
           userName: userName,
+          username: user,
+          entereddt: currentDate,
         }
       };
 
@@ -316,6 +340,8 @@ const DataTables = () => {
         ...item,  // Spread existing properties
         userName: userName, // Add the username field
         user_id: user_id,
+        username: user,
+        entereddt: currentDate,
       }));
       console.log('data with unames', dataWithUsernames);
       console.log("API URL: ", config.JobSummary.URL.AddJobSummary);
@@ -640,28 +666,32 @@ const DataTables = () => {
                               checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                             />
                           </th> */}
-                          <th>Job No</th>
+                          <th>Job ID</th>
                           <th>Date</th>
                           <th>Client</th>
-                          <th>Region</th>
+                          <th>Sub Client</th>
+                          <th>Production Location</th>
+                          <th>Billing Location</th>
                           <th>Visual Code</th>
-                          <th>Name Sub Code</th>
+                          <th>Name & Sub Code</th>
                           <th>City</th>
-                          <th>Quantity</th>
+                          <th>Qty</th>
                           <th>Width</th>
                           <th>Height</th>
-                          <th>Total Sq Ft</th>
+                          <th>Total Sq.ft</th>
                           <th>Media</th>
                           <th>Lamination</th>
                           <th>Mounting</th>
                           <th>Implementation</th>
                           <th>Salon Address</th>
-                          <th>Dispatch Address</th>
-                          <th>Deadline</th>
+                          <th>Billing Sq Ft</th>
+                          {/* <th>Installation</th> */}
+                          <th>Job Deadline</th>
+                          <th>No of Artwork</th>
+                          <th>Artworker Deadline</th>
                           <th>Remarks/Instructions</th>
                           <th>Actual Complete Time</th>
-                          <th>On Time Delayed</th>
-
+                          <th>On Time Delayed 2</th>
                           {/* <th>Sub Client</th>
                           <th>CS Name</th>
                           <th>Billing Location</th>
@@ -687,8 +717,12 @@ const DataTables = () => {
                               </td>
                               <td>
                                 {row.client}
+                               
                               </td>
+                              <td>{row.subClient}</td>
+                            
                               <td>{row.region}</td>
+                              <td>{row.billingLocation}</td>
                               <td>
                                 {row.visualCode}
                               </td>
@@ -711,8 +745,11 @@ const DataTables = () => {
                               <td>{row.mounting}</td>
                               <td>{row.implementation}</td>
                               <td>{row.salonAddress}</td>
-                              <td>{row.dispatchAddress}</td>
+                              <td>{row.billingSqFt}</td>
+                              {/* <td>{row.installation}</td> */}
                               <td>{row.deadline}</td>
+                              <td>{row.noOfArtwork}</td>
+                              <td>{row.artworkerDeadline}</td>
                               <td>{row.remarks}</td>
                               <td>{row.actCompleteTime}</td>
                               <td>{row.onTimeDelayed}</td>
@@ -723,11 +760,8 @@ const DataTables = () => {
                                 {row.userName}
                               </td>
                               <td>{row.billingLocation}</td>
-                              <td>{row.billingSqFt}</td>
-                              <td>{row.installation}</td>
                               <td>{row.deadline}</td>
-                              <td>{row.noOfArtwork}</td>
-                              <td>{row.artworkerDeadline}</td> */}
+                               */}
                               
                               
                               {/* <td>{row.startJobTime || '-'}</td>
@@ -748,7 +782,7 @@ const DataTables = () => {
                           <td colSpan="10" className="text-center"><strong>Total</strong></td>
                           <td><strong>{totalWidth}</strong></td>
                           <td><strong>{totalHeight}</strong></td>
-                          <td colSpan="10"></td>
+                          <td colSpan="15"></td>
                         </tr>
                       </tbody>
                     </Table>

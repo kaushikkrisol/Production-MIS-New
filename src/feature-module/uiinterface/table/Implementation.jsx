@@ -39,6 +39,28 @@ const Implementation = () => {
     console.log(printingData, isJobRunning);
     console.log('user name selected: ', name.username);
 
+    const [username, setUsername] = useState('');
+
+    // Check if users data exists and is not null
+    useEffect(() => {
+        const users = localStorage.getItem('users');
+
+        // Check if users data exists and is not null
+        if (users) {
+            // Parse the JSON string into an object
+            const usersObject = JSON.parse(users);
+
+            // Access the username
+            const username = usersObject.message && usersObject.message.username;
+            setUsername(username);
+
+            // Log the username to the console
+            console.log('Username:', username);
+        } else {
+            console.log('No user data found in localStorage.');
+        }
+    }, []);
+
     const fetchImplementationJobs = async () => {
         try {
             const response = await axios.post(config.Implementation.URL.GetallImplementation, {
@@ -181,6 +203,8 @@ const Implementation = () => {
                 enteredby: row.enteredby,        // Entered By
                 entereddt: row.entereddt,    // Entered Date
                 lstupdatedt: row.lstupdatedt,  // Last Updated By
+                lstupateby: username,
+                username: username,
                 width: row.width,                // Width
                 height: row.height,              // Height
                 totalSqFt: row.totalSqFt,        // Total Square Footage

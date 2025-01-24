@@ -24,7 +24,27 @@ const Designn = () => {
 
     const [newBrief, setNewBrief] = useState('');
     const [newQuery, setNewQuery] = useState('');
+    const [user, setUser] = useState('');
 
+    // Check if users data exists and is not null
+    useEffect(() => {
+        const users = localStorage.getItem('users');
+
+        // Check if users data exists and is not null
+        if (users) {
+            // Parse the JSON string into an object
+            const usersObject = JSON.parse(users);
+
+            // Access the username
+            const username = usersObject.message && usersObject.message.username;
+            setUser(username);
+
+            // Log the username to the console
+            console.log('Username:', username);
+        } else {
+            console.log('No user data found in localStorage.');
+        }
+    }, []);
 
     const date = new Date();
     const recDay = date.getDate();
@@ -61,9 +81,11 @@ const Designn = () => {
 
     const locations = ["North", "South", "East", "West", "All"];
     const status = ["Done", "Hold"];
+    console.log(status);
 
     console.log(jobNumbers, setStartDate, setEndDate, setHiddenRows);
     console.log(clientNames, setData, selectedDesignIds, endDate);
+    const currentDate = new Date().toISOString().split('T')[0];
 
     const fetchJobs = async () => {
         setLoading(true);
@@ -73,6 +95,7 @@ const Designn = () => {
 
             const response = await axios.post(config.JobSummary.URL.Getalljob, {
                 timeout: 10000,
+                username: user,
             });
             console.log("Data fetched successfully: ", response.data);
             setJobs(response.data);
@@ -127,7 +150,6 @@ const Designn = () => {
         fetchData();
     }, []);
 
-
     const handleAddJob = async () => {
         // e.preventDefault();
 
@@ -153,6 +175,7 @@ const Designn = () => {
             query: newQuery,
             month: newMonth,
             week: newWeek,
+            username: user
         };
 
         try {
@@ -223,6 +246,7 @@ const Designn = () => {
             startdate: new Date().toISOString(),
             lastUpdated: new Date().toISOString(),
             entereddt: new Date().toISOString(),
+            username: user
         }));
 
         console.log("Starting jobs:", startData);
@@ -272,6 +296,7 @@ const Designn = () => {
         const stopData = selectedJobs.map(job => ({
             ...job,
             enddate: new Date().toISOString(),
+            username: user,
             lastUpdated: new Date().toISOString(),
             entereddt: new Date().toISOString()
         }));
@@ -476,6 +501,7 @@ const Designn = () => {
                                 <Form.Group>
                                     <Form.Label style={{ width: '200px' }}>Job No</Form.Label>
                                     <Form.Select
+                                    type="text"
                                         placeholder="Enter job number"
                                         value={newJobNo}
                                         onChange={(e) => handleJobNumberChange(e.target.value)}
@@ -501,7 +527,7 @@ const Designn = () => {
                             </Col>
                             <Col xs={2}>
                                 <Form.Group controlId="formNoOfJobs">
-                                    <Form.Label style={{ width: '200px' }}>No Of Jobs</Form.Label>
+                                    <Form.Label style={{ width: '200px' }}>No Of Artworker</Form.Label>
                                     <Form.Control
                                         type="text"
                                         placeholder="Enter no. of jobs"
@@ -539,7 +565,7 @@ const Designn = () => {
                                     </Form.Select>
                                 </Form.Group>
                             </Col>
-                            <Col xs={2}>
+                            {/* <Col xs={2}>
                                 <Form.Group controlId="formStatus">
                                     <Form.Label style={{ width: '200px' }}>Status</Form.Label>
                                     <Form.Select
@@ -554,7 +580,7 @@ const Designn = () => {
                                         ))}
                                     </Form.Select>
                                 </Form.Group>
-                            </Col>
+                            </Col> */}
                             <Col xs={2}>
                                 <Form.Group controlId="formQuery">
                                     <Form.Label style={{ width: '200px' }}>Query</Form.Label>
@@ -586,6 +612,7 @@ const Designn = () => {
                                         placeholder="Enter Upload Date"
                                         value={newUploadDate}
                                         onChange={(e) => setNewUploadDate(e.target.value)}
+                                        max={currentDate}
                                         required
                                     />
                                 </Form.Group>
@@ -594,7 +621,7 @@ const Designn = () => {
                                 <Form.Group controlId="formWidth">
                                     <Form.Label style={{ width: '100px' }}>Width</Form.Label>
                                     <Form.Control
-                                        type="text"
+                                        type="number"
                                         placeholder="Enter width"
                                         value={newWidth}
                                         onChange={(e) => setNewWidth(e.target.value)}
@@ -605,7 +632,7 @@ const Designn = () => {
                                 <Form.Group controlId="formHeight">
                                     <Form.Label style={{ width: '100px' }}>Height</Form.Label>
                                     <Form.Control
-                                        type="text"
+                                        type="number"
                                         placeholder="Enter height"
                                         value={newHeight}
                                         onChange={(e) => setNewHeight(e.target.value)}
@@ -640,14 +667,13 @@ const Designn = () => {
                                         />
                                     </th>
                                     <th>Job ID</th>
-                                    <th>No Of Jobs</th>
+                                    <th>No Of Artwork</th>
                                     <th>Client Name</th>
                                     <th>Brief</th>
                                     <th>Location</th>
-                                    <th>Status</th>
+                                    {/* <th>Status</th> */}
                                     <th>Query/Comment</th>
-                                    <th>Month</th>
-                                    <th>Week</th>
+                                    
                                     <th>Received Date</th>
                                     <th>Due Date</th>
                                     <th>Upload Date</th>
@@ -680,14 +706,13 @@ const Designn = () => {
                                                 {row.designBrief}
                                             </td>
                                             <td>{row.designLocation}</td>
-                                            <td>
+                                            {/* <td>
                                                 {row.designStatus}
-                                            </td>
+                                            </td> */}
                                             <td>
                                                 {row.designQuery}
                                             </td>
-                                            <td>{row.designMonth}</td>
-                                            <td>{row.designWeek}</td>
+                                          
                                             <td>{row.designReceivedDate}</td>
                                             <td>{row.designDueDate}</td>
                                             <td>{row.designUploadDate}</td>
@@ -703,12 +728,12 @@ const Designn = () => {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="10" className="text-center">No results found</td>
+                                        <td colSpan="15" className="text-center">No results found</td>
                                     </tr>
                                 )}
                                 {/* Row for displaying total values */}
                                 <tr>
-                                    <td colSpan="13" className="text-center"><strong>Total</strong></td>
+                                    <td colSpan="10" className="text-center"><strong>Total</strong></td>
                                     <td><strong>{totalValues.width}</strong></td>
                                     <td><strong>{totalValues.height}</strong></td>
                                     <td colSpan="3"></td>

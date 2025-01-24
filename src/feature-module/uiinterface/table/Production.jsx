@@ -47,6 +47,28 @@ const Production = () => {
     const [mediaHeight, setMediaHeight] = useState(0);
     const [mediaSqFt, setMediaSqFt] = useState(0);
 
+    const [user, setUser] = useState('');
+
+    // Check if users data exists and is not null
+    useEffect(() => {
+        const users = localStorage.getItem('users');
+
+        // Check if users data exists and is not null
+        if (users) {
+            // Parse the JSON string into an object
+            const usersObject = JSON.parse(users);
+
+            // Access the username
+            const username = usersObject.message && usersObject.message.username;
+            setUser(username);
+
+            // Log the username to the console
+            console.log('Username:', username);
+        } else {
+            console.log('No user data found in localStorage.');
+        }
+    }, []);
+
     // Recalculate square footage whenever mediaWidth or mediaHeight changes
     useEffect(() => {
         if (mediaWidth && mediaHeight) {
@@ -331,12 +353,12 @@ const Production = () => {
                 onTimeDelayed: row.onTimeDelayed, // On Time or Delayed status
                 enteredBy: row.enteredby, // Entered By
                 enteredDate: row.entereddt, // Entered Date
-                lastUpdatedBy: row.lstupdatedt, // Last Updated By
+                lastUpdatedBy: user, // Last Updated By
                 width: row.width, // Width
                 height: row.height, // Height
                 totalSqFt: row.totalSqFt, // Total Square Footage
                 startdate: new Date().toISOString(), // Start Date for the job
-                lastUpdated: new Date().toISOString(), // Timestamp for last update
+                lastUpdated: new Date().toISOString(),
             }));
 
         console.log("Payload being sent to Addprintingstart:", JSON.stringify(selectedJobs, null, 2));
@@ -387,7 +409,8 @@ const Production = () => {
                 productionid: row.productionid,
                 name: row.name,
                 enddate: new Date().toISOString(),
-                
+                lastUpdatedBy: user, // Last Updated By
+                lastUpdated: new Date().toISOString(),
                 // lastUpdated: new Date().toISOString(), // Timestamp for last update
             }));
 
@@ -726,7 +749,7 @@ const Production = () => {
                                                     <th>Region</th>
                                                     <th>Qty</th>
                                                     <th>Media W</th>
-                                                    <th>Media H</th>
+                                                    <th>Media Length</th>
                                                     <th>Media Sq.Ft.</th>
                                                     <th>Implementation</th>
                                                     <th>Job Deadline</th>

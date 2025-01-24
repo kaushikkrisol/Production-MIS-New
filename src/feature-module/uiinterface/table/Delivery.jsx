@@ -35,6 +35,29 @@ const Delivery = () => {
     const [printingData, setPrintingData] = useState([]);
     console.log(setPrintingData);
     console.log(printingData, isJobRunning, totalValues);
+    const [user, setUser] = useState('');
+    const currentDate = new Date().toISOString().split('T')[0];
+    const [enteredBy, setEnteredBy] = useState('');
+
+    // Check if users data exists and is not null
+    useEffect(() => {
+        const users = localStorage.getItem('users');
+
+        // Check if users data exists and is not null
+        if (users) {
+            // Parse the JSON string into an object
+            const usersObject = JSON.parse(users);
+
+            // Access the username
+            const username = usersObject.message && usersObject.message.username;
+            setUser(username);
+
+            // Log the username to the console
+            console.log('Username:', username);
+        } else {
+            console.log('No user data found in localStorage.');
+        }
+    }, []);
 
     const fetchDeliveryJobs = async () => {
         try { 
@@ -46,9 +69,13 @@ const Delivery = () => {
 
             console.log("Data fetched successfully: ", response.data);
             setData(response.data);
+            console.log(setEnteredBy, enteredBy);
 
             if (Array.isArray(response.data) && response.data.length > 0) {
                 setData(response.data); // This should set jobs specific to the user
+                const enteredBy = response.data[0].enteredby;
+                setEnteredBy(enteredBy);
+                console.log("enteredBy", enteredBy)
             } else {
                 setData([]); // No jobs found for the user
             }
@@ -127,9 +154,8 @@ const Delivery = () => {
         e.preventDefault();
 
         const selectedJobs = filteredData1
-            .filter(row => selectedRows[row.id])  // Filter to only include selected jobs
+            .filter(row => selectedRows[row.id])
             .map(row => ({
-
                 id: row.id,
                 productionid: row.productionid,
                 jobNo: row.jobNo,                // Job Number
@@ -151,10 +177,11 @@ const Delivery = () => {
                 deadline: row.deadline,          // Deadline
                 remarks: row.remarks,            // Remarks
                 actCompleteTime: row.actCompleteTime,  // Actual Completion Time
-                onTimeDelayed: row.onTimeDelayed, // On Time or Delayed status
-                enteredby: row.enteredby,        // Entered By
+                onTimeDelayed: row.onTimeDelayed, // On Time or Delayed status     // Entered By
                 entereddt: row.entereddt,    // Entered Date
-                lstupdatedt: row.lstupdatedt,  // Last Updated By
+                lstupdatedt: currentDate,  // Last Updated By
+                lstupateby: user,
+                user: user,
                 width: row.width,                // Width
                 height: row.height,              // Height
                 totalSqFt: row.totalSqFt,        // Total Square Footage
