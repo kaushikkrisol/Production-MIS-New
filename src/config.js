@@ -36,6 +36,8 @@ const config ={
             AddPrintingStart: BaseURL + '/api/Printing/Addprintingstart',
             AddPrintingStop: BaseURL + '/api/Printing/Addprintingstop',
             TotalPrintingJobcount: BaseURL + '/api/Printing/TotalPrintingJobcount',
+
+            TotalSQFT:"/api/Printing/TotalSQFT"
         }
     },
     Delivery: {
