@@ -677,7 +677,7 @@ const DataTables = () => {
                           <th>City</th>
                           <th>Qty</th>
                           <th>Width</th>
-                          <th>Height</th>
+                          <th>Length</th>
                           <th>Total Sq.ft</th>
                           <th>Media</th>
                           <th>Lamination</th>

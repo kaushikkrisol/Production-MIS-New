@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import DateRangePicker from "react-bootstrap-daterangepicker";
 import { Calendar } from "feather-icons-react/build/IconComponents";
 import axios from "axios";
-import config from "../../config";
 
 const Dashboard = () => {
   // Function to get the last N days

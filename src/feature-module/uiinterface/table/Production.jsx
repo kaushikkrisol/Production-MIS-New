@@ -13,6 +13,8 @@ const Production = () => {
     const [BulkAdd, setBulkAdd] = useState(false);
     const [headers, setHeaders] = useState([]);
     const [data, setData] = useState([]);
+    const [gangData, setGangData] = useState([]);
+    console.log(gangData);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [mediaSearchTerm, setMediaSearchTerm] = useState('');
@@ -20,7 +22,7 @@ const Production = () => {
     // const [isJobRunning, setIsJobRunning] = useState(false); // Job status
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(false);
-    const [totalValues, setTotalValues] = useState({ width: 0, height: 0, totalSqFt: 0 });
+    const [totalValues, setTotalValues] = useState({ width: 0, length: 0, totalSqFt: 0 });
     // const [isJobRunning, setIsJobRunning] = useState(true);
     // console.log(setIsJobRunning);
 
@@ -30,6 +32,8 @@ const Production = () => {
     console.log(userId, username);
 
     const [selectedRows, setSelectedRows] = useState({});
+    const selectedRowsArr = Object.keys(selectedRows);
+    console.log('selected rows arr', selectedRowsArr);
     const [isJobRunning, setIsJobRunning] = useState(true);
     // const [hiddenRows, setHiddenRows] = useState([]);
 
@@ -44,8 +48,21 @@ const Production = () => {
     console.log(printerName);
 
     const [printingData, setPrintingData] = useState([]);
-    const [mediaHeight, setMediaHeight] = useState(0);
+    const [mediaLength, setMediaLength] = useState('');
     const [mediaSqFt, setMediaSqFt] = useState(0);
+
+    const [actualWidth, setActualWidth] = useState('');
+    const [actualLength, setActualLength] = useState('');
+    const [actualSqFt, setActualSqFt] = useState('');
+
+    const [wasteagePer, setWasteagePer] = useState('');
+    const [wasteagePerData, setWasteagePerData] = useState([]);
+    const [wastePercentage, setWastePercentage] = useState([]); 
+    const [wasteageDataFetched, setWasteageDataFetched] = useState(false);
+
+    console.log('wasteage per 0', wastePercentage)
+
+    console.log(actualWidth, setActualWidth, actualLength, setActualLength, mediaSqFt, setWasteagePer);
 
     const [user, setUser] = useState('');
 
@@ -71,10 +88,10 @@ const Production = () => {
 
     // Recalculate square footage whenever mediaWidth or mediaHeight changes
     useEffect(() => {
-        if (mediaWidth && mediaHeight) {
-            setMediaSqFt((parseFloat(mediaWidth) * parseFloat(mediaHeight)).toFixed(2));
+        if (mediaWidth && mediaLength) {
+            setMediaSqFt((parseFloat(mediaWidth) * parseFloat(mediaLength)).toFixed(2));
         }
-    }, [mediaWidth, mediaHeight]);
+    }, [mediaWidth, mediaLength]);
 
     console.log(setPrintingData);
     console.log(printingData);
@@ -202,11 +219,24 @@ const Production = () => {
     }, [data]);
 
 
-    const filteredData1 = Array.isArray(data) && mediaSearchTerm.trim()
-        ? data.filter(row =>
-            (row.media && row.media.toLowerCase().includes(mediaSearchTerm.trim().toLowerCase())) ||
-            (row.jobNo && row.jobNo.toLowerCase().includes(mediaSearchTerm.trim().toLowerCase()))
-        )
+
+
+
+    const filteredData1 = Array.isArray(data) && (mediaSearchTerm.trim().length > 0 || searchTerm.trim().length > 0)
+        ? data.filter(row => {
+            console.log('Checking row:', row);  // Log each row to see if it has the correct data
+
+            // Check if the row matches the media search term
+            const matchesMedia = mediaSearchTerm.trim().length > 0 && row.media && row.media.toLowerCase().includes(mediaSearchTerm.trim().toLowerCase());
+
+            // Check if the row matches the jobNo search term
+            const matchesJobNo = searchTerm.trim().length > 0 && row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase());
+
+            console.log(`matchesMedia: ${matchesMedia}, matchesJobNo: ${matchesJobNo}`);  // Log matches to verify the filtering
+
+            // Return true if the row matches either media OR jobNo
+            return matchesMedia || matchesJobNo;
+        })
         : data;
 
 
@@ -216,8 +246,8 @@ const Production = () => {
         setUserId('');
         setUsername('');
         setPrinterNames('');
-        setMediaWidth('');
-        setMediaHeight('');      
+        // setMediaWidth('');
+        // setMediaLength('');
     };
 
     const toggleBulkAdd = useCallback(() => {
@@ -338,8 +368,8 @@ const Production = () => {
                 qty: row.qty, // Quantity
                 media: row.media,
                 mediaWidth: mediaWidth, // Updated with state value
-                mediaHeight: mediaHeight, // Updated with state value
-                mediaSqFt: mediaSqFt, // Updated with state value
+                mediaLength: mediaLength, // Updated with state value
+                // mediaSqFt: mediaSqFt, // Updated with state value
                 printerName: selectedPrinter, // Selected printer
                 installation: row.installation,
                 deadline: row.deadline,
@@ -355,13 +385,27 @@ const Production = () => {
                 enteredDate: row.entereddt, // Entered Date
                 lastUpdatedBy: user, // Last Updated By
                 width: row.width, // Width
-                height: row.height, // Height
+                length: row.height, // Height
+                actualSqFt: row.actualSqFt,
                 totalSqFt: row.totalSqFt, // Total Square Footage
                 startdate: new Date().toISOString(), // Start Date for the job
                 lastUpdated: new Date().toISOString(),
+                ActualSqFt: actualSqFt,
+                MediaWidth: mediaWidth,    // Use the updated state value for MediaWidth
+                MediaLength: mediaLength,  // Use the updated state value for MediaLength
+                PrinterName: selectedPrinter,
             }));
 
         console.log("Payload being sent to Addprintingstart:", JSON.stringify(selectedJobs, null, 2));
+
+        // const selectedGangModels = filteredData1
+        //     .filter(row => selectedRows[row.id]) // Only selected rows
+        //     .map(() => ({
+        //         ActualSqFt: actualSqFt,
+        //         MediaWidth: mediaWidth,    // Use the updated state value for MediaWidth
+        //         MediaLength: mediaLength,  // Use the updated state value for MediaLength
+        //         PrinterName: selectedPrinter,  // Use selected printer
+        //     }));
 
         setLoading(true);
         setIsJobRunning(false);
@@ -369,10 +413,27 @@ const Production = () => {
             // Submit data to the Start Job API
             const response = await axios.post(config.Printing.URL.AddPrintingStart, selectedJobs);
             console.log("Printing data submitted successfully:", response.data);
+            const wastePer = response.data.result;
+            console.log('Wasteage data got: ', wastePer);
+            setWasteagePerData(wastePer);
+
+            const wasteagePer = wastePer.map(item => item.wasteagePer);
+            console.log('wasteage per', wasteagePer);
+            if (wasteagePer.length > 0) {
+                const wasteagePerValue = wasteagePer[0];
+                console.log('wasteage per value:', wasteagePerValue);
+                setWastePercentage(wasteagePerValue);
+            } else {
+                console.log('No data available');
+            }
 
             if (response.status === 200) {
                 // Update the state with the new data
                 setData(selectedJobs);
+                console.log('wasteage1', wastePer);
+                // setGangData(selectedGangModels);
+                console.log(setGangData, setWasteagePerData);
+                setWasteageDataFetched(true);
 
                 // Update selected rows to reflect successful job submission
                 setSelectedRows(prevSelectedRows => {
@@ -395,10 +456,12 @@ const Production = () => {
             // await fetchPrinting(); // Refresh the data
         }
     };
+    console.log('wasteage data', wasteagePerData)
 
 
     const handleStopJob = async (e) => {
         e.preventDefault();
+        window.location.reload();
         console.log('clicked', filteredData1);
         console.log('clicked selected rows', selectedRows);
 
@@ -427,6 +490,7 @@ const Production = () => {
                 const updatedData = filteredData1.filter(row => !selectedRows[row.id]);
                 setData(updatedData);
                 setSelectedRows({});
+                setWasteageDataFetched(false);
                 
             } else {
                 setError("Unexpected response from the server.");
@@ -459,12 +523,40 @@ const Production = () => {
     const handleCheckboxChange = (id) => {
         setSelectedRows(prev => {
             const newSelectedRows = { ...prev, [id]: !prev[id] };
+            const selectedWasteage = wasteagePerData.find(job => job.jobids.includes(id));
+
+            if (selectedWasteage) {
+                console.log(`Wasteage for job ${id}:`, selectedWasteage.wasteagePer);
+                // Here you could set the wasteage data into a state to display
+                setWasteagePer(selectedWasteage.wasteagePer);
+                console.log('wast per sfos', wasteagePer);
+            }
+
+            // const selectedTotalSqFt = filteredData1
+            //     .filter(row => newSelectedRows[row.id]) // Only include selected rows
+            //     .reduce((total, row) => total + parseFloat(row.height || 0), 0);
+
+            // const selectedTotalWidth = filteredData1
+            //     .filter(row => newSelectedRows[row.id]) // Only include selected rows
+            //     .reduce((total, row) => total + parseFloat(row.width || 0), 0);
+            
+            // console.log(selectedTotalSqFt);
+
+            // setActualLength(selectedTotalSqFt);
+            // setActualWidth(selectedTotalWidth);
 
             const selectedTotalSqFt = filteredData1
                 .filter(row => newSelectedRows[row.id]) // Only include selected rows
-                .reduce((total, row) => total + parseFloat(row.totalSqFt || 0), 0);
+                .reduce((total, row) => {
+                    const width = parseFloat(row.width) || 0;
+                    const height = parseFloat(row.height) || 0;
+                    const area = (width * height) / 144; // Convert to square feet
+                    return total + area; // Add the area to the total
+                }, 0);
 
-            setMediaHeight(selectedTotalSqFt); // Update media height dynamically
+                setActualSqFt(selectedTotalSqFt);
+
+            // setMediaHeight(selectedTotalSqFt); // Update media height dynamically
             return newSelectedRows;
         });
         console.log("After change:", { ...selectedRows, [id]: !selectedRows[id] });
@@ -479,13 +571,43 @@ const Production = () => {
             }
         });
 
-        const selectedTotalSqFt = isChecked
-            ? filteredData1
-                .filter(row => !row.isCompleted)
-                .reduce((total, row) => total + parseFloat(row.totalSqFt || 0), 0)
-            : 0;
+        // const selectedTotalSqFt = isChecked
+        //     ? filteredData1
+        //         .filter(row => !row.isCompleted)
+        //         .reduce((total, row) => total + parseFloat(row.height || 0), 0)
+        //     : 0;
 
-        setMediaHeight(selectedTotalSqFt);
+        // const selectedTotalWidth = isChecked
+        //     ? filteredData1
+        //         .filter(row => !row.isCompleted)
+        //         .reduce((total, row) => total + parseFloat(row.width || 0), 0) // Ensure you are using 'width' here
+        //     : 0;
+        // console.log(selectedTotalSqFt);
+
+        // setActualLength(selectedTotalSqFt);
+        // setActualWidth(selectedTotalWidth);
+
+        const selectedTotalSqFt = filteredData1
+            .filter(row => newSelectedRows[row.id]) // Only include selected rows
+            .reduce((total, row) => {
+                const width = parseFloat(row.width) || 0;
+                const height = parseFloat(row.height) || 0;
+                const area = (width * height) / 144; // Convert to square feet
+                return total + area; // Add the area to the total
+            }, 0);
+
+        setActualSqFt(selectedTotalSqFt);
+
+        const selectedWasteages = filteredData1
+            .filter(row => newSelectedRows[row.id])
+            .map(row => {
+                const wasteageData = wasteagePerData.find(job => job.jobids.includes(row.id));
+                return wasteageData ? wasteageData.wasteagePer : 0; // Default to 0 if no wasteage data found
+            });
+
+        const totalWasteagePer = selectedWasteages.reduce((total, wasteage) => total + wasteage, 0);
+        console.log("Selected wasteages:", selectedWasteages);
+        setWasteagePer(totalWasteagePer);
 
         setSelectedRows(newSelectedRows);
         console.log('select all', newSelectedRows);
@@ -497,8 +619,10 @@ const Production = () => {
         setSelectedPrinter(e.target.value);  // Update selected printer
     };
 
+    console.log('selected rowwws', selectedRows);
+
     const printerNameSelect = (data.map(data => data.printerName));
-    console.log('Printer name', printerNameSelect);
+    console.log('Printer name', printerNameSelect, actualWidth);
 
     const filteredPrinterNames = printerNameSelect.filter(arr => Array.isArray(arr) && arr.length > 0);
 
@@ -625,6 +749,10 @@ const Production = () => {
                                         <Form className="mb-3">
                                             <Row className="mb-3 align-items-center">
                                                 <Col xs={2}>
+                                                </Col>
+                                            </Row>
+                                            <Row className="mb-3 align-items-center">
+                                                <Col xs={2}>
                                                     <Form.Group controlId="formPrinterName">
                                                         <Form.Label style={{ width: '300px' }}>Printer Name</Form.Label>
                                                         <Form.Select
@@ -655,19 +783,52 @@ const Production = () => {
                                                             type="number"
                                                             value={mediaWidth}
                                                             onChange={(e) => setMediaWidth(e.target.value)}
-                                                            style={{marginLeft: '15px' }}
+                                                            style={{ marginLeft: '15px' }}
                                                         />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col xs={2}>
-                                                    <Form.Group controlId="formMediaHeight">
-                                                        <Form.Label style={{ width: '200px', marginLeft: '30px' }}>Media Height</Form.Label>
+                                                    <Form.Group controlId="formMediaLength">
+                                                        <Form.Label style={{ width: '200px', marginLeft: '30px' }}>Media Length</Form.Label>
                                                         <Form.Control
-                                                            value={mediaHeight}
+                                                        type="number"
+                                                            value={mediaLength}
+                                                            style={{ marginLeft: '30px' }}
+                                                            onChange={(e) => setMediaLength(e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                {/* <Col xs={2}>
+                                                    <Form.Group controlId="formActualWidth">
+                                                        <Form.Label style={{ width: '200px', marginLeft: '15px' }}>Actual Width</Form.Label>
+                                                        <Form.Control
+                                                            value={actualWidth}
+                                                            style={{marginLeft: '15px' }}
+                                                            readOnly
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formActualLength">
+                                                        <Form.Label style={{ width: '200px', marginLeft: '30px' }}>Actual Length</Form.Label>
+                                                        <Form.Control
+                                                            value={actualLength}
                                                             style={{ marginLeft: '30px' }}
                                                             readOnly
                                                         >
                                                         
+                                                        </Form.Control>
+                                                    </Form.Group>
+                                                </Col> */}
+
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formActualSqFt">
+                                                        <Form.Label style={{ width: '200px', marginLeft: '30px' }}>Actual Sq.ft</Form.Label>
+                                                        <Form.Control
+                                                            value={actualSqFt}
+                                                            style={{ marginLeft: '30px' }}
+                                                            readOnly
+                                                        >
                                                         </Form.Control>
                                                     </Form.Group>
                                                 </Col>
@@ -676,6 +837,20 @@ const Production = () => {
                                                     {/* <Button type="submit" variant="primary" onClick={(e) => handleAddPrintingJob(e)} style={{ marginLeft: '30px', marginTop: '30px' }}
                                                     >Add</Button> */}
                                                 </Col>
+                                            </Row>
+                                            <Row className="mb-3 align-items-center">
+                                            {wasteageDataFetched ? 
+                                                    <Col xs={2}>
+                                                        <Form.Group controlId="formWasteage">
+                                                            <Form.Label style={{ width: '300px' }}>Wasteage%</Form.Label>
+                                                            <Form.Control
+                                                                value={`${wastePercentage} %`}
+                                                                readOnly
+                                                            ></Form.Control>
+                                                        </Form.Group>
+                                                    </Col> : 
+                                                    ''
+                                            }                                                
                                             </Row>
                                         </Form>
                                     </div>
@@ -748,9 +923,9 @@ const Production = () => {
                                                     <th>Name Sub Code</th>
                                                     <th>Region</th>
                                                     <th>Qty</th>
-                                                    <th>Media W</th>
-                                                    <th>Media Length</th>
-                                                    <th>Media Sq.Ft.</th>
+                                                    {/* <th>Media W</th>
+                                                    <th>Media Length</th> */}
+                                                    {/* <th>Media Sq.Ft.</th> */}
                                                     <th>Implementation</th>
                                                     <th>Job Deadline</th>
                                                     <th>Lamination Media Type</th>
@@ -793,7 +968,7 @@ const Production = () => {
                                                                 {row.width}
                                                             </td>
                                                             <td>
-                                                                {row.height}
+                                                                {row.totalSqFt}
                                                             </td>
                                                             <td>{row.totalSqFt}</td>
                                                             <td>{selectedPrinter}</td>
@@ -808,13 +983,13 @@ const Production = () => {
                                                             <td>
                                                                 {row.qty}
                                                             </td>
-                                                            <td>
+                                                            {/* <td>
                                                                 {isJobRunning ? mediaWidth : row.mediaWidth || '-'}
                                                             </td>
                                                             <td>
-                                                                {isJobRunning ? mediaHeight : row.mediaHeight || '-'}
-                                                            </td>
-                                                            <td>{mediaSqFt}</td>
+                                                                {isJobRunning ? mediaLength : row.mediaLength || '-'}
+                                                            </td> */}
+                                                            {/* <td>{mediaSqFt}</td> */}
                                                             <td>{row.implementation}</td>
                                                             <td>{row.deadline}</td>
                                                             <td>{row.lamination}</td>

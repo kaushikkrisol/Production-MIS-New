@@ -183,7 +183,7 @@ const Designn = () => {
             console.log("API URL: ", config.Design.URL.AddDesign);
             const response = await axios.post(config.Design.URL.AddDesign, newData);
             console.log("Design Data submitted successfully: ", response.data);
-            setIsJobRunning(true);
+            // setIsJobRunning(true);
             resetForm();           
         } catch (error) {
             if (axios.isAxiosError(error)) {
@@ -630,7 +630,7 @@ const Designn = () => {
                             </Col>
                             <Col xs={2}>
                                 <Form.Group controlId="formHeight">
-                                    <Form.Label style={{ width: '100px' }}>Height</Form.Label>
+                                    <Form.Label style={{ width: '100px' }}>Length</Form.Label>
                                     <Form.Control
                                         type="number"
                                         placeholder="Enter height"
@@ -678,7 +678,7 @@ const Designn = () => {
                                     <th>Due Date</th>
                                     <th>Upload Date</th>
                                     <th>Width</th>
-                                    <th>Height</th>
+                                    <th>Length</th>
                                     <th>Artwork: Start time</th>
                                     <th>Artwork: End time</th>
                                     <th>Artwork: Production time</th>

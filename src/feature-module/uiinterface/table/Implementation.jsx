@@ -431,7 +431,7 @@ const Implementation = () => {
                                                     <th>Last Update By</th>
                                                     <th>Last Updated By</th> */}
                                                     <th>Width</th>
-                                                    <th>Height</th>
+                                                    <th>Length</th>
                                                     <th>Total Sq Ft</th>
                                                     <th>Impl Name</th>
                                                     <th>Implementation Start Date & Time</th>
