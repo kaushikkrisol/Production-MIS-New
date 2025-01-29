@@ -554,7 +554,7 @@ const MisReport = () => {
                         </Col>
 
                         <Col xs={3} className="d-flex align-items-center justify-content-start">
-                            <Button type="submit" className='goBtn' variant="primary" onClick={handleGoReport}>
+                            <Button type="submit" className='goBtn mt-4' variant="primary" onClick={handleGoReport}>
                                 Go
                             </Button>
                         </Col>

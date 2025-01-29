@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from "react-router-dom";
-import { Table, Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
+import { Table, Form, Button, Row, Col, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
 import { Modal, ModalBody, ModalHeader, Table as ExcelTable } from 'reactstrap';
@@ -8,6 +8,7 @@ import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { all_routes } from "../../../Router/all_routes";
 import './Production.css';
+import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 
 const Production = () => {
     const [BulkAdd, setBulkAdd] = useState(false);
@@ -31,6 +32,8 @@ const Production = () => {
     
     console.log(userId, username);
 
+    const [showLength, setShowLength] = useState(false);
+
     const [selectedRows, setSelectedRows] = useState({});
     const selectedRowsArr = Object.keys(selectedRows);
     console.log('selected rows arr', selectedRowsArr);
@@ -53,7 +56,7 @@ const Production = () => {
 
     const [actualWidth, setActualWidth] = useState('');
     const [actualLength, setActualLength] = useState('');
-    const [actualSqFt, setActualSqFt] = useState('');
+    const [actualSqFt, setActualSqFt] = useState(0);
 
     const [wasteagePer, setWasteagePer] = useState('');
     const [wasteagePerData, setWasteagePerData] = useState([]);
@@ -89,7 +92,8 @@ const Production = () => {
     // Recalculate square footage whenever mediaWidth or mediaHeight changes
     useEffect(() => {
         if (mediaWidth && mediaLength) {
-            setMediaSqFt((parseFloat(mediaWidth) * parseFloat(mediaLength)).toFixed(2));
+            setMediaSqFt((parseFloat(mediaWidth) * parseFloat(mediaLength))/144);
+            console.log('media sq ft: ', mediaSqFt);
         }
     }, [mediaWidth, mediaLength]);
 
@@ -434,6 +438,7 @@ const Production = () => {
                 // setGangData(selectedGangModels);
                 console.log(setGangData, setWasteagePerData);
                 setWasteageDataFetched(true);
+                setShowLength(true);
 
                 // Update selected rows to reflect successful job submission
                 setSelectedRows(prevSelectedRows => {
@@ -491,6 +496,7 @@ const Production = () => {
                 setData(updatedData);
                 setSelectedRows({});
                 setWasteageDataFetched(false);
+                setShowLength(false);
                 
             } else {
                 setError("Unexpected response from the server.");
@@ -551,10 +557,14 @@ const Production = () => {
                     const width = parseFloat(row.width) || 0;
                     const height = parseFloat(row.height) || 0;
                     const area = (width * height) / 144; // Convert to square feet
+                    console.log('Row width: ', width);
+                    console.log('Row height: ', height);
+                    console.log('total area: ', area);
                     return total + area; // Add the area to the total
                 }, 0);
 
                 setActualSqFt(selectedTotalSqFt);
+            
 
             // setMediaHeight(selectedTotalSqFt); // Update media height dynamically
             return newSelectedRows;
@@ -751,7 +761,7 @@ const Production = () => {
                                                 <Col xs={2}>
                                                 </Col>
                                             </Row>
-                                            <Row className="mb-3 align-items-center">
+                                            <Row className="mb-3 align-items-center mr-3">
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formPrinterName">
                                                         <Form.Label style={{ width: '300px' }}>Printer Name</Form.Label>
@@ -778,22 +788,22 @@ const Production = () => {
                                                 </Col>
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formMediaWidth">
-                                                        <Form.Label style={{ width: '200px', marginLeft: '15px' }}>Media Width</Form.Label>
+                                                        <Form.Label style={{ width: '200px' }}>Media Width</Form.Label>
                                                         <Form.Control
                                                             type="number"
                                                             value={mediaWidth}
                                                             onChange={(e) => setMediaWidth(e.target.value)}
-                                                            style={{ marginLeft: '15px' }}
+                                                            // style={{ marginLeft: '2px' }}
                                                         />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formMediaLength">
-                                                        <Form.Label style={{ width: '200px', marginLeft: '30px' }}>Media Length</Form.Label>
+                                                        <Form.Label style={{ width: '200px' }}>Media Length</Form.Label>
                                                         <Form.Control
                                                         type="number"
                                                             value={mediaLength}
-                                                            style={{ marginLeft: '30px' }}
+                                                            // style={{ marginLeft: '30px' }}
                                                             onChange={(e) => setMediaLength(e.target.value)}
                                                         />
                                                     </Form.Group>
@@ -820,17 +830,31 @@ const Production = () => {
                                                         </Form.Control>
                                                     </Form.Group>
                                                 </Col> */}
-
                                                 <Col xs={2}>
-                                                    <Form.Group controlId="formActualSqFt">
-                                                        <Form.Label style={{ width: '200px', marginLeft: '30px' }}>Actual Sq.ft</Form.Label>
+                                                    <Form.Group controlId="formMediaSqFt">
+                                                        <Form.Label style={{ width: '200px' }}>Standard Sq.ft</Form.Label>
                                                         <Form.Control
-                                                            value={actualSqFt}
-                                                            style={{ marginLeft: '30px' }}
+                                                            value={mediaSqFt}
+                                                            // style={{ marginLeft: '30px' }}
                                                             readOnly
                                                         >
                                                         </Form.Control>
                                                     </Form.Group>
+                                                </Col>
+
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formActualSqFt">
+                                                        <Form.Label style={{ width: '200px' }}>Actual Sq.ft</Form.Label>
+                                                        <Form.Control
+                                                            value={actualSqFt}
+                                                            // style={{ marginLeft: '30px' }}
+                                                            readOnly
+                                                        >
+                                                        </Form.Control>
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col>
+                                                    <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '15em', marginTop: '1em' }} onClick={() => window.location.reload()} />
                                                 </Col>
 
                                                 <Col>
@@ -880,23 +904,37 @@ const Production = () => {
                                             } </Col>
                                     </Row> */}
                                     <Row className="mb-3 align-items-center">
-                                        <Form.Group className="mb-3">
-                                            <Form.Label>Search by Job No</Form.Label>
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="Enter job number"
-                                                value={searchTerm}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
-                                                style={{ width: '200px' }}
-                                            />
-                                            <Form.Label>Search by Media</Form.Label>
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="Enter media name"
-                                                value={mediaSearchTerm}
-                                                onChange={(e) => setMediaSearchTerm(e.target.value)}
-                                                style={{ width: '300px' }}
-                                            />
+                                        <Form.Group as={Row} className="mb-3">
+                                            <Col md={6}>
+                                                <Form.Label>Search by Job No</Form.Label>
+                                                <InputGroup>
+                                                    <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
+                                                        <FaSearch />
+                                                    </InputGroup.Text>
+                                                    <Form.Control
+                                                        type="text"
+                                                        placeholder="Enter job number"
+                                                        value={searchTerm}
+                                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                                        style={{ width: '100%', borderLeft: 'none' }}
+                                                    />
+                                                </InputGroup>
+                                            </Col>
+                                            <Col md={6}>
+                                                <Form.Label>Search by Media</Form.Label>
+                                                <InputGroup>
+                                                    <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
+                                                        <FaSearch />
+                                                    </InputGroup.Text>
+                                                    <Form.Control
+                                                        type="text"
+                                                        placeholder="Enter media name"
+                                                        value={mediaSearchTerm}
+                                                        onChange={(e) => setMediaSearchTerm(e.target.value)}
+                                                        style={{ width: '100%', borderLeft: 'none' }}
+                                                    />
+                                                </InputGroup>
+                                            </Col>
                                         </Form.Group>
                                     </Row>
                                     <div style={{ overflowX: 'auto', position: 'sticky'}}>
@@ -915,7 +953,7 @@ const Production = () => {
                                                     <th>Account Manager</th>
                                                     <th>Media</th>
                                                     <th>Print W.</th>
-                                                    <th>Print H.</th>
+                                                    <th>Print L.</th>
                                                     <th>Print SQ.Ft.</th>
                                                     <th>Printer Name</th>
                                                     <th>Region</th>
@@ -968,7 +1006,7 @@ const Production = () => {
                                                                 {row.width}
                                                             </td>
                                                             <td>
-                                                                {row.totalSqFt}
+                                                                {showLength? row.length : row.height}
                                                             </td>
                                                             <td>{row.totalSqFt}</td>
                                                             <td>{selectedPrinter}</td>
@@ -1021,7 +1059,7 @@ const Production = () => {
                                                     <td colSpan="7" className="text-center"><strong>Total</strong></td>
                                                     <td><strong>{totalValues.width}</strong></td>
                                                     <td><strong>{totalValues.height}</strong></td>
-                                                    <td><strong>{totalValues.totalSqFt}</strong></td>
+                                                    {/* <td><strong>{actualSqFt}</strong></td> */}
                                                     <td colSpan="19"></td>
                                                 </tr>
                                             </tbody>

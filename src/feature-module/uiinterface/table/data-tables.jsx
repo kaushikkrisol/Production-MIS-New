@@ -8,7 +8,9 @@ import './DataTables.css'; // Adjust path accordingly
 import * as XLSX from 'xlsx';
 import axios from "axios";
 import config from "../../../config";
-import { Table, Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
+import { Table, Form, Button, Row, Col, Alert, Spinner, InputGroup } from 'react-bootstrap';
+import { FaSyncAlt, FaSearch } from 'react-icons/fa';
+
 // import { el } from "date-fns/locale";
 
 const DataTables = () => {
@@ -529,6 +531,8 @@ const DataTables = () => {
                       >
                         Add
                       </Button> */}
+                      <FaSyncAlt size={20} style={{ cursor: 'pointer', marginRight: '48px' }} onClick={() => window.location.reload()} />
+
                       <Button
                         type="default"
                         style={{ backgroundColor: 'orange', borderColor: 'orange' }}
@@ -648,12 +652,18 @@ const DataTables = () => {
                   </Row> */}
                   <Form.Group className="mb-3">
                     <Form.Label>Search by Job No</Form.Label>
-                    <Form.Control
-                      type="text"
-                      placeholder="Enter job number"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
+                    <InputGroup>
+                      <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
+                        <FaSearch />
+                      </InputGroup.Text>
+                      <Form.Control
+                        type="text"
+                        placeholder="Enter job number"
+                        value={searchTerm}
+                        style={{ borderLeft: 'none' }}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </InputGroup>
                   </Form.Group>
                   <div style={{ overflowX: 'auto' }}>
                     <Table striped bordered hover>

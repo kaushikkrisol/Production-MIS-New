@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
-import { Table, Form, Row, Col, Button, Alert, Spinner } from 'react-bootstrap';
+import { Table, Form, Row, Col, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { all_routes } from "../../../Router/all_routes";
 import './Delivery.css';
+import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 
 const Implementation = () => {
     // const [BulkAdd, setBulkAdd] = useState(false);
@@ -332,7 +333,7 @@ const Implementation = () => {
                                     <div style={{ overflowX: 'auto' }}>
                                         <Form className="mb-3">
                                             <Row className="mb-3 align-items-center">
-                                                <Col xs={2}>
+                                                {/* <Col xs={2}>
                                                     <Form.Group controlId="formImplementationBy">
                                                         <Form.Label style={{ width: '200px' }}>Implementation From</Form.Label>
                                                         <Form.Control
@@ -342,10 +343,10 @@ const Implementation = () => {
                                                         />
 
                                                     </Form.Group>
-                                                </Col>
+                                                </Col> */}
                                                 <Col xs={2}>
                                                     <Form.Group>
-                                                        <Form.Label style={{ width: '200px' }}>Name</Form.Label>
+                                                        <Form.Label style={{ width: '200px' }}>Assigned Name</Form.Label>
                                                         <Form.Select
                                                             value={name}
                                                             onChange={(e) => handleNameChange(e.target.value)}
@@ -360,7 +361,7 @@ const Implementation = () => {
                                                 </Col>
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formImplementationDate">
-                                                        <Form.Label style={{ width: '200px' }}>Implementation Date</Form.Label>
+                                                        <Form.Label style={{ width: '200px' }}>Assigned Date</Form.Label>
                                                         <Form.Control
                                                             type="date"
                                                             value={implementationDate}
@@ -368,9 +369,9 @@ const Implementation = () => {
                                                         />
                                                     </Form.Group>
                                                 </Col>
-                                                <Col xs={2}>
+                                                {/* <Col xs={2}>
                                                     <Form.Group controlId="formImplementationTo">
-                                                        <Form.Label style={{ width: '200px' }}>Implementation To</Form.Label>
+                                                        <Form.Label style={{ width: '200px', marginTop: '3em' }}>Implementation To</Form.Label>
                                                         <Form.Control
                                                             as="textarea"
                                                             rows={3}
@@ -378,23 +379,31 @@ const Implementation = () => {
                                                             onChange={(e) => setImplementationTo(e.target.value)}
                                                         />
                                                     </Form.Group>
-                                                </Col>
+                                                </Col> */}
 
                                                 <Col>
-                                                    <Button type="submit" variant="primary" onClick={(e) => handleAddImplementationJob(e)}>Add</Button>
+                                                    <Button type="submit" variant="primary" style={{ cursor: 'pointer', marginTop: '2em' }} onClick={(e) => handleAddImplementationJob(e)}>Add</Button>
+                                                </Col>
+                                                <Col>
+                                                    <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '15em', marginTop: '1em' }} onClick={() => window.location.reload()} />
                                                 </Col>
                                             </Row>
                                         </Form>
                                     </div>
 
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Search by Job No</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            placeholder="Enter job number"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
+                                    <Form.Group className="mb-3 mt-3">
+                                    <InputGroup>
+                                            <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
+                                                <FaSearch />
+                                            </InputGroup.Text>
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Search by Job No"
+                                                value={searchTerm}
+                                                style={{ borderLeft: 'none' }}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                            />
+                                    </InputGroup>
                                     </Form.Group>
                                     <div style={{ overflowX: 'auto' }}>
                                         <Table striped bordered hover>
@@ -425,7 +434,7 @@ const Implementation = () => {
                                                     <th>Deadline</th>
                                                     <th>Remark</th>
                                                     <th>Actual Complete Time</th>
-                                                    <th>On Time Delayed</th>
+                                                    {/* <th>On Time Delayed</th> */}
                                                     {/* <th>Entered By</th>
                                                     <th>Entered Date</th>
                                                     <th>Last Update By</th>
@@ -433,10 +442,10 @@ const Implementation = () => {
                                                     <th>Width</th>
                                                     <th>Length</th>
                                                     <th>Total Sq Ft</th>
-                                                    <th>Impl Name</th>
-                                                    <th>Implementation Start Date & Time</th>
-                                                    <th>Implementation End Date & Time</th>
-                                                    <th>Assigned To</th>
+                                                    <th>Assigned Name</th>
+                                                    {/* <th>Implementation Start Date & Time</th> */}
+                                                    <th>Implementation End Date</th>
+                                                    {/* <th>Assigned To</th> */}
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -483,7 +492,7 @@ const Implementation = () => {
                                                             <td>{row.deadline}</td>
                                                             <td>{row.remarks}</td>
                                                             <td>{row.actCompleteTime}</td>
-                                                            <td>{row.onTimeDelayed}</td>
+                                                            {/* <td>{row.onTimeDelayed}</td> */}
                                                             {/* <td>{row.enteredby}</td>
                                                             <td>{row.entereddt}</td>
                                                             <td>{row.lstupateby}</td>
@@ -496,9 +505,9 @@ const Implementation = () => {
                                                             </td>
                                                             <td>{row.totalSqFt}</td>
                                                             <td>{row.implementationBy || '-'}</td>
-                                                            <td>{row.implementationDate || '-'}</td>
+                                                            {/* <td>{row.implementationDate || '-'}</td> */}
                                                             <td>{row.implementationTo || '-'}</td>
-                                                            <td>{row.assignName || '-'}</td>
+                                                            {/* <td>{row.assignName || '-'}</td> */}
                                                             {/* <td>{row.startdate || '-'}</td>
                                                             <td>{row.enddate || '-'}</td> */}
                                                             {/* <td>{row.startJobTime || '-'}</td>
@@ -516,7 +525,7 @@ const Implementation = () => {
                                                 )}
                                                 {/* Row for displaying total values */}
                                                 <tr>
-                                                    <td colSpan="20" className="text-center"><strong>Total</strong></td>
+                                                    <td colSpan="19" className="text-center"><strong>Total</strong></td>
                                                     <td><strong>{totalValues.width}</strong></td>
                                                     <td><strong>{totalValues.height}</strong></td>
                                                     <td colSpan="10"></td>

@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, Row, Col, Alert, Spinner, Table } from 'react-bootstrap';
+import { Container, Form, Button, Row, Col, Alert, Spinner, Table, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
+import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 
 import './Designn.css';
 
@@ -479,8 +480,8 @@ const Designn = () => {
 
     return (
         <Container className="mt-5 page-wrapper">
-            <div className="content container-fluid">
-                <h1 className="display-4 text-center mb-4">Design</h1>
+            <div className="content container-fluid" style={{ maxWidth: '100%', marginRight: 'none' }}>
+                <h1 style={{ maxWidth: '100%' }} className="display-4 text-center mb-4">Design</h1>
                 {error && <Alert variant="danger">{error}</Alert>}
                 {loading && <Spinner animation="border" className="d-block mx-auto" />}
 
@@ -492,6 +493,10 @@ const Designn = () => {
                      : 
                         <Button variant="danger" onClick={handleStopJob}  className="ml-3" disabled={isJobRunning || !Object.values(selectedRows).some(v => v)}>Stop Job</Button>
                         } </Col> 
+
+                    <Col className="ml-auto">
+                        <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
+                    </Col>
                 </Row>
 
                 <div style={{ overflowX: 'auto' }}>
@@ -640,20 +645,25 @@ const Designn = () => {
                                 </Form.Group>
                             </Col>
                             <Col>
-                                <Button type="submit" variant="primary" onClick={(e) => handleAddJob(e)}>Add</Button>
+                                <Button type="submit" variant="primary" style={{ marginTop: '28px' }} onClick={(e) => handleAddJob(e)}>Add</Button>
                             </Col>
                         </Row>
                     </Form>
                 </div>
                 <div>
-                    <Form.Group className="mb-3">
-                        <Form.Label>Search by Job ID</Form.Label>
-                        <Form.Control
-                            type="text"
-                            placeholder="Enter job number"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <Form.Group className="mb-3 mt-3">
+                    <InputGroup>
+                            <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
+                                <FaSearch />
+                            </InputGroup.Text>
+                            <Form.Control
+                                type="text"
+                                placeholder="Enter job number"
+                                value={searchTerm}
+                                style={{ borderLeft: 'none' }}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                    </InputGroup>
                     </Form.Group>
                     <div style={{ overflowX: 'auto' }}>
                         <Table striped bordered hover>

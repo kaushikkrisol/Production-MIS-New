@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
-import { Table, Form, Row, Col, Button, Alert, Spinner } from 'react-bootstrap';
+import { Table, Form, Row, Col, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { all_routes } from "../../../Router/all_routes";
+import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 import './Delivery.css';
 
 const Delivery = () => {
@@ -364,21 +365,29 @@ const Delivery = () => {
 
                                                     </Form.Group>
                                                 </Col>
-                                                <Col>
+                                                <Col style={{ marginTop: '25px' }}>
                                                     <Button type="submit" variant="primary" onClick={(e) => handleAddDeliveryJob(e)}>Add</Button>
+                                                </Col>
+                                                <Col style={{ marginTop: '15px', marginLeft: '28em' }}>
+                                                    <FaSyncAlt size={20} style={{ cursor: 'pointer' }} onClick={() => window.location.reload()}/> 
                                                 </Col>
                                             </Row>
                                         </Form>
                                     </div>
 
-                                    <Form.Group className="mb-3">
-                                        <Form.Label>Search by Job No</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            placeholder="Enter job number"
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                        />
+                                    <Form.Group className="mb-3 mt-3">
+                                    <InputGroup>
+                                            <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
+                                                <FaSearch />
+                                            </InputGroup.Text>
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Search job number"
+                                                style={{ borderLeft: 'none' }}
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                            />
+                                    </InputGroup>
                                     </Form.Group>
                                     <div style={{ overflowX: 'auto' }}>
                                         <Table striped bordered hover>
