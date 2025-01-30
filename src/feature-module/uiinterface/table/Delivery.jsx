@@ -39,6 +39,9 @@ const Delivery = () => {
     const [user, setUser] = useState('');
     const currentDate = new Date().toISOString().split('T')[0];
     const [enteredBy, setEnteredBy] = useState('');
+    const [deliverPersonName, setDeliveryPersonName] = useState([]);
+    const [deliverPersonNameSelect, setDeliveryPersonNameSelect] = useState('');
+    const [newDeliveryPersonName, setNewDeliveryPersonName] = useState('');
 
     // Check if users data exists and is not null
     useEffect(() => {
@@ -119,7 +122,7 @@ const Delivery = () => {
         setDeliveryTo('');
         setHandTempoDelivery('');
     };
-    console.log(resetForm);
+    console.log(resetForm, deliveryTo);
 
     
     const handleCheckboxChange = (id) => {
@@ -189,7 +192,7 @@ const Delivery = () => {
                 deliveryBy: deliveryBy,
                 deliveryDate: deliveryDate,
                 deliveryOutDate: deliveryOutDate,
-                deliveryTo: deliveryTo,
+                deliveryTo: deliverPersonNameSelect,
                 handTempoDelivery: handTempoDelivery,
             }));
 
@@ -228,6 +231,29 @@ const Delivery = () => {
         }
     }
 
+    useEffect(() => {
+        const getUserNames = async () => {
+            try {
+                const response = await axios.get(config.User.URL.GetAllUserrole);
+                setDeliveryPersonName(response.data);
+                console.log('Deliv person name', response.data);
+            } catch (error) {
+                console.error('Failed to fetch users ', error);
+            }
+        };
+        getUserNames();
+    }, []);
+
+    const handleDeliverNameChange = (username) => {
+        setDeliveryPersonNameSelect(username);
+        const selectedName = deliverPersonName.find(u => u.username === username);
+        console.log("Selected Name: ", selectedName);
+        setNewDeliveryPersonName(selectedName ? selectedName.client : '');
+    }
+    console.log('new name: ', deliverPersonNameSelect, newDeliveryPersonName);
+    
+    const filteredUserNames = [...new Set(deliverPersonName.map((u) => u.username))];
+
     const handleError = (error) => {
         if (axios.isAxiosError(error)) {
             console.error("Axios error: ", error.message);
@@ -237,6 +263,7 @@ const Delivery = () => {
             setError("An unexpected error occurred");
         }
     };
+    console.log('selected delivery mode: ', handTempoDelivery);
 
     return (
         <div>
@@ -315,11 +342,19 @@ const Delivery = () => {
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formDeliveryBy">
                                                         <Form.Label style={{ width: '200px' }}>Delivery Person</Form.Label>
-                                                        <Form.Control
-                                                            type='text'
-                                                            value={deliveryBy}
-                                                            onChange={(e) => setDeliveryBy(e.target.value)}
-                                                        />
+                                                        <Form.Select
+                                                            id='deliverPerson'
+                                                            value={deliverPersonNameSelect}
+                                                            onChange={(e) => handleDeliverNameChange(e.target.value)}
+                                                            required
+                                                        >
+                                                        <option value="">Select Delivery Person</option>
+                                                        {
+                                                                filteredUserNames.map((user, index) => (
+                                                                    <option key={index} value={user}>{user}</option>
+                                                                ))
+                                                        }
+                                                        </Form.Select>
 
                                                     </Form.Group>
                                                 </Col>
@@ -356,13 +391,17 @@ const Delivery = () => {
                                                 </Col> */}
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formhandTempoDelivery">
-                                                        <Form.Label style={{ width: '200px' }}>Hand/Tempo Delivery</Form.Label>
-                                                        <Form.Control
+                                                        <Form.Label style={{ width: '200px' }}>Delivery Mode</Form.Label>
+                                                        <Form.Select
                                                             type='text'
                                                             value={handTempoDelivery}
                                                             onChange={(e) => setHandTempoDelivery(e.target.value)}
-                                                        />
-
+                                                        >
+                                                            <option value="">Select Delivery Mode</option>
+                                                            <option value="Hand Pick Up">Hand Pick Up</option>
+                                                            <option value="Customer Pick Up">Customer Pick Up</option>
+                                                            <option value="Courier Service">Courier Service</option>
+                                                        </Form.Select>
                                                     </Form.Group>
                                                 </Col>
                                                 <Col style={{ marginTop: '25px' }}>
@@ -428,7 +467,7 @@ const Delivery = () => {
                                                     <th>Delivery Person</th>
                                                     <th>Delivery Out Time</th>
                                                     <th>Delivery In Time</th>
-                                                    <th>Hand/Tempo Delivery</th>
+                                                    <th>Delivery Mode</th>
                                                     {/* <th>Delivery To</th> */}
                                                 </tr>
                                             </thead>

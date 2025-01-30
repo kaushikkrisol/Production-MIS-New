@@ -948,35 +948,26 @@ const Production = () => {
                                                     /></th>
                                                     <th>Date</th>
                                                     <th>Job ID</th>
-                                                    <th>Client</th>
-                                                    <th>Sub Client</th>
-                                                    <th>Account Manager</th>
-                                                    <th>Media</th>
+                                                    <th>Printer Name</th>
+                                                    <th>Qty</th>
                                                     <th>Print W.</th>
                                                     <th>Print L.</th>
                                                     <th>Print SQ.Ft.</th>
-                                                    <th>Printer Name</th>
-                                                    <th>Region</th>
-                                                    <th>Visual Code</th>
-                                                    <th>Name Sub Code</th>
-                                                    <th>Region</th>
-                                                    <th>Qty</th>
-                                                    {/* <th>Media W</th>
-                                                    <th>Media Length</th> */}
-                                                    {/* <th>Media Sq.Ft.</th> */}
-                                                    <th>Implementation</th>
-                                                    <th>Job Deadline</th>
+                                                    <th>Media</th>
+                                                    <th>Implementation (Y/N)</th>
+                                                    <th>Deadline</th>
                                                     <th>Lamination Media Type</th>
                                                     <th>Mounting</th>
-                                                    {/* <th>Implementation</th> */}
                                                     <th>Salon Address</th>
-                                                    {/* <th>Dispatch Address</th> */}
+                                                    <th>Job Start Date</th>
+                                                    <th>Job End Date</th>
+                                                    <th>Client</th>
+                                                    <th>Sub Client</th>
+                                                    <th>Account Manager</th>
+                                                    <th>Visual Code</th>
+                                                    <th>Name Sub Code</th>
                                                     <th>Remarks</th>
-                                                    <th>Actual Complete Time</th>
-                                                    <th>On Time Delayed</th>
-                                                    {/* <th>IP Address</th> */}
-                                                    <th>Job Start Date/Time</th>
-                                                    <th>Job End Date/Time</th>
+                                                    
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -996,57 +987,26 @@ const Production = () => {
                                                                 {row.date}
                                                             </td>
                                                             <td>{row.jobNo}</td>
-                                                            <td>
-                                                                {row.client}
-                                                            </td>
-                                                            <td>{row.subClient}</td>
-                                                            <td>{row.userName}</td>
-                                                            <td>{row.media}</td>
-                                                            <td>
-                                                                {row.width}
-                                                            </td>
-                                                            <td>
-                                                                {showLength? row.length : row.height}
-                                                            </td>
-                                                            <td>{row.totalSqFt}</td>
                                                             <td>{selectedPrinter}</td>
-                                                            <td>{row.region}</td>
-                                                            <td>
-                                                                {row.visualCode}
-                                                            </td>
-                                                            <td>{row.nameSubCode}</td>
-                                                            <td>
-                                                                {row.city}
-                                                            </td>
-                                                            <td>
-                                                                {row.qty}
-                                                            </td>
-                                                            {/* <td>
-                                                                {isJobRunning ? mediaWidth : row.mediaWidth || '-'}
-                                                            </td>
-                                                            <td>
-                                                                {isJobRunning ? mediaLength : row.mediaLength || '-'}
-                                                            </td> */}
-                                                            {/* <td>{mediaSqFt}</td> */}
+                                                            <td>{row.qty}</td>
+                                                            <td>{row.width}</td>
+                                                            <td>{showLength ? row.length : row.height}</td>
+                                                            <td>{row.totalSqFt}</td> 
+                                                            <td>{row.media}</td>
                                                             <td>{row.implementation}</td>
                                                             <td>{row.deadline}</td>
                                                             <td>{row.lamination}</td>
                                                             <td>{row.mounting}</td>
-                                                            {/* <td>{row.implementation}</td> */}
                                                             <td>{row.salonAddress}</td>
-                                                            {/* <td>{row.dispatchAddress}</td> */}
-                                                            <td>{row.remarks}</td>
-                                                            <td>{row.actCompleteTime}</td>
-                                                            <td>{row.onTimeDelayed}</td>
-                                                            {/* <td>{row.ipaddress}</td> */}
                                                             <td>{row.startdate || '-'}</td>
                                                             <td>{row.enddate || '-'}</td>
-                                                            {/* <td>{row.startJobTime || '-'}</td>
-                              <td>{row.stopJobTime || '-'}</td>
-                              <td>
-                                {row.startJobTime && row.stopJobTime ?
-                                  calculateTotalTime(row.startJobTime, row.stopJobTime) : '-'}
-                              </td> */}
+                                                            <td>{row.client}</td>
+                                                            <td>{row.subClient}</td>
+                                                            <td>{row.userName}</td>
+                                                            <td>{row.visualCode}</td>
+                                                            <td>{row.nameSubCode}</td>
+                                                            <td>{row.remarks}</td>
+
                                                         </tr>
                                                     ))
                                                 ) : (
@@ -1056,7 +1016,7 @@ const Production = () => {
                                                 )}
                                                 {/* Row for displaying total values */}
                                                 <tr>
-                                                    <td colSpan="7" className="text-center"><strong>Total</strong></td>
+                                                    <td colSpan="5" className="text-center"><strong>Total</strong></td>
                                                     <td><strong>{totalValues.width}</strong></td>
                                                     <td><strong>{totalValues.height}</strong></td>
                                                     {/* <td><strong>{actualSqFt}</strong></td> */}

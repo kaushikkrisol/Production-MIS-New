@@ -417,35 +417,19 @@ const Implementation = () => {
                                                     <th>Date</th>
                                                     <th>Job ID</th>
                                                     <th>Client Name</th>
-                                                    <th>CS Name</th>
-                                                    <th>Location</th>
-                                                    <th>Implementation</th>
+                                                    <th>Account Manager</th>
                                                     <th>Sub Client</th>
-                                                    
-                                                    <th>Visual Code</th>
-                                                    <th>Name Sub Code</th>
-                                                    <th>City</th>
                                                     <th>Quantity</th>
                                                     <th>Media</th>
-                                                    <th>Lamination</th>
                                                     <th>Mounting</th>
                                                     <th>Salon Address</th>
-                                                    {/* <th>Dispatch Address</th> */}
                                                     <th>Deadline</th>
-                                                    <th>Remark</th>
-                                                    <th>Actual Complete Time</th>
-                                                    {/* <th>On Time Delayed</th> */}
-                                                    {/* <th>Entered By</th>
-                                                    <th>Entered Date</th>
-                                                    <th>Last Update By</th>
-                                                    <th>Last Updated By</th> */}
                                                     <th>Width</th>
                                                     <th>Length</th>
                                                     <th>Total Sq Ft</th>
-                                                    <th>Assigned Name</th>
-                                                    {/* <th>Implementation Start Date & Time</th> */}
-                                                    <th>Implementation End Date</th>
-                                                    {/* <th>Assigned To</th> */}
+                                                    <th>Implementation End Time</th>
+                                                    <th>Assigned Date</th>
+                                                    <th>Remark</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -465,57 +449,20 @@ const Implementation = () => {
                                                                 {row.date}
                                                             </td>
                                                             <td>{row.jobNo}</td>
-                                                            <td>
-                                                                {row.client}
-                                                            </td>
+                                                            <td>{row.client}</td>
                                                             <td>{row.userName}</td>
-                                                            <td>{row.region}</td>
-                                                            <td>{row.installation}</td>
-                                                            
                                                             <td>{row.subClient}</td>
-                                                            
-                                                            <td>
-                                                                {row.visualCode}
-                                                            </td>
-                                                            <td>{row.nameSubCode}</td>
-                                                            <td>
-                                                                {row.city}
-                                                            </td>
-                                                            <td>
-                                                                {row.qty}
-                                                            </td>
+                                                            <td>{row.qty}</td>
                                                             <td>{row.media}</td>
-                                                            <td>{row.lamination}</td>
                                                             <td>{row.mounting}</td>
                                                             <td>{row.salonAddress}</td>
-                                                            {/* <td>{row.dispatchAddress}</td> */}
                                                             <td>{row.deadline}</td>
-                                                            <td>{row.remarks}</td>
-                                                            <td>{row.actCompleteTime}</td>
-                                                            {/* <td>{row.onTimeDelayed}</td> */}
-                                                            {/* <td>{row.enteredby}</td>
-                                                            <td>{row.entereddt}</td>
-                                                            <td>{row.lstupateby}</td>
-                                                            <td>{row.lstupdatedt}</td> */}
-                                                            <td>
-                                                                {row.width}
-                                                            </td>
-                                                            <td>
-                                                                {row.height}
-                                                            </td>
+                                                            <td>{row.width}</td>
+                                                            <td>{row.height}</td>
                                                             <td>{row.totalSqFt}</td>
-                                                            <td>{row.implementationBy || '-'}</td>
-                                                            {/* <td>{row.implementationDate || '-'}</td> */}
-                                                            <td>{row.implementationTo || '-'}</td>
-                                                            {/* <td>{row.assignName || '-'}</td> */}
-                                                            {/* <td>{row.startdate || '-'}</td>
-                                                            <td>{row.enddate || '-'}</td> */}
-                                                            {/* <td>{row.startJobTime || '-'}</td>
-                              <td>{row.stopJobTime || '-'}</td>
-                              <td>
-                                {row.startJobTime && row.stopJobTime ?
-                                  calculateTotalTime(row.startJobTime, row.stopJobTime) : '-'}
-                              </td> */}
+                                                            <td>{'-'}</td>
+                                                            <td>{row.implementationDate || '-'}</td>
+                                                            <td>{row.remarks}</td>
                                                         </tr>
                                                     ))
                                                 ) : (
@@ -525,7 +472,7 @@ const Implementation = () => {
                                                 )}
                                                 {/* Row for displaying total values */}
                                                 <tr>
-                                                    <td colSpan="19" className="text-center"><strong>Total</strong></td>
+                                                    <td colSpan="11" className="text-center"><strong>Total</strong></td>
                                                     <td><strong>{totalValues.width}</strong></td>
                                                     <td><strong>{totalValues.height}</strong></td>
                                                     <td colSpan="10"></td>
