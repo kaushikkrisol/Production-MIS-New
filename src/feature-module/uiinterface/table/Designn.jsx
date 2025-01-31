@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Container, Form, Button, Row, Col, Alert, Spinner, Table, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import config from '../../../config';
@@ -12,6 +12,7 @@ const Designn = () => {
     const [selectedDesignIds, setSelectedDesignIds] = useState([]);
     const [data, setData] = useState([]);
     const [newJobNo, setNewJobNo] = useState('');
+    const [newDropdown, setNewDropdown] = useState('');
 
     const [jobNumbers, setJobNumbers] = useState([]);
     const [newClientName, setNewClientName] = useState('');
@@ -403,7 +404,7 @@ const Designn = () => {
         }
         return totals;
     }, { width: 0, height: 0 });
-
+    console.log(totalValues);
 
     const resetForm = () => {
         setNewJobNo('');
@@ -425,13 +426,13 @@ const Designn = () => {
         // setEndDate('');
     };
 
-    useEffect(() => {
-        fetchJobs();
-    }, []);
+    // useEffect(() => {
+    //     fetchJobs();
+    // }, []);
 
-    useEffect(() => {
-        fetchDesignJobs();
-    }, []);
+    // useEffect(() => {
+    //     fetchDesignJobs();
+    // }, []);
 
     const handleCheckboxChange = (id) => {
         setSelectedRows((prev) => {
@@ -453,14 +454,7 @@ const Designn = () => {
         setSelectedRows(newSelectedRows);
     };
 
-    const handleJobNumberChange = (jobNo) => {
-        setNewJobNo(jobNo);
-        const selectedJob = jobs.find(job => job.jobNo === jobNo);
-        console.log("Selected Job: ", selectedJob);
-        setNewClientName(selectedJob ? selectedJob.client : ''); // Set client name or reset
-    };
-
-    const uniqueJobNumbers = [...new Set(jobs.map(job => job.jobNo))];
+    const uniqueJobNumbers = useMemo(() => { return [...new Set(jobs.map(job => job.jobNo))] }, [jobs]);
 
     const filteredData1 = Array.isArray(designData) ? designData.filter(row =>
         row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase())
@@ -469,8 +463,7 @@ const Designn = () => {
     useEffect(() => {
         if(selectSearchTerm.trim() === '') {
             setFilteredJobNumbers(uniqueJobNumbers);
-        }
-        else {
+        } else {
             const filtered = uniqueJobNumbers.filter(jobNo => 
                 jobNo.toLowerCase().includes(selectSearchTerm.trim().toLowerCase())
             );
@@ -481,9 +474,16 @@ const Designn = () => {
     const handleSelectJobNoChange = (e) => {
         const selectedJobNo = e.target.value;
         setNewJobNo(selectedJobNo);
-        setSelectSearchTerm(selectedJobNo);
+        setSelectSearchTerm("");
         handleJobNumberChange(selectedJobNo);
     }
+
+    const handleJobNumberChange = (jobNo) => {
+        setNewJobNo(jobNo);
+        const selectedJob = jobs.find(job => job.jobNo === jobNo);
+        console.log("Selected Job: ", selectedJob);
+        setNewClientName(selectedJob ? selectedJob.client : ''); // Set client name or reset
+    };
 
     // const sortedData = filteredData1.sort((a, b) => {
     //     const dateA = a.date1;
@@ -519,6 +519,13 @@ const Designn = () => {
                         <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
                     </Col>
                 </Row>
+                <Form.Control
+                    type='text'
+                    placeholder='Search Job Number'
+                    value={selectSearchTerm}
+                    onChange={(e) => setSelectSearchTerm(e.target.value)}
+                    style={{ marginBottom: '10px' }}
+                />
 
                 <div style={{ overflowX: 'auto' }}>
                     <Form className="mb-3">
@@ -526,21 +533,13 @@ const Designn = () => {
                             <Col xs={2}>
                                 <Form.Group>
                                     <Form.Label style={{ width: '200px' }}>Job No</Form.Label>
-                                    <Form.Control 
-                                        type='text'
-                                        placeholder='Search Job Number'
-                                        value={selectSearchTerm}
-                                        onChange={(e) => setSelectSearchTerm(e.target.value)}
-                                        style={{marginBottom: '10px'}}
-                                    />
                                     <Form.Select
                                         value={newJobNo}
                                         onChange={handleSelectJobNoChange}
-                                        required
                                     >
                                         <option value="">Select Job Number</option>
                                         {filteredJobNumbers.length > 0 ? (
-                                                filteredJobNumbers.map((jobNo, index) => (
+                                            filteredJobNumbers.map((jobNo, index) => (
                                                     <option key={index} value={jobNo}>
                                                     {jobNo}
                                                     </option>
@@ -570,7 +569,6 @@ const Designn = () => {
                                         placeholder="Enter no. of jobs"
                                         value={newNoOfJobs}
                                         onChange={(e) => setNewNoOfJobs(e.target.value)}
-                                        required
                                     />
                                 </Form.Group>
                             </Col>
@@ -582,7 +580,6 @@ const Designn = () => {
                                         placeholder="Enter brief"
                                         value={newBrief}
                                         onChange={(e) => setNewBrief(e.target.value)}
-                                        required
                                     />
                                 </Form.Group>
                             </Col>
@@ -593,7 +590,6 @@ const Designn = () => {
                                         placeholder="Enter location"
                                         value={newLocation}
                                         onChange={(e) => setNewLocation(e.target.value)}
-                                        required
                                     >
                                         <option value="">Select Location</option>
                                         {locations.map((location, index) => (
@@ -626,7 +622,6 @@ const Designn = () => {
                                         placeholder="Enter Query"
                                         value={newQuery}
                                         onChange={(e) => setNewQuery(e.target.value)}
-                                        required
                                     />
                                 </Form.Group>
                             </Col>
@@ -650,7 +645,6 @@ const Designn = () => {
                                         value={newUploadDate}
                                         onChange={(e) => setNewUploadDate(e.target.value)}
                                         max={currentDate}
-                                        required
                                     />
                                 </Form.Group>
                             </Col>
@@ -674,6 +668,23 @@ const Designn = () => {
                                         value={newHeight}
                                         onChange={(e) => setNewHeight(e.target.value)}
                                     />
+                                </Form.Group>
+                            </Col>
+                            <Col xs={2}>
+                                <Form.Group>
+                                    <Form.Label style={{ width: '200px' }}>New</Form.Label>
+                                    <Form.Select
+                                        value={newDropdown}
+                                        onChange={(e) => setNewDropdown(e.target.value)}
+                                    >
+                                        <option value="">Select </option>
+                                        <option value="Design Type">Design Type </option>
+                                        <option value="New Layout">New Layout</option>
+                                        <option value="Correction">Correction</option>
+                                        <option value="Print Ready File">Print Ready File</option>
+                                        <option value="Master Artwork">Master Artwork</option>
+                                        
+                                    </Form.Select>
                                 </Form.Group>
                             </Col>
                             <Col>
@@ -774,12 +785,12 @@ const Designn = () => {
                                     </tr>
                                 )}
                                 {/* Row for displaying total values */}
-                                <tr>
+                                {/* <tr>
                                     <td colSpan="10" className="text-center"><strong>Total</strong></td>
                                     <td><strong>{totalValues.width}</strong></td>
                                     <td><strong>{totalValues.height}</strong></td>
                                     <td colSpan="3"></td>
-                                </tr>
+                                </tr> */}
                             </tbody>
                         </Table>
                     </div>

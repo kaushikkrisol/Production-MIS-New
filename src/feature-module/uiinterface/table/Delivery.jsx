@@ -119,13 +119,15 @@ const Delivery = () => {
     const today = new Date();
     today.setDate(today.getDate() - 2);
     const twoDaysAgo = today.toISOString().slice(0, 19);
-    const todayString = new Date().toISOString().slice(0, 19);
+    const todayString = today.toISOString().slice(0, 19);
     console.log('two days ago: ', twoDaysAgo, 'today: ', todayString)
 
 
     const resetForm = () => {
         setDeliveryBy('');
         setDeliveryDate('');
+        setDeliveryOutDate(''); 
+        handleDeliverNameChange('');
         setDeliveryTo('');
         setHandTempoDelivery('');
     };
@@ -381,8 +383,8 @@ const Delivery = () => {
                                                         <Form.Label style={{ width: '200px' }}>Delivery Completed</Form.Label>
                                                         <Form.Control
                                                             type="datetime-local"
-                                                            max={today}
-                                                            min={today}
+                                                            min={todayString}
+                                                            max={todayString}
                                                             value={deliveryOutDate}
                                                             onChange={(e) => setDeliveryOutDate(e.target.value)}
                                                         />
@@ -535,12 +537,12 @@ const Delivery = () => {
                                                                 {row.height}
                                                             </td>
                                                             <td>{row.totalSqFt}</td> */}
-                                                            <td>{row.deliveryBy || '-'}</td>
+                                                            <td>{row.deliveryTo || '-'}</td>
+                                                            {/* <td>{row.deliveryBy || '-'}</td> */}
                                                             <td>{row.deliveryDate || '-'}</td>
                                                             <td>{row.deliveryOutDate || '-'}</td>
                                                             <td>{row.handTempoDelivery || '-'}</td>
                                                             <td>{row.salonAddress}</td>
-                                                            {/* <td>{row.deliveryTo || '-'}</td> */}
                                                             {/* <td>{row.startdate || '-'}</td>
                                                             <td>{row.enddate || '-'}</td> */}
                                                             {/* <td>{row.startJobTime || '-'}</td>
