@@ -116,6 +116,13 @@ const Delivery = () => {
 
     console.log('Filtered data: ', filteredData1);
 
+    const today = new Date();
+    today.setDate(today.getDate() - 2);
+    const twoDaysAgo = today.toISOString().slice(0, 19);
+    const todayString = new Date().toISOString().slice(0, 19);
+    console.log('two days ago: ', twoDaysAgo, 'today: ', todayString)
+
+
     const resetForm = () => {
         setDeliveryBy('');
         setDeliveryDate('');
@@ -360,9 +367,10 @@ const Delivery = () => {
                                                 </Col>
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formDeliveryInDate">
-                                                        <Form.Label style={{ width: '200px' }}>Delivery In Time</Form.Label>
+                                                        <Form.Label style={{ width: '200px' }}>Delivery Started</Form.Label>
                                                         <Form.Control
                                                             type="datetime-local"
+                                                            max={twoDaysAgo}
                                                             value={deliveryDate}
                                                             onChange={(e) => setDeliveryDate(e.target.value)}
                                                         />
@@ -370,9 +378,11 @@ const Delivery = () => {
                                                 </Col>
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formDeliveryOutDate">
-                                                        <Form.Label style={{ width: '200px' }}>Delivery Out Time</Form.Label>
+                                                        <Form.Label style={{ width: '200px' }}>Delivery Completed</Form.Label>
                                                         <Form.Control
                                                             type="datetime-local"
+                                                            max={today}
+                                                            min={today}
                                                             value={deliveryOutDate}
                                                             onChange={(e) => setDeliveryOutDate(e.target.value)}
                                                         />
@@ -405,7 +415,7 @@ const Delivery = () => {
                                                     </Form.Group>
                                                 </Col>
                                                 <Col style={{ marginTop: '25px' }}>
-                                                    <Button type="submit" variant="primary" onClick={(e) => handleAddDeliveryJob(e)}>Add</Button>
+                                                    <Button type="submit"  onClick={(e) => handleAddDeliveryJob(e)}>Add</Button>
                                                 </Col>
                                                 <Col style={{ marginTop: '15px', marginLeft: '28em' }}>
                                                     <FaSyncAlt size={20} style={{ cursor: 'pointer' }} onClick={() => window.location.reload()}/> 
@@ -437,7 +447,7 @@ const Delivery = () => {
                                                         onChange={handleSelectAllChange}
                                                         checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                                                     /></th>
-                                                    <th>Date</th>
+                                                    <th>Production Date</th>
                                                     <th>Job ID</th>
                                                     <th>Client Name</th>
                                                     <th>Location</th>
@@ -465,9 +475,10 @@ const Delivery = () => {
                                                     <th>Height</th>
                                                     <th>Total Sq Ft</th> */}
                                                     <th>Delivery Person</th>
-                                                    <th>Delivery Out Time</th>
-                                                    <th>Delivery In Time</th>
+                                                    <th>Delivery Started</th>
+                                                    <th>Delivery Completed</th>
                                                     <th>Delivery Mode</th>
+                                                    <th>Address</th>
                                                     {/* <th>Delivery To</th> */}
                                                 </tr>
                                             </thead>
@@ -528,6 +539,7 @@ const Delivery = () => {
                                                             <td>{row.deliveryDate || '-'}</td>
                                                             <td>{row.deliveryOutDate || '-'}</td>
                                                             <td>{row.handTempoDelivery || '-'}</td>
+                                                            <td>{row.salonAddress}</td>
                                                             {/* <td>{row.deliveryTo || '-'}</td> */}
                                                             {/* <td>{row.startdate || '-'}</td>
                                                             <td>{row.enddate || '-'}</td> */}

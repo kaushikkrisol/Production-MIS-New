@@ -38,7 +38,7 @@
                         color: $white;
                     }
                     svg {
-                        color: #FE9F43
+                        color: #95312F
                     }
                 }
                 svg {
@@ -66,21 +66,21 @@
                     }
                     &:hover{
                         background: rgba(254, 159, 67, 0.08);
-                        color: #FE9F43;
+                        color: #95312F;
                         border-radius: 5px;
                         img {
                             filter: invert(72%) sepia(76%) saturate(1430%) hue-rotate(327deg) brightness(103%) contrast(101%);
                         }
                         span{
-                            color: #FE9F43;
+                            color: #95312F;
                         }
                         svg{
-                            color: #FE9F43;
+                            color: #95312F;
                         }
                     }
                     &.active{
                         background: rgba(254, 159, 67, 0.08);
-                        color: #FE9F43;
+                        color: #95312F;
                         border-radius: 5px;
                         svg{
                             color: $white;
@@ -89,12 +89,12 @@
                             filter: invert(72%) sepia(76%) saturate(1430%) hue-rotate(327deg) brightness(103%) contrast(101%);
                         }
                         span{
-                            color: #FE9F43;
+                            color: #95312F;
                         }
                         .menu-arrow{
                             background: #FFEDDC;
                             &::before{
-                                border-color: #FE9F43;
+                                border-color: #95312F;
                             }
                         }
                     }
@@ -112,7 +112,7 @@
                             filter: invert(72%) sepia(76%) saturate(1430%) hue-rotate(327deg) brightness(103%) contrast(101%);
                         }
                         span{
-                            color: #FE9F43;
+                            color: #95312F;
                         }
                     }
                 }
@@ -125,14 +125,14 @@
                             a{
                                font-weight: $font-weight-medium;
                                font-size: $font-size-base;
-                               color: $secondary;
+                               color: black;
                                position: relative;
                                display: block;
                                @include margin-padding(null, 8px 8px 8px 40px);
                                &.active{
-                                   color: $secondary;
+                                   color: black;
                                    &:after{
-                                    background: #FE9F43;
+                                    background: #95312F;
                                     border: 2px solid #FDB;
                                    }
                                }
@@ -148,7 +148,7 @@
                                &:hover{
                                    color:$primary;
                                    &:after{
-                                    background: #FE9F43;
+                                    background: #95312F;
                                     border: 2px solid #FDB;
                                    }
                                }
@@ -171,7 +171,7 @@
                                 -ms-flex-align: center;
                                 font-weight: $font-weight-medium;
                                 font-size: $font-size-15;
-                                color: #67748E;
+                                color: black;
                                 position: relative;
                                 width: 100%;
                                 @include margin-padding(null, 10px 10px 10px 18px);
@@ -188,14 +188,14 @@
                                        }
                                    }
                                    &:after{
-                                    background: #FE9F43;
+                                    background: #95312F;
                                     border: 2px solid #FDB;
                                    }
                                }
                                &:hover{
                                    color:$primary;
                                    &:after{
-                                    background: #FE9F43;
+                                    background: #95312F;
                                     border: 2px solid #FDB;
                                    }
                                    span {
@@ -209,7 +209,7 @@
                         &.active a{
                             background: rgba(254, 159, 67, 0.08);
                             border-radius: 5px;
-                            color: #FE9F43;
+                            color: #95312F;
                             span {
                                 color: $primary;
                             }
@@ -240,25 +240,25 @@
             li {
                 &.active{
                     a{
-                        color: #FE9F43;
+                        color: #95312F;
                     }
                     svg {
-                        color: #FE9F43
+                        color: #95312F
                     }
                 }
                 .submenu > {
                     a {
                         &.active{
                             background: rgba(254, 159, 67, 0.08);
-                            color: #FE9F43;
+                            color: #95312F;
                             border-radius: 5px;
                             span{
-                                color: #FE9F43;
+                                color: #95312F;
                             }
                             .menu-arrow{
                                 background: #FFEDDC;
                                 &::before{
-                                    border-color: #FE9F43;
+                                    border-color: #95312F;
                                 }
                             }
                         }
@@ -321,7 +321,7 @@
                             &:hover{
                                 color:$primary;
                                 &:after{
-                                background: #FE9F43;
+                                background: #95312F;
                                 border: 2px solid #FDB;
                                 }
                             }

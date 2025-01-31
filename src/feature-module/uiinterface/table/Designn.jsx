@@ -66,6 +66,8 @@ const Designn = () => {
     console.log(data, setNewMonth, setNewWeek, setNewReceivedDate);
 
     const [searchTerm, setSearchTerm] = useState('');
+    const [selectSearchTerm, setSelectSearchTerm] = useState('');
+    const [filteredJobNumbers, setFilteredJobNumbers] = useState([]);
     const [selectedRows, setSelectedRows] = useState({});
     const [isJobRunning, setIsJobRunning] = useState(true); // Job status
     console.log(setIsJobRunning);
@@ -464,6 +466,25 @@ const Designn = () => {
         row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase())
     ) : [];
 
+    useEffect(() => {
+        if(selectSearchTerm.trim() === '') {
+            setFilteredJobNumbers(uniqueJobNumbers);
+        }
+        else {
+            const filtered = uniqueJobNumbers.filter(jobNo => 
+                jobNo.toLowerCase().includes(selectSearchTerm.trim().toLowerCase())
+            );
+            setFilteredJobNumbers(filtered);
+        }
+    }, [selectSearchTerm, uniqueJobNumbers]);
+
+    const handleSelectJobNoChange = (e) => {
+        const selectedJobNo = e.target.value;
+        setNewJobNo(selectedJobNo);
+        setSelectSearchTerm(selectedJobNo);
+        handleJobNumberChange(selectedJobNo);
+    }
+
     // const sortedData = filteredData1.sort((a, b) => {
     //     const dateA = a.date1;
     //     const dateB = b.date2;
@@ -505,17 +526,28 @@ const Designn = () => {
                             <Col xs={2}>
                                 <Form.Group>
                                     <Form.Label style={{ width: '200px' }}>Job No</Form.Label>
+                                    <Form.Control 
+                                        type='text'
+                                        placeholder='Search Job Number'
+                                        value={selectSearchTerm}
+                                        onChange={(e) => setSelectSearchTerm(e.target.value)}
+                                        style={{marginBottom: '10px'}}
+                                    />
                                     <Form.Select
-                                    type="text"
-                                        placeholder="Enter job number"
                                         value={newJobNo}
-                                        onChange={(e) => handleJobNumberChange(e.target.value)}
+                                        onChange={handleSelectJobNoChange}
                                         required
                                     >
                                         <option value="">Select Job Number</option>
-                                        {uniqueJobNumbers.map((jobNo, index) => (
-                                            <option key={index} value={jobNo}>{jobNo}</option>
-                                        ))}
+                                        {filteredJobNumbers.length > 0 ? (
+                                                filteredJobNumbers.map((jobNo, index) => (
+                                                    <option key={index} value={jobNo}>
+                                                    {jobNo}
+                                                    </option>
+                                                ))
+                                        ) : (
+                                            <option value="" disabled>No matching job numbers</option>
+                                        )}
                                     </Form.Select>
                                 </Form.Group>
                             </Col>

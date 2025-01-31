@@ -4,7 +4,7 @@
 .customizer-links {
     @include position(fixed,50%,0,null,null);
     @include transform(translateY(-50%));
-    background: $orange;
+    background: $primary;
     border-radius: 10px 0px 0px 10px;
     z-index: 3;
     width: 41px;
@@ -182,7 +182,7 @@
                 filter: brightness(0) saturate(100%)
             }
             &.active {
-                background: $orange;
+                background: $primary;
                 color: $white;
                 img {
                     filter:  brightness(0) invert(1);

@@ -761,7 +761,7 @@ const Production = () => {
                                                 <Col xs={2}>
                                                 </Col>
                                             </Row>
-                                            <Row className="mb-3 align-items-center mr-3">
+                                            <Row className="mb-3 align-items-center">
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formPrinterName">
                                                         <Form.Label style={{ width: '300px' }}>Printer Name</Form.Label>
@@ -832,7 +832,7 @@ const Production = () => {
                                                 </Col> */}
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formMediaSqFt">
-                                                        <Form.Label style={{ width: '200px' }}>Standard Sq.ft</Form.Label>
+                                                        <Form.Label style={{ width: '200px' }}>Media Sq.ft</Form.Label>
                                                         <Form.Control
                                                             value={mediaSqFt}
                                                             // style={{ marginLeft: '30px' }}
