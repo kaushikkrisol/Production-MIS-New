@@ -1,0 +1,10 @@
+.reason-input {
+    margin-left: 1em;
+    border: 1px solid #dbe0e6;
+    border-radius: 5px;
+    padding: 3px;
+}
+
+.reason-input:focus {
+    border-color: #95312F;
+}

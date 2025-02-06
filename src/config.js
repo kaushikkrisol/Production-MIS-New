@@ -14,9 +14,12 @@ const config ={
     },
     JobSummary: {
         URL: {
-            AddJobSummary: BaseURL + '/api/JobSummary',
+
+            Addjobdetails: BaseURL + '/api/JobSummary/Addjobdetails',
             Getalljob: BaseURL + '/api/JobSummary/Getalljob',
             TotalJobcount: BaseURL + '/api/JobSummary/TotalJobcount',
+            Getallcustomer: BaseURL + '/api/JobSummary/Getallcustomer',
+           AddreprintData : BaseURL +'/api/JobSummary/AddreprintData'
         }
     },
     Design: {
@@ -36,7 +39,7 @@ const config ={
             AddPrintingStart: BaseURL + '/api/Printing/Addprintingstart',
             AddPrintingStop: BaseURL + '/api/Printing/Addprintingstop',
             TotalPrintingJobcount: BaseURL + '/api/Printing/TotalPrintingJobcount',
-
+            GetCompletedPrinting: BaseURL + '/api/Printing/GetCompletedPrinting',
             TotalSQFT:"/api/Printing/TotalSQFT"
         }
     },

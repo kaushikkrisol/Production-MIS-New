@@ -117,10 +117,16 @@ const Delivery = () => {
     console.log('Filtered data: ', filteredData1);
 
     const today = new Date();
-    today.setDate(today.getDate() - 2);
-    const twoDaysAgo = today.toISOString().slice(0, 19);
-    const todayString = today.toISOString().slice(0, 19);
-    console.log('two days ago: ', twoDaysAgo, 'today: ', todayString)
+
+    // Format today's date as a string (YYYY-MM-DDTHH:mm:ss)
+    const todayString = today.toISOString().slice(0, 19); // For min date
+    console.log('Today:', todayString);
+
+    // Set the maximum date to two days from today
+    const maxDate = new Date();
+    maxDate.setDate(today.getDate() + 1); // Add 2 days
+    const maxDateString = maxDate.toISOString().slice(0, 19); // For max date
+    console.log('Max Date (2 days from today):', maxDateString);
 
 
     const resetForm = () => {
@@ -372,7 +378,7 @@ const Delivery = () => {
                                                         <Form.Label style={{ width: '200px' }}>Delivery Started</Form.Label>
                                                         <Form.Control
                                                             type="datetime-local"
-                                                            max={twoDaysAgo}
+                                                            max={maxDateString}
                                                             value={deliveryDate}
                                                             onChange={(e) => setDeliveryDate(e.target.value)}
                                                         />

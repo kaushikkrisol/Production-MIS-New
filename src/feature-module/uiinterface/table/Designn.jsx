@@ -1,9 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { Container, Form, Button, Row, Col, Alert, Spinner, Table, InputGroup } from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Form, Button, Row, Col, Alert, Spinner, Table, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
+import Select from 'react-select';
+import { Link } from "react-router-dom";
+import { all_routes } from "../../../Router/all_routes";
+import { useMemo } from 'react';
 
 import './Designn.css';
 
@@ -42,7 +46,7 @@ const Designn = () => {
             setUser(username);
 
             // Log the username to the console
-            console.log('Username:', username);
+            console.log('Username:', username, jobs);
         } else {
             console.log('No user data found in localStorage.');
         }
@@ -83,13 +87,16 @@ const Designn = () => {
 
     const [hiddenRows, setHiddenRows] = useState([]);
 
+    const [selectedExJobNumber, setSelectedExJobNumber] = useState('');
+    const [exJobNumber, setExJobNumber] = useState([]);
+
     const locations = ["North", "South", "East", "West", "All"];
     const status = ["Done", "Hold"];
     console.log(status);
 
     console.log(jobNumbers, setStartDate, setEndDate, setHiddenRows);
     console.log(clientNames, setData, selectedDesignIds, endDate);
-    const currentDate = new Date().toISOString().split('T')[0];
+    // const currentDate = new Date().toISOString().split('T')[0];
 
     const fetchJobs = async () => {
         setLoading(true);
@@ -103,6 +110,7 @@ const Designn = () => {
             });
             console.log("Data fetched successfully: ", response.data);
             setJobs(response.data);
+            setExJobNumber(response.data);
 
         } catch (error) {
             console.error("Error fetching job data:", error);
@@ -478,11 +486,42 @@ const Designn = () => {
         handleJobNumberChange(selectedJobNo);
     }
 
+    console.log(filteredJobNumbers, handleSelectJobNoChange)
+
     const handleJobNumberChange = (jobNo) => {
         setNewJobNo(jobNo);
         const selectedJob = jobs.find(job => job.jobNo === jobNo);
         console.log("Selected Job: ", selectedJob);
         setNewClientName(selectedJob ? selectedJob.client : ''); // Set client name or reset
+    };
+
+    const jobNoOptions = useMemo(() => {
+        const uniqueJobNumbers = [...new Set(exJobNumber.map(job => job.jobNo))]; // Get unique job numbers
+        return uniqueJobNumbers.map(jobNo => ({
+            value: jobNo,
+            label: jobNo,
+            clientName: exJobNumber.find(job => job.jobNo === jobNo)?.client // Assuming job object has a client property
+        }));
+    }, [exJobNumber]);
+
+    const handleExJobNoSelectChange = (selectedOption) => {
+        if (selectedOption) {
+            console.log(selectedOption); // Log the selected option
+            setSelectedExJobNumber(selectedOption.value); // Set the selected customer ID
+            setNewClientName(selectedOption.clientName);
+            setNewJobNo(selectedOption.value);
+            // Find the customer name based on the selected option
+            const selectedJobNo = jobNoOptions.find(option => option.value === selectedOption.value);
+
+            // setCustomerName(selectedJobNo ? selectedJobNo.label : ''); // Set the customer name
+            console.log("Job No :", selectedOption.value);
+            console.log("Job No is:", selectedJobNo ? selectedJobNo.label : '');
+        } else {
+            setSelectedExJobNumber('');
+            setNewClientName('');
+            setNewJobNo('');
+
+        }
     };
 
     // const sortedData = filteredData1.sort((a, b) => {
@@ -500,105 +539,113 @@ const Designn = () => {
     console.log("Filtered data 1: ", filteredData1);
 
     return (
-        <Container className="mt-5 page-wrapper">
-            <div className="content container-fluid" style={{ maxWidth: '100%', marginRight: 'none' }}>
-                <h1 style={{ maxWidth: '100%' }} className="display-4 text-center mb-4">Design</h1>
-                {error && <Alert variant="danger">{error}</Alert>}
-                {loading && <Spinner animation="border" className="d-block mx-auto" />}
+        <div>
+            <div className="page-wrapper">
+                <div className="content container-fluid">
+                    <div className="page-header">
+                        <div className="row">
+                            <div className="col">
+                                <ul className="breadcrumb">
+                                    <li className="breadcrumb-item">
+                                        <Link to={all_routes.dashboard}></Link>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="row">
+                        <div className="col-sm-12">
+                            <div className="card">
 
-                <Row className="mb-3 align-items-center">
-                    <Col>
-                    {(isJobRunning )? 
-                  
-                        <Button variant="success" onClick={handleStartJob} disabled={ !Object.values(selectedRows).some(v => v)}>Start Job</Button>
-                     : 
-                        <Button variant="danger" onClick={handleStopJob}  className="ml-3" disabled={isJobRunning || !Object.values(selectedRows).some(v => v)}>Stop Job</Button>
-                        } </Col> 
+                                <div className="card-body">
+                                    <h1 style={{ maxWidth: '100%' }} className="display-4 text-center mb-4">Design</h1>
+                                    {error && <Alert variant="danger">{error}</Alert>}
+                                    {loading && <Spinner animation="border" className="d-block mx-auto" />}
 
-                    <Col className="ml-auto">
-                        <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
-                    </Col>
-                </Row>
-                <Form.Control
-                    type='text'
-                    placeholder='Search Job Number'
-                    value={selectSearchTerm}
-                    onChange={(e) => setSelectSearchTerm(e.target.value)}
-                    style={{ marginBottom: '10px' }}
-                />
+                                    <Row className="mb-3 align-items-center">
+                                        <Col>
+                                            {(isJobRunning) ?
 
-                <div style={{ overflowX: 'auto' }}>
-                    <Form className="mb-3">
-                        <Row className="mb-3 align-items-center">
-                            <Col xs={2}>
-                                <Form.Group>
-                                    <Form.Label style={{ width: '200px' }}>Job No</Form.Label>
-                                    <Form.Select
-                                        value={newJobNo}
-                                        onChange={handleSelectJobNoChange}
-                                    >
-                                        <option value="">Select Job Number</option>
-                                        {filteredJobNumbers.length > 0 ? (
-                                            filteredJobNumbers.map((jobNo, index) => (
-                                                    <option key={index} value={jobNo}>
-                                                    {jobNo}
-                                                    </option>
-                                                ))
-                                        ) : (
-                                            <option value="" disabled>No matching job numbers</option>
-                                        )}
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col xs={2}>
-                                <Form.Group controlId="formClientName">
-                                    <Form.Label style={{ width: '200px' }}>Client Name</Form.Label>
-                                    <Form.Control
+                                                <Button variant="success" onClick={handleStartJob} disabled={!Object.values(selectedRows).some(v => v)}>Start Job</Button>
+                                                :
+                                                <Button variant="danger" onClick={handleStopJob} className="ml-3" disabled={isJobRunning || !Object.values(selectedRows).some(v => v)}>Stop Job</Button>
+                                            } </Col>
+
+                                        <Col className="ml-auto">
+                                            <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
+                                        </Col>
+                                    </Row>
+                                    {/* <Form.Control
                                         type='text'
-                                        value={newClientName}
-                                        readOnly
-                                    />
+                                        placeholder='Search Job Number'
+                                        value={selectSearchTerm}
+                                        onChange={(e) => setSelectSearchTerm(e.target.value)}
+                                        style={{ marginBottom: '10px' }}
+                                    /> */}
 
-                                </Form.Group>
-                            </Col>
-                            <Col xs={2}>
-                                <Form.Group controlId="formNoOfJobs">
-                                    <Form.Label style={{ width: '200px' }}>No Of Artworker</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Enter no. of jobs"
-                                        value={newNoOfJobs}
-                                        onChange={(e) => setNewNoOfJobs(e.target.value)}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col xs={2}>
-                                <Form.Group controlId="formBrief">
-                                    <Form.Label style={{ width: '200px' }}>Brief</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Enter brief"
-                                        value={newBrief}
-                                        onChange={(e) => setNewBrief(e.target.value)}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col xs={2}>
-                                <Form.Group controlId="formLocation">
-                                    <Form.Label style={{ width: '200px' }}>Location</Form.Label>
-                                    <Form.Select
-                                        placeholder="Enter location"
-                                        value={newLocation}
-                                        onChange={(e) => setNewLocation(e.target.value)}
-                                    >
-                                        <option value="">Select Location</option>
-                                        {locations.map((location, index) => (
-                                            <option key={index} value={location}>{location}</option>
-                                        ))}
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            {/* <Col xs={2}>
+                                    <div style={{ overflowX: 'auto' }}>
+                                        <Form className="mb-3">
+                                            <Row className="mb-3 align-items-center">
+                                                <Col xs={2}>
+                                                    <Form.Group>
+                                                        <Form.Label style={{ width: '200px' }}>Job No</Form.Label>
+                                                        <Select
+                                                            options={jobNoOptions}
+                                                            value={jobNoOptions.find(option => option.value === selectedExJobNumber) || null} // Bind the selected value
+                                                            onChange={handleExJobNoSelectChange} // Call the updated function
+                                                            placeholder="Select Job No"
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formClientName">
+                                                        <Form.Label style={{ width: '200px' }}>Client Name</Form.Label>
+                                                        <Form.Control
+                                                            type='text'
+                                                            value={newClientName}
+                                                            readOnly
+                                                        />
+
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formNoOfJobs">
+                                                        <Form.Label style={{ width: '200px' }}>No Of Artworker</Form.Label>
+                                                        <Form.Control
+                                                            type="text"
+                                                            placeholder="Enter no. of jobs"
+                                                            value={newNoOfJobs}
+                                                            onChange={(e) => setNewNoOfJobs(e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formBrief">
+                                                        <Form.Label style={{ width: '200px' }}>Brief</Form.Label>
+                                                        <Form.Control
+                                                            type="text"
+                                                            placeholder="Enter brief"
+                                                            value={newBrief}
+                                                            onChange={(e) => setNewBrief(e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formLocation">
+                                                        <Form.Label style={{ width: '200px' }}>Location</Form.Label>
+                                                        <Form.Select
+                                                            placeholder="Enter location"
+                                                            value={newLocation}
+                                                            onChange={(e) => setNewLocation(e.target.value)}
+                                                        >
+                                                            <option value="">Select Location</option>
+                                                            {locations.map((location, index) => (
+                                                                <option key={index} value={location}>{location}</option>
+                                                            ))}
+                                                        </Form.Select>
+                                                    </Form.Group>
+                                                </Col>
+                                                {/* <Col xs={2}>
                                 <Form.Group controlId="formStatus">
                                     <Form.Label style={{ width: '200px' }}>Status</Form.Label>
                                     <Form.Select
@@ -614,29 +661,29 @@ const Designn = () => {
                                     </Form.Select>
                                 </Form.Group>
                             </Col> */}
-                            <Col xs={2}>
-                                <Form.Group controlId="formQuery">
-                                    <Form.Label style={{ width: '200px' }}>Query</Form.Label>
-                                    <Form.Control
-                                        type="text"
-                                        placeholder="Enter Query"
-                                        value={newQuery}
-                                        onChange={(e) => setNewQuery(e.target.value)}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col xs={2}>
-                                <Form.Group controlId="formDueDate">
-                                    <Form.Label style={{ width: '200px' }}>Due Date</Form.Label>
-                                    <Form.Control
-                                        type="date"
-                                        value={newDueDate}
-                                        placeholder="Enter Due Date"
-                                        onChange={(e) => setNewDueDate(e.target.value)}
-                                    />
-                                </Form.Group>
-                            </Col>
-                            <Col xs={2}>
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formQuery">
+                                                        <Form.Label style={{ width: '200px' }}>Query</Form.Label>
+                                                        <Form.Control
+                                                            type="text"
+                                                            placeholder="Enter Query"
+                                                            value={newQuery}
+                                                            onChange={(e) => setNewQuery(e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col xs={2}>
+                                                    <Form.Group controlId="formDueDate">
+                                                        <Form.Label style={{ width: '200px' }}>Due Date</Form.Label>
+                                                        <Form.Control
+                                                            type="date"
+                                                            value={newDueDate}
+                                                            placeholder="Enter Due Date"
+                                                            onChange={(e) => setNewDueDate(e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col>
+                                                {/* <Col xs={2}>
                                 <Form.Group controlId="formUploadDate">
                                     <Form.Label style={{ width: '200px' }}>Upload Date</Form.Label>
                                     <Form.Control
@@ -647,8 +694,8 @@ const Designn = () => {
                                         max={currentDate}
                                     />
                                 </Form.Group>
-                            </Col>
-                            <Col xs={2}>
+                            </Col> */}
+                                                {/* <Col xs={2}>
                                 <Form.Group controlId="formWidth">
                                     <Form.Label style={{ width: '100px' }}>Width</Form.Label>
                                     <Form.Control
@@ -658,8 +705,8 @@ const Designn = () => {
                                         onChange={(e) => setNewWidth(e.target.value)}
                                     />
                                 </Form.Group>
-                            </Col>
-                            <Col xs={2}>
+                            </Col> */}
+                                                {/* <Col xs={2}>
                                 <Form.Group controlId="formHeight">
                                     <Form.Label style={{ width: '100px' }}>Length</Form.Label>
                                     <Form.Control
@@ -669,134 +716,139 @@ const Designn = () => {
                                         onChange={(e) => setNewHeight(e.target.value)}
                                     />
                                 </Form.Group>
-                            </Col>
-                            <Col xs={2}>
-                                <Form.Group>
-                                    <Form.Label style={{ width: '200px' }}>New</Form.Label>
-                                    <Form.Select
-                                        value={newDropdown}
-                                        onChange={(e) => setNewDropdown(e.target.value)}
-                                    >
-                                        <option value="">Select </option>
-                                        <option value="Design Type">Design Type </option>
-                                        <option value="New Layout">New Layout</option>
-                                        <option value="Correction">Correction</option>
-                                        <option value="Print Ready File">Print Ready File</option>
-                                        <option value="Master Artwork">Master Artwork</option>
-                                        
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col>
-                            <Col>
-                                <Button type="submit" variant="primary" style={{ marginTop: '28px' }} onClick={(e) => handleAddJob(e)}>Add</Button>
-                            </Col>
-                        </Row>
-                    </Form>
-                </div>
-                <div>
-                    <Form.Group className="mb-3 mt-3">
-                    <InputGroup>
-                            <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
-                                <FaSearch />
-                            </InputGroup.Text>
-                            <Form.Control
-                                type="text"
-                                placeholder="Enter job number"
-                                value={searchTerm}
-                                style={{ borderLeft: 'none' }}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                    </InputGroup>
-                    </Form.Group>
-                    <div style={{ overflowX: 'auto' }}>
-                        <Table striped bordered hover>
-                            <thead>
-                                <tr>
-                                    <th>
-                                        <Form.Check
-                                            type="checkbox"
-                                            onChange={handleSelectAllChange}
-                                            checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.designid])}
-                                        />
-                                    </th>
-                                    <th>Job ID</th>
-                                    <th>No Of Artwork</th>
-                                    <th>Client Name</th>
-                                    <th>Brief</th>
-                                    <th>Location</th>
-                                    {/* <th>Status</th> */}
-                                    <th>Query/Comment</th>
-                                    
-                                    <th>Received Date</th>
-                                    <th>Due Date</th>
-                                    <th>Upload Date</th>
-                                    <th>Width</th>
-                                    <th>Length</th>
-                                    <th>Artwork: Start time</th>
-                                    <th>Artwork: End time</th>
-                                    <th>Artwork: Production time</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {filteredData1.length > 0 ? (
-                                    filteredData1.map((row) => (
-                                        <tr key={row.designid} className={hiddenRows.includes(row.designid) ? 'disappear' : ''}>
-                                            <td>
-                                                <Form.Check
-                                                    key={row.designid}
-                                                    type="checkbox"
-                                                    checked={!!selectedRows[row.designid]}
-                                                    onChange={() => handleCheckboxChange(row.designid)}
-                                                    disabled={row.isCompleted}
+                            </Col> */}
+                                                <Col xs={2}>
+                                                    <Form.Group>
+                                                        <Form.Label style={{ width: '200px' }}>Design Type</Form.Label>
+                                                        <Form.Select
+                                                            value={newDropdown}
+                                                            onChange={(e) => setNewDropdown(e.target.value)}
+                                                        >
+                                                            {/* <option value="">Select </option> */}
+                                                            <option value="">Select Design Type </option>
+                                                            <option value="New Layout">New Layout</option>
+                                                            <option value="Correction">Correction</option>
+                                                            <option value="Print Ready File">Print Ready File</option>
+                                                            <option value="Master Artwork">Master Artwork</option>
+
+                                                        </Form.Select>
+                                                    </Form.Group>
+                                                </Col>
+                                                <Col>
+                                                    <Button type="submit" variant="primary" style={{ marginTop: '28px' }} onClick={(e) => handleAddJob(e)}>Add</Button>
+                                                </Col>
+                                            </Row>
+                                        </Form>
+                                    </div>
+                                    <div>
+                                        <Form.Group className="mb-3 mt-3">
+                                            <InputGroup>
+                                                <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
+                                                    <FaSearch />
+                                                </InputGroup.Text>
+                                                <Form.Control
+                                                    type="text"
+                                                    placeholder="Enter job number"
+                                                    value={searchTerm}
+                                                    style={{ borderLeft: 'none' }}
+                                                    onChange={(e) => setSearchTerm(e.target.value)}
                                                 />
-                                            </td>
-                                            <td>{row.jobNo}</td>
-                                            <td>{row.designNoOfJobs}</td>
-                                            <td>
-                                                {row.designClientName}
-                                            </td>
-                                            <td>
-                                                {row.designBrief}
-                                            </td>
-                                            <td>{row.designLocation}</td>
-                                            {/* <td>
+                                            </InputGroup>
+                                        </Form.Group>
+                                        <div style={{ overflowX: 'auto' }}>
+                                            <Table striped bordered hover>
+                                                <thead>
+                                                    <tr>
+                                                        <th>
+                                                            <Form.Check
+                                                                type="checkbox"
+                                                                onChange={handleSelectAllChange}
+                                                                checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.designid])}
+                                                            />
+                                                        </th>
+                                                        <th>Job ID</th>
+                                                        <th>No Of Artwork</th>
+                                                        <th>Client Name</th>
+                                                        <th>Brief</th>
+                                                        <th>Location</th>
+                                                        {/* <th>Status</th> */}
+                                                        <th>Query/Comment</th>
+
+                                                        <th>Received Date</th>
+                                                        <th>Due Date</th>
+                                                        {/* <th>Upload Date</th>
+                                    <th>Width</th>
+                                    <th>Length</th> */}
+                                                        <th>Artwork: Start time</th>
+                                                        <th>Artwork: End time</th>
+                                                        <th>Artwork: Production time</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {filteredData1.length > 0 ? (
+                                                        filteredData1.map((row) => (
+                                                            <tr key={row.designid} className={hiddenRows.includes(row.designid) ? 'disappear' : ''}>
+                                                                <td>
+                                                                    <Form.Check
+                                                                        key={row.designid}
+                                                                        type="checkbox"
+                                                                        checked={!!selectedRows[row.designid]}
+                                                                        onChange={() => handleCheckboxChange(row.designid)}
+                                                                        disabled={row.isCompleted}
+                                                                    />
+                                                                </td>
+                                                                <td>{row.jobNo}</td>
+                                                                <td>{row.designNoOfJobs}</td>
+                                                                <td>
+                                                                    {row.designClientName}
+                                                                </td>
+                                                                <td>
+                                                                    {row.designBrief}
+                                                                </td>
+                                                                <td>{row.designLocation}</td>
+                                                                {/* <td>
                                                 {row.designStatus}
                                             </td> */}
-                                            <td>
-                                                {row.designQuery}
-                                            </td>
-                                          
-                                            <td>{row.designReceivedDate}</td>
-                                            <td>{row.designDueDate}</td>
-                                            <td>{row.designUploadDate}</td>
+                                                                <td>
+                                                                    {row.designQuery}
+                                                                </td>
+
+                                                                <td>{row.designReceivedDate}</td>
+                                                                <td>{row.designDueDate}</td>
+                                                                {/* <td>{row.designUploadDate}</td>
                                             <td>{row.designWidth}</td>
-                                            <td>{row.designHeight}</td>
-                                            <td>{row.startdate || '-'}</td>
-                                            <td>{row.enddate || '-'}</td>
-                                            <td>
-                                                {row.startJobTime && row.stopJobTime ?
-                                                    calculateTotalTime(row.startJobTime, row.stopJobTime) : '-'}
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="15" className="text-center">No results found</td>
-                                    </tr>
-                                )}
-                                {/* Row for displaying total values */}
-                                {/* <tr>
+                                            <td>{row.designHeight}</td> */}
+                                                                <td>{row.startdate || '-'}</td>
+                                                                <td>{row.enddate || '-'}</td>
+                                                                <td>
+                                                                    {row.startJobTime && row.stopJobTime ?
+                                                                        calculateTotalTime(row.startJobTime, row.stopJobTime) : '-'}
+                                                                </td>
+                                                            </tr>
+                                                        ))
+                                                    ) : (
+                                                        <tr>
+                                                            <td colSpan="15" className="text-center">No results found</td>
+                                                        </tr>
+                                                    )}
+                                                    {/* Row for displaying total values */}
+                                                    {/* <tr>
                                     <td colSpan="10" className="text-center"><strong>Total</strong></td>
                                     <td><strong>{totalValues.width}</strong></td>
                                     <td><strong>{totalValues.height}</strong></td>
                                     <td colSpan="3"></td>
                                 </tr> */}
-                            </tbody>
-                        </Table>
+                                                </tbody>
+                                            </Table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-        </Container>
+        </div>
     );
 };
 

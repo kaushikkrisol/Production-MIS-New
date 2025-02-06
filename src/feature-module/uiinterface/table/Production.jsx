@@ -3,12 +3,13 @@ import { Link } from "react-router-dom";
 import { Table, Form, Button, Row, Col, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import * as XLSX from 'xlsx';
-import { Modal, ModalBody, ModalHeader, Table as ExcelTable } from 'reactstrap';
+import { Modal, ModalBody, ModalHeader, ModalFooter, Table as ExcelTable } from 'reactstrap';
 import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { all_routes } from "../../../Router/all_routes";
 import './Production.css';
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
+import CompletedPrinting from './CompletedPrinting';
 
 const Production = () => {
     const [BulkAdd, setBulkAdd] = useState(false);
@@ -16,6 +17,9 @@ const Production = () => {
     const [data, setData] = useState([]);
     const [gangData, setGangData] = useState([]);
     console.log(gangData);
+
+    const [open, setOpen] = useState(false);
+    const toggle = () => setOpen(!open);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [mediaSearchTerm, setMediaSearchTerm] = useState('');
@@ -92,7 +96,7 @@ const Production = () => {
     // Recalculate square footage whenever mediaWidth or mediaHeight changes
     useEffect(() => {
         if (mediaWidth && mediaLength) {
-            setMediaSqFt((parseFloat(mediaWidth) * parseFloat(mediaLength))/144);
+            setMediaSqFt(((parseFloat(mediaWidth) * parseFloat(mediaLength))/144).toFixed(2));
             console.log('media sq ft: ', mediaSqFt);
         }
     }, [mediaWidth, mediaLength]);
@@ -563,7 +567,7 @@ const Production = () => {
                     return total + area; // Add the area to the total
                 }, 0);
 
-                setActualSqFt(selectedTotalSqFt);
+                setActualSqFt(selectedTotalSqFt.toFixed(2));
             
 
             // setMediaHeight(selectedTotalSqFt); // Update media height dynamically
@@ -606,7 +610,7 @@ const Production = () => {
                 return total + area; // Add the area to the total
             }, 0);
 
-        setActualSqFt(selectedTotalSqFt);
+        setActualSqFt(selectedTotalSqFt.toFixed(2));
 
         const selectedWasteages = filteredData1
             .filter(row => newSelectedRows[row.id])
@@ -635,6 +639,8 @@ const Production = () => {
     console.log('Printer name', printerNameSelect, actualWidth);
 
     const filteredPrinterNames = printerNameSelect.filter(arr => Array.isArray(arr) && arr.length > 0);
+
+
 
     return (
         <div>
@@ -886,8 +892,29 @@ const Production = () => {
                                                 <Button variant="success" onClick={handleStartJob} disabled={!Object.values(selectedRows).some(v => v)}>Start Job</Button>
                                                 :
                                                 <Button variant="danger" onClick={handleStopJob} className="ml-3" disabled={isJobRunning || !Object.values(selectedRows).some(v => v)}>Stop Job</Button>
-                                            } </Col>
+                                            } 
+                                        </Col>
                                     </Row>
+                                    <div>
+                                        <Form inline onSubmit={(e) => e.preventDefault()}>
+                                            <Button color="danger" onClick={toggle}>
+                                                Reprint
+                                            </Button>
+                                        </Form>
+                                        <Modal isOpen={open} className="custom-modal">
+                                            <ModalBody>
+                                                <CompletedPrinting />
+                                            </ModalBody>
+                                            <ModalFooter>
+                                                <Button color="primary" onClick={() => {
+                                                    toggle();
+                                                    window.location.reload();
+                                                }}>
+                                                    Close
+                                                </Button>
+                                            </ModalFooter>
+                                        </Modal>
+                                    </div>
                                     {/* <Row className="mb-3 align-items-center">
                     <Col>
                       <Button variant="primary" onClick={handleStartJob} disabled={!Object.values(selectedRows).some(v => v)}>Start Job</Button>

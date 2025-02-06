@@ -428,6 +428,7 @@ const Implementation = () => {
                                                     <th>Length</th>
                                                     <th>Total Sq Ft</th>
                                                     <th>Implementation End Time</th>
+                                                    <th>Assigned To</th>
                                                     <th>Assigned Date</th>
                                                     <th>Remark</th>
                                                 </tr>
@@ -461,6 +462,7 @@ const Implementation = () => {
                                                             <td>{row.height}</td>
                                                             <td>{row.totalSqFt}</td>
                                                             <td>{'-'}</td>
+                                                            <td>{row.assignName || '-'}</td>
                                                             <td>{row.implementationDate || '-'}</td>
                                                             <td>{row.remarks}</td>
                                                         </tr>

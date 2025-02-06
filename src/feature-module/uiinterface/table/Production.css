@@ -29,3 +29,16 @@ h6 {
 .disappear {
     display: none;
 }
+
+.custom-modal {
+    max-width: 90%;
+    /* Adjust the width as needed */
+    width: 900px;
+    /* Set a specific width */
+    max-height: 90vh;
+    /* Maximum height of the modal */
+    height: 800px;
+    /* Set a specific height */
+    overflow-y: auto;
+    /* Enable vertical scrolling if content exceeds height */
+}
