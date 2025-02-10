@@ -583,7 +583,7 @@ const Designn = () => {
                                         style={{ marginBottom: '10px' }}
                                     /> */}
 
-                                    <div style={{ overflowX: 'auto' }}>
+                                    <div style={{  }}>
                                         <Form className="mb-3">
                                             <Row className="mb-3 align-items-center">
                                                 <Col xs={2}>
@@ -740,6 +740,7 @@ const Designn = () => {
                                             </Row>
                                         </Form>
                                     </div>
+                                    <hr />
                                     <div>
                                         <Form.Group className="mb-3 mt-3">
                                             <InputGroup>

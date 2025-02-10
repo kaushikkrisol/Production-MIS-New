@@ -1,10 +1,21 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import ImageWithBasePath from "../../core/img/imagewithbasebath";
 import { Link } from "react-router-dom";
 import { all_routes } from "../../Router/all_routes";
 
 const Lockscreen = () => {
   const route = all_routes;
+  const [username, setUserName] = useState('');
+
+  useEffect(() => {
+    const user = localStorage.getItem('users');
+    if(user) {
+      const userStorage = JSON.parse(user);
+      const username = userStorage.message.username;
+      const userDisplay = username.charAt(0).toUpperCase() + username.slice(1);
+      setUserName(userDisplay);
+    }
+  }, []);
   return (
     <div className="main-wrapper login-body">
       <div className="login-wrapper">
@@ -24,7 +35,7 @@ const Lockscreen = () => {
                     className="img-fluid"
                     alt="User-Img"
                   />
-                  <h5>John Smilga</h5>
+                  <h5>{username}</h5>
                 </div>
                 <form action="#">
                   <div className="input-blocks">

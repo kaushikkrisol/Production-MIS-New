@@ -390,7 +390,7 @@ const Production = () => {
                 actualCompleteTime: row.actCompleteTime, // Actual Completion Time
                 onTimeDelayed: row.onTimeDelayed, // On Time or Delayed status
                 enteredBy: row.enteredby, // Entered By
-                enteredDate: row.entereddt, // Entered Date
+                enteredDate: row.enteredDate, // Entered Date
                 lastUpdatedBy: user, // Last Updated By
                 width: row.width, // Width
                 length: row.height, // Height

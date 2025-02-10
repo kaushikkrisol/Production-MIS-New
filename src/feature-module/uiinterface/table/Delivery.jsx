@@ -416,9 +416,9 @@ const Delivery = () => {
                                                             onChange={(e) => setHandTempoDelivery(e.target.value)}
                                                         >
                                                             <option value="">Select Delivery Mode</option>
-                                                            <option value="Hand Pick Up">Hand Pick Up</option>
-                                                            <option value="Customer Pick Up">Customer Pick Up</option>
-                                                            <option value="Courier Service">Courier Service</option>
+                                                            <option value="Comart to Deliver">Comart to Deliver</option>
+                                                            <option value="Comart Premises">Comart Premises</option>
+                                                            <option value="Comart Courier">Comart Courier</option>
                                                         </Form.Select>
                                                     </Form.Group>
                                                 </Col>

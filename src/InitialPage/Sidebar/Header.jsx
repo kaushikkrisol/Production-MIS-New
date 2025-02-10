@@ -9,6 +9,7 @@ const Header = () => {
   const route = all_routes;
   const [toggle, SetToggle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [username, setUserName] = useState('');
 
   const isElementVisible = (element) => {
     return element.offsetWidth > 0 || element.offsetHeight > 0;
@@ -35,6 +36,7 @@ const Header = () => {
       document.removeEventListener("mouseover", handleMouseover);
     };
   }, []); 
+
   useEffect(() => {
     const handleFullscreenChange = () => {
       setIsFullscreen(
@@ -83,6 +85,16 @@ const Header = () => {
   };
 
   let pathname = location.pathname;
+
+  useEffect(() => {
+    const getusername = localStorage.getItem('users');
+    if (getusername) {
+      const userObject = JSON.parse(getusername);
+      const username = userObject.message.username;
+      const userDisplay = username.charAt(0).toUpperCase() + username.slice(1);
+      setUserName(userDisplay);
+    }
+  }, []);
 
   const exclusionArray = [
     "/reactjs/template/dream-pos/index-three",
@@ -599,8 +611,7 @@ const Header = () => {
                     <span className="status online" />
                   </span>
                   <div className="profilesets">
-                    <h6>John Smilga</h6>
-                    <h5>Super Admin</h5>
+                    <h6>{username}</h6>
                   </div>
                 </div>
                 <hr className="m-0" />

@@ -59,8 +59,8 @@
     const [user, setUser] = useState('');
 
     const [newJobNo, setNewJobNo] = useState('');
-    const [clients,setClients]=useState('');
-    const [subClients,setSubclients]=useState('');
+    const [clients, setClients]=useState('');
+    const [subClients, setSubclients]=useState('');
     const users = localStorage.getItem('users');
     const currentDate = new Date().toISOString().split('T')[0];
 
@@ -337,19 +337,17 @@
         });
 
         console.log("Data fetched successfully: ", response.data);
+        
         setData(response.data);
-
-
-
 
         // setJobNumber(response.data)
 
         setJobNumber(response.data);
         setExJobNumber(response.data);
-
+        console.log('exjobno: ', response.data);
         // If there are jobs, set the client and sub-client based on the first job
         if (Array.isArray(response.data) && response.data.length > 0) {
-          const firstJob = response; // Assuming you want to set based on the first job
+          const firstJob = response.data[0]; // Assuming you want to set based on the first job
           setClients(firstJob.client); // Adjust according to your data structure
           setSubclients(firstJob.subClient); // Adjust according to your data structure
         } else {
@@ -531,7 +529,7 @@
         {
           const newdata = dataWithUsernames.map(item => ({
             ...item,  // Spread existing properties
-          "Job No": newJobNo,
+            "Job No": newJobNo,
             "CLIENT": clients,
             "Sub Client": subClients,
 
@@ -740,7 +738,19 @@
 
         // Find the customer name based on the selected option
         const selectedJobNo = jobNoOptions.find(option => option.value === selectedOption.value);
-
+        console.log(selectedJobNo, "selected job no");
+        setNewJobNo(selectedOption.value);
+        if (selectedJobNo) {
+          setClients(selectedJobNo.clientName); // Set the client name
+          setSubclients(selectedJobNo.subClient); // Set the sub-client name if it exists
+          console.log('Selected client name is: ', selectedJobNo.client);
+          console.log('Selected sub-client name is: ', selectedJobNo.subClient);
+        } else {
+          setClients(''); // Clear client if not found
+          setSubclients(''); // Clear sub-client if not found
+        }
+        
+        console.log('selected client name is: ', selectedOption);
         setCustomerName(selectedJobNo ? selectedJobNo.label : ''); // Set the customer name
         console.log("Job No :", selectedOption.value);
         console.log("Job No is:", selectedJobNo ? selectedJobNo.label : '');
@@ -754,10 +764,17 @@
       label: cust.customeR_NAME,
     }));
 
-    const jobNoOptions = [...new Set(exJobNumber.map(job => job.jobNo))].map(jobNo => ({
-      value: jobNo,
-      label: jobNo,
-    }));
+    const jobNoOptions = Array.from(new Set(exJobNumber.map(job => job.jobNo)))
+      .map(jobNo => {
+        const job = exJobNumber.find(job => job.jobNo === jobNo); // Find the first occurrence of the job
+        return {
+          value: jobNo,
+          label: jobNo, // Display job number
+          clientName: job ? job.client : '' // Include client name if found
+        };
+      });
+
+    console.log('selected job No options: ', jobNoOptions);
 
     console.log('selected date is: ', lpoDate);
 
@@ -1069,10 +1086,10 @@
                             {/* <th>Installation</th> */}
                             <th>Job Deadline</th>
                             <th>No of Artwork</th>
-                            <th>Artworker Deadline</th>
+                            {/* <th>Artworker Deadline</th> */}
                             <th>Remarks/Instructions</th>
-                            <th>Actual Complete Time</th>
-                            <th>On Time Delayed 2</th>
+                            {/* <th>Actual Complete Time</th> */}
+                            {/* <th>On Time Delayed 2</th> */}
                             {/* <th>Sub Client</th>
                             <th>CS Name</th>
                             <th>Billing Location</th>
@@ -1129,10 +1146,10 @@
                                 {/* <td>{row.installation}</td> */}
                                 <td>{row.deadline}</td>
                                 <td>{row.noOfArtwork}</td>
-                                <td>{row.artworkerDeadline}</td>
+                                {/* <td>{row.artworkerDeadline}</td> */}
                                 <td>{row.remarks}</td>
-                                <td>{row.actCompleteTime}</td>
-                                <td>{row.onTimeDelayed}</td>
+                                {/* <td>{row.actCompleteTime}</td> */}
+                                {/* <td>{row.onTimeDelayed}</td> */}
 
 
                                 {/* <td>{row.subClient}</td>

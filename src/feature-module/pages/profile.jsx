@@ -1,9 +1,20 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import ImageWithBasePath from "../../core/img/imagewithbasebath";
 import { Link } from "react-router-dom";
 
 const Profile = () => {
   const [isPasswordVisible, setPasswordVisible] = useState(false);
+  const [username, setUserName] = useState('');
+
+  useEffect(() => {
+    const user = localStorage.getItem('users');
+    if(user) {
+      const userStorage = JSON.parse(user);
+      const userItem = userStorage.message.username;
+      const username = userItem.charAt(0).toUpperCase() + userItem.slice(1);
+      setUserName(username);
+    }
+  }, []);
 
   const togglePasswordVisibility = () => {
     setPasswordVisible((prevState) => !prevState);
@@ -41,7 +52,7 @@ const Profile = () => {
                     </div>
                   </div>
                   <div className="profile-contentname">
-                    <h2>William Castillo</h2>
+                    <h2>{username}</h2><br />
                     <h4>Updates Your Photo and Personal Details.</h4>
                   </div>
                 </div>
@@ -50,15 +61,15 @@ const Profile = () => {
             <div className="row">
               <div className="col-lg-6 col-sm-12">
                 <div className="input-blocks">
-                  <label className="form-label">First Name</label>
+                  <label className="form-label">Name</label>
                   <input
                     type="text"
+                    value={username}
                     className="form-control"
-                    defaultValue="William"
                   />
                 </div>
               </div>
-              <div className="col-lg-6 col-sm-12">
+              {/* <div className="col-lg-6 col-sm-12">
                 <div className="input-blocks">
                   <label className="form-label">Last Name</label>
                   <input
@@ -67,7 +78,7 @@ const Profile = () => {
                     defaultValue="Castilo"
                   />
                 </div>
-              </div>
+              </div> */}
               <div className="col-lg-6 col-sm-12">
                 <div className="input-blocks">
                   <label>Email</label>
@@ -90,7 +101,7 @@ const Profile = () => {
                   <input
                     type="text"
                     className="form-control"
-                    defaultValue="William Castilo"
+                    value={username}
                   />
                 </div>
               </div>
