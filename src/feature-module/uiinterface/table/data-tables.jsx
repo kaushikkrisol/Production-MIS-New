@@ -68,6 +68,8 @@
     const [contactPerson, setContactPerson] = useState("");
     const [lpono, setlpono] = useState("");
     const [lpoDate, setlpoDate] = useState("");
+    const [poType, setPoType] = useState("");
+    const [machineName, setMachineName] = useState("");
     const [customerName, setCustomerName] = useState("");
     const [enteredby, setEnteredby] = useState("");
     const [locationid, setLocationid] = useState("");
@@ -83,6 +85,8 @@
       setContactPerson('');
       setlpono('');
       setlpoDate('');
+      setPoType('');
+      setMachineName('');
       setCustomerName('');
       setSelectedCustomerId('');
       setCustomerid('');
@@ -558,6 +562,8 @@
             "customerid":customerid,
             "lpono": lpono,
             "lpodate": lpoDate.toString(),
+            "potype": poType,
+            "machineName": machineName,
             "jobdesc": "",
             "enteredby": enteredby,
             "userid": userId,
@@ -781,6 +787,12 @@
     const handleBusinessType = (e) => {
       setBusinessType(e.target.value);
     }
+    const handlePoType = (e) => {
+      setPoType(e.target.value);
+    }
+    const handleMachineName = (e) => {
+      setMachineName(e.target.value);
+    }
 
     return (
       <div>
@@ -919,6 +931,32 @@
                                                 <Form.Control type="text" placeholder="Enter Sub Client" value={subClient} onChange={(e) => setSubClient(e.target.value)} />
                                               </Form.Group>
                                             </Col> */}
+                                            <Col sm={6}>
+                                              <Form.Group controlId="PoType">
+                                                <Form.Label>PO Type</Form.Label>
+                                                <Form.Select value={poType} onChange={handlePoType}>
+                                                  <option value="">Select PO Type</option>
+                                                  <option value="PO Received">PO Received</option>
+                                                  <option value="PO not Received">PO not Received</option>
+                                                  <option value="Direct Billing">Direct Billing</option>
+                                                  <option value="Open PO">Open PO</option>
+                                                  <option value="Estimate Approval Pending">Estimate Approval Pending</option>
+                                                </Form.Select>
+                                              </Form.Group>
+                                            </Col>
+                                          </Row>
+                                          <Row className="mb-3">
+                                            <Col sm={6}>
+                                              <Form.Group controlId="MachineName">
+                                                <Form.Label>Machine Name</Form.Label>
+                                                <Form.Select value={machineName} onChange={handleMachineName}>
+                                                  <option value="">Select Machine Name</option>
+                                                  <option value="Grand">Grand</option>
+                                                  <option value="Epson">Epson</option>
+                                                  <option value="HP Latex">HP Latex</option>
+                                                </Form.Select>
+                                              </Form.Group>
+                                            </Col>
                                           </Row>
                                         </Tab.Pane>
 
@@ -1085,6 +1123,10 @@
                             <th>Billing Sq Ft</th>
                             {/* <th>Installation</th> */}
                             <th>Job Deadline</th>
+                            <th>Design Name</th>
+                            <th>Design Deadline</th>
+                            <th>Printer Name</th>
+                            <th>Printer Deadline</th>
                             <th>No of Artwork</th>
                             {/* <th>Artworker Deadline</th> */}
                             <th>Remarks/Instructions</th>
@@ -1145,6 +1187,10 @@
                                 <td>{row.billingSqFt}</td>
                                 {/* <td>{row.installation}</td> */}
                                 <td>{row.deadline}</td>
+                                <td>{row.designName}</td>
+                                <td>{row.designDeadline}</td>
+                                <td>{row.printerPrintingName}</td>
+                                <td>{row.printerDeadline}</td>
                                 <td>{row.noOfArtwork}</td>
                                 {/* <td>{row.artworkerDeadline}</td> */}
                                 <td>{row.remarks}</td>

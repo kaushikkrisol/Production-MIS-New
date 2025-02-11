@@ -417,8 +417,10 @@ const Delivery = () => {
                                                         >
                                                             <option value="">Select Delivery Mode</option>
                                                             <option value="Comart to Deliver">Comart to Deliver</option>
-                                                            <option value="Comart Premises">Comart Premises</option>
+                                                            <option value="Customer Pick-Up from Comart">Customer Pick-Up from Comart</option>
                                                             <option value="Comart Courier">Comart Courier</option>
+                                                            <option value="Job Delivery by the Implementer">Job Delivery by the Implementer</option>
+                                                            <option value="Job Delivery & Implementation by the Implementer">Job Delivery & Implementation by the Implementer</option>
                                                         </Form.Select>
                                                     </Form.Group>
                                                 </Col>

@@ -10,6 +10,7 @@ import { all_routes } from "../../../Router/all_routes";
 import './Production.css';
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 import CompletedPrinting from './CompletedPrinting';
+import Notification from '../../Notification/Notification';
 
 const Production = () => {
     const [BulkAdd, setBulkAdd] = useState(false);
@@ -52,6 +53,7 @@ const Production = () => {
     const [printerName, setPrinterNames] = useState([]);
     const [selectedPrinter, setSelectedPrinter] = useState([]);
     const [mediaWidth, setMediaWidth] = useState('');
+    // const [deadline, setDeadline] = useState('');
     console.log(printerName);
 
     const [printingData, setPrintingData] = useState([]);
@@ -66,6 +68,9 @@ const Production = () => {
     const [wasteagePerData, setWasteagePerData] = useState([]);
     const [wastePercentage, setWastePercentage] = useState([]); 
     const [wasteageDataFetched, setWasteageDataFetched] = useState(false);
+
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
 
     console.log('wasteage per 0', wastePercentage)
 
@@ -640,7 +645,38 @@ const Production = () => {
 
     const filteredPrinterNames = printerNameSelect.filter(arr => Array.isArray(arr) && arr.length > 0);
 
+    useEffect(() => {
+        const checkDeadlines = () => {
+            const now = new Date();
+            const message = [];
+            console.log('now: ', now);
 
+            data.forEach(job => {
+                const printingDeadline = new Date(job.printerDeadline);
+
+                if (!job.isCompleted && now > printingDeadline) {
+                    message.push(`Job No: ${job.jobNo} has missed its deadline!`);
+                }
+            });
+
+            if(message.length > 0) {
+                setNotificationMessage(message);
+                setShowNotification(true);
+            }
+        };
+        checkDeadlines();
+        // const timeout = setTimeout(() => {
+        //     setNotificationMessage("Test notification");
+        //     setShowNotification(true);
+        // }, 2000);
+        // return () => clearTimeout(timeout);
+        const interval = setInterval(checkDeadlines, 300000);
+        return () => clearInterval(interval);
+    }, [data]);
+
+    const handleCloseNotification = () => {
+        setShowNotification(false);
+    }
 
     return (
         <div>
@@ -859,9 +895,16 @@ const Production = () => {
                                                         </Form.Control>
                                                     </Form.Group>
                                                 </Col>
-                                                <Col>
-                                                    <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '15em', marginTop: '1em' }} onClick={() => window.location.reload()} />
-                                                </Col>
+                                                {/* <Col xs={2}>
+                                                    <Form.Group controlId="deadline">
+                                                        <Form.Label style={{ width: '200px' }}>Deadline</Form.Label>
+                                                        <Form.Control
+                                                            type="datetime-local"
+                                                            value={deadline}
+                                                            onChange={(e) => setDeadline(e.target.value)}
+                                                        />
+                                                    </Form.Group>
+                                                </Col> */}
 
                                                 <Col>
                                                     {/* <Button type="submit" variant="primary" onClick={(e) => handleAddPrintingJob(e)} style={{ marginLeft: '30px', marginTop: '30px' }}
@@ -894,9 +937,13 @@ const Production = () => {
                                                 <Button variant="danger" onClick={handleStopJob} className="ml-3" disabled={isJobRunning || !Object.values(selectedRows).some(v => v)}>Stop Job</Button>
                                             } 
                                         </Col>
+                                        <Col className='ml-auto' style={{display: 'flex', justifyContent: 'flex-end'}}>
+                                            <FaSyncAlt size={20} style={{ cursor: 'pointer', marginTop: '1em' }} onClick={() => window.location.reload()} />
+                                        </Col>
                                     </Row>
+                                    <hr />
                                     <div>
-                                        <Form inline onSubmit={(e) => e.preventDefault()}>
+                                        <Form inline style={{marginBottom: '2em'}} onSubmit={(e) => e.preventDefault()}>
                                             <Button color="danger" onClick={toggle}>
                                                 Reprint
                                             </Button>
@@ -1051,6 +1098,15 @@ const Production = () => {
                                                 </tr>
                                             </tbody>
                                         </Table>
+                                    </div>
+                                    <div>
+                                        {showNotification && (
+                                            <Notification
+                                                message={notificationMessage}
+                                                onClose={handleCloseNotification}
+                                                show={showNotification}
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             </div>

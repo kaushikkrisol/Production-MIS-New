@@ -8,6 +8,7 @@ import Select from 'react-select';
 import { Link } from "react-router-dom";
 import { all_routes } from "../../../Router/all_routes";
 import { useMemo } from 'react';
+import Notification from '../../Notification/Notification';
 
 import './Designn.css';
 
@@ -30,7 +31,11 @@ const Designn = () => {
 
     const [newBrief, setNewBrief] = useState('');
     const [newQuery, setNewQuery] = useState('');
+    // const [designName, setDesignName] = useState('');
     const [user, setUser] = useState('');
+
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
 
     // Check if users data exists and is not null
     useEffect(() => {
@@ -538,6 +543,40 @@ const Designn = () => {
 
     console.log("Filtered data 1: ", filteredData1);
 
+    useEffect(() => {
+        const checkDeadlines = () => {
+            const now = new Date();
+            const message = [];
+            console.log('now: ', now);
+
+            jobs.forEach(job => {
+                const designDeadline = new Date(job.designDeadline);
+                console.log('design deadline: ', job);
+                console.log('design deadline: ', designDeadline);
+                if (!job.isCompleted && now > designDeadline) {
+                    message.push(`Job No: ${job.jobNo} has missed its deadline!`);
+                }
+            });
+
+            if(message.length > 0) {
+                setNotificationMessage(message);
+                setShowNotification(true);
+            }
+        };
+        checkDeadlines();
+        // const timeout = setTimeout(() => {
+        //     setNotificationMessage("Test notification");
+        //     setShowNotification(true);
+        // }, 2000);
+        // return () => clearTimeout(timeout);
+        const interval = setInterval(checkDeadlines, 300000);
+        return () => clearInterval(interval);
+    }, [designData]);
+
+    const handleCloseNotification = () => {
+        setShowNotification(false);
+    }
+
     return (
         <div>
             <div className="page-wrapper">
@@ -556,7 +595,6 @@ const Designn = () => {
                     <div className="row">
                         <div className="col-sm-12">
                             <div className="card">
-
                                 <div className="card-body">
                                     <h1 style={{ maxWidth: '100%' }} className="display-4 text-center mb-4">Design</h1>
                                     {error && <Alert variant="danger">{error}</Alert>}
@@ -575,14 +613,6 @@ const Designn = () => {
                                             <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
                                         </Col>
                                     </Row>
-                                    {/* <Form.Control
-                                        type='text'
-                                        placeholder='Search Job Number'
-                                        value={selectSearchTerm}
-                                        onChange={(e) => setSelectSearchTerm(e.target.value)}
-                                        style={{ marginBottom: '10px' }}
-                                    /> */}
-
                                     <div style={{  }}>
                                         <Form className="mb-3">
                                             <Row className="mb-3 align-items-center">
@@ -645,22 +675,6 @@ const Designn = () => {
                                                         </Form.Select>
                                                     </Form.Group>
                                                 </Col>
-                                                {/* <Col xs={2}>
-                                <Form.Group controlId="formStatus">
-                                    <Form.Label style={{ width: '200px' }}>Status</Form.Label>
-                                    <Form.Select
-                                        placeholder="Enter status"
-                                        value={newStatus}
-                                        onChange={(e) => setNewStatus(e.target.value)}
-                                        required
-                                    >
-                                        <option value="">Select Status</option>
-                                        {status.map((status, index) => (
-                                            <option key={index} value={status}>{status}</option>
-                                        ))}
-                                    </Form.Select>
-                                </Form.Group>
-                            </Col> */}
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formQuery">
                                                         <Form.Label style={{ width: '200px' }}>Query</Form.Label>
@@ -676,47 +690,12 @@ const Designn = () => {
                                                     <Form.Group controlId="formDueDate">
                                                         <Form.Label style={{ width: '200px' }}>Due Date</Form.Label>
                                                         <Form.Control
-                                                            type="date"
+                                                            type="datetime-local"
                                                             value={newDueDate}
-                                                            placeholder="Enter Due Date"
                                                             onChange={(e) => setNewDueDate(e.target.value)}
                                                         />
                                                     </Form.Group>
                                                 </Col>
-                                                {/* <Col xs={2}>
-                                <Form.Group controlId="formUploadDate">
-                                    <Form.Label style={{ width: '200px' }}>Upload Date</Form.Label>
-                                    <Form.Control
-                                        type="date"
-                                        placeholder="Enter Upload Date"
-                                        value={newUploadDate}
-                                        onChange={(e) => setNewUploadDate(e.target.value)}
-                                        max={currentDate}
-                                    />
-                                </Form.Group>
-                            </Col> */}
-                                                {/* <Col xs={2}>
-                                <Form.Group controlId="formWidth">
-                                    <Form.Label style={{ width: '100px' }}>Width</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        placeholder="Enter width"
-                                        value={newWidth}
-                                        onChange={(e) => setNewWidth(e.target.value)}
-                                    />
-                                </Form.Group>
-                            </Col> */}
-                                                {/* <Col xs={2}>
-                                <Form.Group controlId="formHeight">
-                                    <Form.Label style={{ width: '100px' }}>Length</Form.Label>
-                                    <Form.Control
-                                        type="number"
-                                        placeholder="Enter height"
-                                        value={newHeight}
-                                        onChange={(e) => setNewHeight(e.target.value)}
-                                    />
-                                </Form.Group>
-                            </Col> */}
                                                 <Col xs={2}>
                                                     <Form.Group>
                                                         <Form.Label style={{ width: '200px' }}>Design Type</Form.Label>
@@ -815,7 +794,7 @@ const Designn = () => {
                                                                 </td>
 
                                                                 <td>{row.designReceivedDate}</td>
-                                                                <td>{row.designDueDate}</td>
+                                                                <td>{row.designDueDate ? new Date(row.designDueDate).toLocaleString() : '-'}</td>
                                                                 {/* <td>{row.designUploadDate}</td>
                                             <td>{row.designWidth}</td>
                                             <td>{row.designHeight}</td> */}
@@ -842,6 +821,16 @@ const Designn = () => {
                                                 </tbody>
                                             </Table>
                                         </div>
+                                    </div>
+                                    
+                                    <div>
+                                        {showNotification && (
+                                            <Notification
+                                                message={notificationMessage}
+                                                onClose={handleCloseNotification}
+                                                show={showNotification}
+                                            />
+                                        )}
                                     </div>
                                 </div>
                             </div>
