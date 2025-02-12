@@ -66,16 +66,15 @@
 
     const [businessType, setBusinessType] = useState("");
     const [contactPerson, setContactPerson] = useState("");
+    const [customerEmail, setCustomerEmail] = useState("");
     const [lpono, setlpono] = useState("");
     const [lpoDate, setlpoDate] = useState("");
     const [poType, setPoType] = useState("");
-    const [machineName, setMachineName] = useState("");
     const [customerName, setCustomerName] = useState("");
     const [enteredby, setEnteredby] = useState("");
     const [locationid, setLocationid] = useState("");
 
     console.log(filteredJobNumbers, setSelectSearchTerm);
-
 
     const resetForm = () => {
       setNewJobNo('');
@@ -86,10 +85,11 @@
       setlpono('');
       setlpoDate('');
       setPoType('');
-      setMachineName('');
       setCustomerName('');
       setSelectedCustomerId('');
       setCustomerid('');
+      setSelectedExJobNumber('');
+      setCustomerEmail('');  
     }
 
     // Check if users data exists and is not null
@@ -443,13 +443,6 @@
       }
     };
 
-   
-    
-
-
-
-
-
     const handleFileChange = (e) => {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -528,6 +521,7 @@
         console.log('data with unames', dataWithUsernames, newJobNo, clients, subClients);
         console.log("API URL: ", config.JobSummary.URL.Addjobdetails);
 
+        // const jobNumbers = [];
 
         if (newJobNo != '')
         {
@@ -554,16 +548,15 @@
           const newdata = dataWithUsernames.map(item => ({
             ...item,  // Spread existing properties
             
-            
             ISnewjob: '1',
             "customername": customerName,
             "businessType": businessType,
+            "customerEmail": customerEmail,
             "contactPerson": contactPerson,
             "customerid":customerid,
             "lpono": lpono,
             "lpodate": lpoDate.toString(),
             "potype": poType,
-            "machineName": machineName,
             "jobdesc": "",
             "enteredby": enteredby,
             "userid": userId,
@@ -572,16 +565,13 @@
           }));
           const response = await axios.post(config.JobSummary.URL.Addjobdetails, newdata);
 
-        
           console.log("Data submitted successfully: ", response);
 
           // Reset the state after submission
         
         }
         // Submit the filtered data to the database
-      
-      
-
+        
         await fetchJobs();
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -790,10 +780,7 @@
     const handlePoType = (e) => {
       setPoType(e.target.value);
     }
-    const handleMachineName = (e) => {
-      setMachineName(e.target.value);
-    }
-
+    
     return (
       <div>
         <div className="page-wrapper">
@@ -947,14 +934,9 @@
                                           </Row>
                                           <Row className="mb-3">
                                             <Col sm={6}>
-                                              <Form.Group controlId="MachineName">
-                                                <Form.Label>Machine Name</Form.Label>
-                                                <Form.Select value={machineName} onChange={handleMachineName}>
-                                                  <option value="">Select Machine Name</option>
-                                                  <option value="Grand">Grand</option>
-                                                  <option value="Epson">Epson</option>
-                                                  <option value="HP Latex">HP Latex</option>
-                                                </Form.Select>
+                                              <Form.Group controlId="customerEmail">
+                                                <Form.Label>Customer Email</Form.Label>
+                                                <Form.Control type="email" placeholder="Enter Customer Email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} />
                                               </Form.Group>
                                             </Col>
                                           </Row>
@@ -1120,11 +1102,12 @@
                             <th>Mounting</th>
                             <th>Implementation</th>
                             <th>Salon Address</th>
+                            <th>Machine Name</th>
                             <th>Billing Sq Ft</th>
                             {/* <th>Installation</th> */}
                             <th>Job Deadline</th>
-                            <th>Design Name</th>
-                            <th>Design Deadline</th>
+                            <th>Designer Name</th>
+                            <th>Designer Deadline</th>
                             <th>Printer Name</th>
                             <th>Printer Deadline</th>
                             <th>No of Artwork</th>
@@ -1184,11 +1167,12 @@
                                 <td>{row.mounting}</td>
                                 <td>{row.implementation}</td>
                                 <td>{row.salonAddress}</td>
+                                <td>{row.machineName}</td>
                                 <td>{row.billingSqFt}</td>
                                 {/* <td>{row.installation}</td> */}
                                 <td>{row.deadline}</td>
-                                <td>{row.designName}</td>
-                                <td>{row.designDeadline}</td>
+                                <td>{row.designerName}</td>
+                                <td>{row.designerDeadline}</td>
                                 <td>{row.printerPrintingName}</td>
                                 <td>{row.printerDeadline}</td>
                                 <td>{row.noOfArtwork}</td>
@@ -1222,13 +1206,35 @@
                           )}
                           {/* Row for displaying total values */}
                           <tr>
-                            <td colSpan="10" className="text-center"><strong>Total</strong></td>
+                            <td colSpan="11" className="text-center"><strong>Total</strong></td>
                             <td><strong>{totalWidth}</strong></td>
                             <td><strong>{totalHeight}</strong></td>
                             <td colSpan="15"></td>
                           </tr>
                         </tbody>
                       </Table>
+
+
+
+                      {/* <div>
+                        <DeadlineEmail
+                          jobNumber="12345"
+                          deadlineDate="01/01/2023"
+                          items={[
+                            { mediaName: "Product 1", quantity: 1, mediaWidth: 29.99, mediaHeight: 40 },
+                            { mediaName: "Product 2", quantity: 2, mediaWidth: 19.99, mediaHeight: 40 }
+                          ]}
+                          // subtotal={69.97}
+                          // shipping={5.00}
+                          // total={74.97}
+                          trackingLink="http://trackinglink.com"
+                          supportEmail="support@example.com"
+                          customerSupportNumber="(123) 456-7890"
+                          companyName="Your Company Name"
+                          companyWebsite="http://yourcompany.com"
+                          companyContactInfo="(123) 456-7890"
+                        />
+                      </div> */}
                     </div>
                   </div>
                 </div>

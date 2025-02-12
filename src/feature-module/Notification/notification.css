@@ -35,6 +35,9 @@
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     transition: transform 0.3s ease;
 }
+.notification:active {
+    cursor: grabbing;
+}
 .notification-header {
     display: flex;
     align-items: center;
@@ -88,9 +91,9 @@
         margin-left: 10px;
 }
 .notification.minimized {
-    width: 150px;
+    width: 250px;
     padding: 5px;
-    height: 40px;
+    height: 70px;
     overflow: hidden;
 }
 .notification-body.minimized {

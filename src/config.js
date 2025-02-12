@@ -5,7 +5,6 @@ let BaseURL = "https://localhost:7035";
 // let BaseURL ='https://productionapi.comart.in'
 
 const config ={
-
     User: {
         URL: {
             Checkuser: BaseURL + '/User/Checkuser',

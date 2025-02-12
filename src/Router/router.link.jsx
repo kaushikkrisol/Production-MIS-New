@@ -75,6 +75,7 @@ import Production from "../feature-module/uiinterface/table/Production";
 import Designn from "../feature-module/uiinterface/table/Designn";
 import Delivery from "../feature-module/uiinterface/table/Delivery";
 import Implementation from "../feature-module/uiinterface/table/Implementation";
+import ImplementationUpload from "../feature-module/uiinterface/table/ImplementationUpload";
 
 import MisReport from "../feature-module/uiinterface/report/MisReport";
 import JobTracker from "../feature-module/uiinterface/summary/JobTrack";
@@ -616,6 +617,13 @@ export const publicRoutes = [
     path: routes.implementation,
     name: "implementation",
     element: <Implementation />,
+    route: Route,
+  },
+  {
+    id: 62,
+    path: routes.implementationUpload,
+    name: "implementationUpload",
+    element: <ImplementationUpload />,
     route: Route,
   },
   {

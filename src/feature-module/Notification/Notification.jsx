@@ -6,12 +6,14 @@ import "./notification.css";
 
 const Notification = ({message, onClose, show}) => {
     const [isMinimized, setIsMinimized] = useState(false);
+
     const toggleMinimize = () => {
         setIsMinimized(prev => !prev);
     }
+    
     return (
-        <div className={`notification ${show ? 'show' : 'hide'}`}>
-            <div className="notification-content">
+        <div className={`notification ${show ? 'show' : 'hide'} ${isMinimized ? 'minimized' : ''}`}>
+            <div className={`notification-content`}>
                 <div className="notification-header">
                     <FaExclamationTriangle style={{color: 'white'}} />
                     <strong>Deadline Alert!</strong>
@@ -21,7 +23,7 @@ const Notification = ({message, onClose, show}) => {
                     <Button variant="close" onClick={onClose} />
                 </div>
                 {!isMinimized && (
-                    <div className="notification-body">
+                    <div className={`notification-body ${isMinimized ? 'minimized' : ''}`}>
                         {message.map((msg, index) => (
                             <div key={index}>
                                 <p>{msg}</p>

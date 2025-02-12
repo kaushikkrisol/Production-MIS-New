@@ -653,9 +653,16 @@ const Production = () => {
 
             data.forEach(job => {
                 const printingDeadline = new Date(job.printerDeadline);
+                const printerName = job.printerPrintingName;
+                const deadlineDuration = now - printingDeadline;
+                console.log('deadline duration', deadlineDuration);
 
                 if (!job.isCompleted && now > printingDeadline) {
-                    message.push(`Job No: ${job.jobNo} has missed its deadline!`);
+                    const totalHours = Math.floor(deadlineDuration / (1000 * 60 * 60));
+                    const days = Math.floor(totalHours / 24);
+                    const hours = totalHours % 24;
+                    
+                    message.push(`Job No: ${job.jobNo}, Printer Name: ${printerName} has missed its deadline! Time passed: ${days}d ${hours}h`);
                 }
             });
 

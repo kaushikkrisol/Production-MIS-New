@@ -857,6 +857,9 @@ const CollapsedSidebar = () => {
                   <li>
                     <Link to="implementation">Implementation </Link>
                   </li>
+                  <li>
+                    <Link to="implementationUpload">Implementation Upload</Link>
+                  </li>
                 </ul>
               </li>
             </ul>

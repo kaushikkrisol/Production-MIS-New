@@ -550,11 +550,18 @@ const Designn = () => {
             console.log('now: ', now);
 
             jobs.forEach(job => {
-                const designDeadline = new Date(job.designDeadline);
+                const designerDeadline = new Date(job.designerDeadline);
+                const designerName = job.designerName;
+                const deadlineDuration = now - designerDeadline;
+
                 console.log('design deadline: ', job);
-                console.log('design deadline: ', designDeadline);
-                if (!job.isCompleted && now > designDeadline) {
-                    message.push(`Job No: ${job.jobNo} has missed its deadline!`);
+                console.log('design deadline: ', designerDeadline);
+                if (!job.isCompleted && now > designerDeadline) {
+                    const totalHours = Math.floor(deadlineDuration / (1000 * 60 * 60));
+                    const days = Math.floor(totalHours / 24);
+                    const hours = totalHours % 24;
+
+                    message.push(`Job No: ${job.jobNo}, Designer Name: ${designerName} has missed its deadline! Time passed: ${days}d ${hours}h`);
                 }
             });
 

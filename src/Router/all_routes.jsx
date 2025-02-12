@@ -46,6 +46,7 @@ export const all_routes = {
   production: "/Production",
   delivery: "/Delivery",
   implementation: "/Implementation",
+  implementationUpload: "/ImplementationUpload",
 
   misreport: "/MisReport",
   jobtracker: "/JobTracker",
