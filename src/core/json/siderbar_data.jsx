@@ -1000,7 +1000,7 @@ export const SidebarData = [
           { label: "Printing", link: "/production" },
           { label: "Delivery", link: "/delivery" },
           { label: "Implementation", link: "/implementation" },
-          { label: "ImplementationUpload", link: "/implementationUpload" },
+          { label: "Implementation Upload", link: "/implementationUpload" },
           // { label: "Ajgrid", link:"/Ajgrid"},
         ],
       },

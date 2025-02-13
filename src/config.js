@@ -60,6 +60,11 @@ const config ={
             GetallImplementationJobs: BaseURL + '/api/Implementation/GetAllImplementationjobs',
         }
     },
+    ImplementationUpload: {
+        URL: {
+            GetAllImplementationUpload: BaseURL + '/api/ImplementationUpload/GetAllImplementationUpload'
+        }
+    },
     Report: {
         URL: {
             AddReport: BaseURL + '/api/Report',
