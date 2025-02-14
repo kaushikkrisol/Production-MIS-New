@@ -364,6 +364,11 @@ const Production = () => {
     const handleStartJob = async (e) => {
         e.preventDefault();
 
+        if (!mediaWidth || !mediaLength || !selectedPrinter || selectedRowsArr.length === 0) {
+            setError("Please fill in all required fields and select at least one job.");
+            return; // Exit the function if validation fails
+        }
+
         // Prepare the data for the selected jobs
         const selectedJobs = filteredData1
             .filter(row => selectedRows[row.id]) // Include only selected rows
@@ -472,6 +477,7 @@ const Production = () => {
     };
     console.log('wasteage data', wasteagePerData)
 
+    const isStartJobDisabled = !mediaWidth || !mediaLength || !selectedPrinter || selectedRowsArr.length === 0;
 
     const handleStopJob = async (e) => {
         e.preventDefault();
@@ -819,6 +825,7 @@ const Production = () => {
                                                             value={selectedPrinter}
                                                             onChange={handlePrinterChange}
                                                             style={{ width: '200px' }}
+                                                            required
                                                         >
                                                             <option value="">Select Printer Name</option>
                                                             {
@@ -842,6 +849,7 @@ const Production = () => {
                                                             type="number"
                                                             value={mediaWidth}
                                                             onChange={(e) => setMediaWidth(e.target.value)}
+                                                            required
                                                             // style={{ marginLeft: '2px' }}
                                                         />
                                                     </Form.Group>
@@ -854,6 +862,7 @@ const Production = () => {
                                                             value={mediaLength}
                                                             // style={{ marginLeft: '30px' }}
                                                             onChange={(e) => setMediaLength(e.target.value)}
+                                                            required
                                                         />
                                                     </Form.Group>
                                                 </Col>
@@ -939,7 +948,7 @@ const Production = () => {
                                         <Col>
                                             {(isJobRunning) ?
 
-                                                <Button variant="success" onClick={handleStartJob} disabled={!Object.values(selectedRows).some(v => v)}>Start Job</Button>
+                                                <Button variant="success" onClick={handleStartJob} disabled={!Object.values(selectedRows).some(v => v) || isStartJobDisabled}>Start Job</Button>
                                                 :
                                                 <Button variant="danger" onClick={handleStopJob} className="ml-3" disabled={isJobRunning || !Object.values(selectedRows).some(v => v)}>Stop Job</Button>
                                             } 
@@ -987,14 +996,14 @@ const Production = () => {
                                     <Row className="mb-3 align-items-center">
                                         <Form.Group as={Row} className="mb-3">
                                             <Col md={6}>
-                                                <Form.Label>Search by Job No</Form.Label>
+                                                <Form.Label>Search by Job Number</Form.Label>
                                                 <InputGroup>
                                                     <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
                                                         <FaSearch />
                                                     </InputGroup.Text>
                                                     <Form.Control
                                                         type="text"
-                                                        placeholder="Enter job number"
+                                                        placeholder="Enter job Number"
                                                         value={searchTerm}
                                                         onChange={(e) => setSearchTerm(e.target.value)}
                                                         style={{ width: '100%', borderLeft: 'none' }}

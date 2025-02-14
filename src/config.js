@@ -62,7 +62,8 @@ const config ={
     },
     ImplementationUpload: {
         URL: {
-            GetAllImplementationUpload: BaseURL + '/api/ImplementationUpload/GetAllImplementationUpload'
+            GetAllImplementationUpload: BaseURL + '/api/ImplementationUpload/GetAllImplementationUpload',
+            GetImplementationUploadWithSalonAddress: BaseURL + '/api/ImplementationUpload/GetImplementationUploadWithSalonAddress',
         }
     },
     Report: {

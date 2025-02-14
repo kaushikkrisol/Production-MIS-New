@@ -1,82 +1,44 @@
-.card-container {
-    background-color: #f9f9f9;
-    border-radius: 20px;
-    width: 300px;
-    height: 350px;
-    perspective: 1000px;
-    color: #333;
-    transition: transform 0.3s ease-in-out, box-shadow 0.3s ease;
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.1);
-    overflow: hidden;
-    font-family: 'Arial', sans-serif;
-    padding: 15px;
+body {
+    font-family: 'IBM Plex Sans', sans-serif;
+    font-size: 0.875rem;
+    /* Setting the default font size */
 }
 
-.card-container:hover {
-    transform: scale(1.05) rotateY(10deg);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'IBM Plex Sans', sans-serif;
 }
 
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background-color: #007bff;
-    padding: 15px;
-    border-radius: 15px 15px 0 0;
+.table thead th {
+    background-color: #95312F;
+    /* Dark background color */
     color: white;
-    font-size: 16px;
+    /* White text color */
 }
 
-.card-title {
-    font-weight: bold;
-    font-size: 16px;
+.table th,
+.table td {
+    font-size: 0.875rem;
+    /* Ensure table text is also the correct size */
 }
 
-.file-type-icons {
-    display: flex;
-    gap: 12px;
+.disappear {
+    display: none;
 }
 
-.file-type-icons .icon {
-    font-size: 28px;
-    color: white;
-}
-
-.card-body {
-    padding: 20px;
-}
-
-.card-body .text-muted {
-    font-size: 14px;
-    line-height: 1.6;
-}
-
-.info-row {
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-
-.info-row svg {
-    margin-right: 8px;
-    font-size: 16px;
-    color: #007bff;
-}
-
-.download-btn {
-    background-color: #007bff;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    color: white;
-    font-size: 14px;
-    cursor: pointer;
-}
-
-.download-btn:hover {
-    background-color: #0056b3;
-}
-
-.download-btn:focus {
-    outline: none;
+.custom-modal {
+    max-width: 90%;
+    /* Adjust the width as needed */
+    width: 900px;
+    /* Set a specific width */
+    max-height: 90vh;
+    /* Maximum height of the modal */
+    height: 800px;
+    /* Set a specific height */
+    overflow-y: auto;
+    /* Enable vertical scrolling if content exceeds height */
 }
