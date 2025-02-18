@@ -576,7 +576,7 @@ const Designn = () => {
         //     setShowNotification(true);
         // }, 2000);
         // return () => clearTimeout(timeout);
-        const interval = setInterval(checkDeadlines, 300000);
+        const interval = setInterval(checkDeadlines, 500000);
         return () => clearInterval(interval);
     }, [designData]);
 

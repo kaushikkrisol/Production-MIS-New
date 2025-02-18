@@ -12,12 +12,16 @@ const ImplementationUpload = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState([]);
+    const [salonAddresses, setSalonAddresses] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
 
     const fetchImplUploadData = async () => {
         try {
             const response = await axios.post(config.ImplementationUpload.URL.GetAllImplementationUpload);
             setData(response.data);        
+            response.data.forEach(item => {
+                fetchImplSalonAddress(item.id);
+            });
         } catch (e) {
             setError("Failed to fetch data.");
         } finally {
@@ -25,9 +29,23 @@ const ImplementationUpload = () => {
         }
     };
 
+    const fetchImplSalonAddress = async (id) => {
+        try {
+            const response = await axios.get(`${config.ImplementationUpload.URL.GetImplementationUploadWithSalonAddress}/${id}`);
+            setSalonAddresses(prev => ({ ...prev, [id]: response.data.salonAddress }));
+            console.log(response.data);
+        } catch (e) {
+            setError("Failed to fetch salon address");
+
+        }
+    };
+
     useEffect(() => {
         fetchImplUploadData();
     }, []);
+
+
+    console.log('salon address is: ', salonAddresses);
 
     const filteredData = data.filter(row =>
         row.jobNo && row.jobNo.toString().toLowerCase().includes(searchTerm.trim().toLowerCase())
@@ -110,16 +128,16 @@ const ImplementationUpload = () => {
                                                                                     logoUrl="path/to/your/logo.png" // Replace with your logo URL
                                                                                     client={item.mediaFiles?.[0]?.personName || ''}
                                                                                     jobNo={item.jobNo}
-                                                                                    salonAddress="123 Salon St, City, Country" // Replace with actual address
-                                                                                    // images={item.mediaFiles?.map(file => `https://cors-anywhere.herokuapp.com/https://productionapi.comart.in/${file.url}`) || []}
-                                                                                    images={[
-                                                                                        "https://picsum.photos/200/300", // Random image 1
-                                                                                        "https://picsum.photos/200/300?random=1", // Random image 2
-                                                                                        "https://picsum.photos/200/300?random=2"  // Random image 3
-                                                                                    ]}
+                                                                                    salonAddress={salonAddresses[item.id] || 'N/A'} // Replace with actual address
+                                                                                    images={item.mediaFiles?.map(file => `https://productionapi.comart.in/${file.url}`) || []}
+                                                                                    // images={[
+                                                                                    //     "https://picsum.photos/200/300", // Random image 1
+                                                                                    //     "https://picsum.photos/200/300?random=1", // Random image 2
+                                                                                    //     "https://picsum.photos/200/300?random=2"  // Random image 3
+                                                                                    // ]}
                                                                                 />
                                                                             }
-                                                                            fileName={`template_${item.jobNo}.pdf`}
+                                                                            fileName={`${item.jobNo}_${salonAddresses[item.id]}.pdf`}
                                                                         >
                                                                             {({ loading }) => (
                                                                                 <Button variant="primary" className="download-btn">

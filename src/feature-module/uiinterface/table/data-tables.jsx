@@ -3,6 +3,7 @@
   import { all_routes } from "../../../Router/all_routes";
   import { Modal, ModalBody, ModalHeader, Table as ExcelTable } from 'reactstrap';
   import { Table, Tab, Form, Nav, NavItem, Button, Row, NavLink, Card, Col, CardBody, Alert, Spinner, InputGroup } from 'react-bootstrap';
+  import 'react-toastify/dist/ReactToastify.css'; 
 
   // import EditableCell from './EditableCell'; // Adjust path accordingly
   // import EditableRow from './EditableRow'; // Adjust path accordingly
@@ -12,6 +13,7 @@
   import config from "../../../config";
   import { FaSyncAlt, FaSearch } from 'react-icons/fa';
   import Select from 'react-select';
+import { ToastContainer, toast } from 'react-toastify';
   // import { responsiveArray } from "antd/es/_util/responsiveObserver";
   // import { el } from "date-fns/locale";
 
@@ -57,11 +59,13 @@
     const [exJobNumber, setExJobNumber] = useState([]);
 
     const [user, setUser] = useState('');
+    const [emailid, setEmailid] = useState('');
 
     const [newJobNo, setNewJobNo] = useState('');
     const [clients, setClients]=useState('');
     const [subClients, setSubclients]=useState('');
     const users = localStorage.getItem('users');
+
     const currentDate = new Date().toISOString().split('T')[0];
 
     const [businessType, setBusinessType] = useState("");
@@ -102,6 +106,10 @@
         // Access the username
         const username = usersObject.message && usersObject.message.username;
         setUser(username);
+
+        const emailid = usersObject.message && usersObject.message.email_id;
+        console.log('emailid is: ', emailid);
+        setEmailid(emailid);
 
         // Log the username to the console
         console.log('Username:', username);
@@ -505,6 +513,10 @@
         setError("User not logged in");
         return;
       }
+      if (!emailid) {
+        toast.error("Email id not found!");
+        return;
+      }
       e.preventDefault();
       try {
         setLoading(true);
@@ -514,10 +526,10 @@
           userName: userName, // Add the username field
           user_id: user_id,
           username: user,
+          emailid: emailid,
           entereddt: currentDate,
         }));
 
-      
         console.log('data with unames', dataWithUsernames, newJobNo, clients, subClients);
         console.log("API URL: ", config.JobSummary.URL.Addjobdetails);
 
@@ -536,7 +548,15 @@
 
           console.log("newdata",newdata);
           const response = await axios.post(config.JobSummary.URL.Addjobdetails, newdata);
-          console.log("Data submitted successfully: ", response);
+          const data = response.config.data;
+          const parsedData = JSON.parse(data);
+          const jobNumbers = parsedData.map(item => item['Job No']);
+          console.log("Data submitted successfully: ", jobNumbers);
+
+          if (jobNumbers.length > 0) {
+            console.log("First Job No:", jobNumbers[0]);
+            toast.success(`Job created successfully. Job No: ` + jobNumbers[0]);
+          }
 
           // Reset the state after submission
           setHeaders([]);
@@ -566,9 +586,7 @@
           const response = await axios.post(config.JobSummary.URL.Addjobdetails, newdata);
 
           console.log("Data submitted successfully: ", response);
-
-          // Reset the state after submission
-        
+          toast.success(`Job created successfully. Job No: ` + response.data.jobNo);
         }
         // Submit the filtered data to the database
         
@@ -785,6 +803,7 @@
       <div>
         <div className="page-wrapper">
           <div className="content container-fluid">
+          <ToastContainer />
             <div className="page-header">
               <div className="row">
                 <div className="col">
@@ -799,7 +818,6 @@
             <div className="row">
               <div className="col-sm-12">
                 <div className="card">
-
                   <div className="card-body">
                     <div className="mb-3 d-flex justify-content-between align-items-center">
                       <div style={{ flexGrow: 1 }}></div> {/* This takes up space to push buttons to the right */}
@@ -942,7 +960,6 @@
                                           </Row>
                                         </Tab.Pane>
 
-
                                         {/* Existing Job Tab */}
                                         <Tab.Pane eventKey="existingJob">
                                           {/* Job Number Dropdown */}
@@ -955,6 +972,41 @@
                                               placeholder="Select Job No"
                                             />
                                           </Form.Group>
+                                          <Row className="mb-3 mt-5">
+                                            <Col>
+                                              <Form.Control className="form-control file-choose" type="file" onChange={handleFileChange} />
+                                              <br />
+                                              <h4>Excel Data:</h4>
+                                              {Array.isArray(headers) && Array.isArray(data) && headers.length > 0 && data.length > 0 ? (
+                                                <div className="table-responsive responsivetable">
+                                                  <ExcelTable className="table-bordered align-middle table-nowrap mb-0">
+                                                    <thead className="sticky-header table-light">
+                                                      <tr>
+                                                        {headers.map((header, index) => (
+                                                          <th key={index} scope="col">{header}</th>
+                                                        ))}
+                                                      </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                      {data.map((row, rowIndex) => (
+                                                        <tr key={rowIndex}>
+                                                          {headers.map((header, colIndex) => (
+                                                            <td key={colIndex}>
+                                                              <span className="text-ellipsis" title={row[header]}>
+                                                                {row[header]}
+                                                              </span>
+                                                            </td>
+                                                          ))}
+                                                        </tr>
+                                                      ))}
+                                                    </tbody>
+                                                  </ExcelTable>
+                                                </div>
+                                              ) : (
+                                                <div className="text-center">No Data Available</div>
+                                              )}
+                                            </Col>
+                                          </Row>
                                         </Tab.Pane>
                                       </Tab.Content>
                                     </CardBody>
@@ -965,7 +1017,7 @@
                           </Row>
 
                           {/* Excel Upload Control - Moved Outside the Tab */}
-                          <Row className="mb-3">
+                          {/* <Row className="mb-3">
                             <Col>
                               <Form.Control className="form-control file-choose" type="file" onChange={handleFileChange} />
                               <br />
@@ -999,7 +1051,7 @@
                                 <div className="text-center">No Data Available</div>
                               )}
                             </Col>
-                          </Row>
+                          </Row> */}
                         </ModalBody>
 
                         <div className="modal-footer">
@@ -1009,14 +1061,12 @@
                               onClick={toggleBulkAdd}
                               className="btn-light"
                             >Close</Button>
-
                             <Button
                               type="submit"
                               onClick={(e) => submitDataToAPI(e)}
                               id="add-btn"
                               className="btn btn-success"
                             >Add </Button>
-
                           </div>
                         </div>
                       </Modal>
