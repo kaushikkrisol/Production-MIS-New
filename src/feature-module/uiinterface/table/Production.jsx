@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from "react-router-dom";
 import { Table, Form, Button, Row, Col, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
@@ -11,6 +11,7 @@ import './Production.css';
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 import CompletedPrinting from './CompletedPrinting';
 import Notification from '../../Notification/Notification';
+import Sort from "../ui/Sort";
 
 const Production = () => {
     const [BulkAdd, setBulkAdd] = useState(false);
@@ -71,6 +72,8 @@ const Production = () => {
 
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
+
+    const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
     console.log('wasteage per 0', wastePercentage)
 
@@ -274,7 +277,29 @@ const Production = () => {
         }
     }, [BulkAdd]);
 
-    
+    const sortedData = useMemo(() => {
+        let sortableItems = [...filteredData1];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (a[sortConfig.key] > b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [filteredData1, sortConfig]);
+
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    }
 
     const handleFileChange = (e) => {
         const file = e.target.files[0];
@@ -1027,42 +1052,42 @@ const Production = () => {
                                             </Col>
                                         </Form.Group>
                                     </Row>
-                                    <div style={{ overflowX: 'auto', position: 'sticky'}}>
+                                    <div style={{ overflowX: 'auto'}} className='table-container'>
                                         <Table striped bordered hover>
-                                            <thead>
+                                            <thead className='sticky-header'>
                                                 <tr>
                                                     <th><Form.Check
                                                         type="checkbox"
                                                         onChange={handleSelectAllChange}
                                                         checked={isSelectAllChecked}
                                                     /></th>
-                                                    <th>Date</th>
-                                                    <th>Job ID</th>
+                                                    <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Printer Name</th>
                                                     <th>Qty</th>
                                                     <th>Print W.</th>
                                                     <th>Print L.</th>
                                                     <th>Print SQ.Ft.</th>
-                                                    <th>Media</th>
-                                                    <th>Implementation (Y/N)</th>
-                                                    <th>Deadline</th>
-                                                    <th>Lamination Media Type</th>
-                                                    <th>Mounting</th>
-                                                    <th>Salon Address</th>
+                                                    <th><Sort sortKey="media" thead="Media" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="implementation" thead="Implementation (Y/N)" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="deadline" thead="Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="lamination" thead="Lamination Media Type" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="mounting" thead="Mounting" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="salonAddress" thead="Salon Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Job Start Date</th>
                                                     <th>Job End Date</th>
-                                                    <th>Client</th>
-                                                    <th>Sub Client</th>
-                                                    <th>Account Manager</th>
-                                                    <th>Visual Code</th>
-                                                    <th>Name Sub Code</th>
+                                                    <th><Sort sortKey="client" thead="Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="subClient" thead="Sub Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="userName" thead="Account Manager" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="visualCode" thead="Visual Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="nameSubCode" thead="Name Sub Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Remarks</th>
                                                     
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {filteredData1.length > 0 ? (
-                                                    filteredData1.map((row) => (
+                                                {sortedData.length > 0 ? (
+                                                    sortedData.map((row) => (
                                                         <tr key={row.id}>
                                                             <td>
                                                                 <Form.Check
@@ -1118,9 +1143,13 @@ const Production = () => {
                                     <div>
                                         {showNotification && (
                                             <Notification
+                                                headline="Deadline Alert!"
                                                 message={notificationMessage}
                                                 onClose={handleCloseNotification}
                                                 show={showNotification}
+                                                containerBg="rgba(231, 116, 116, 0.445)"
+                                                bgColor="red"
+                                                headerColor="#ff5b68"
                                             />
                                         )}
                                     </div>

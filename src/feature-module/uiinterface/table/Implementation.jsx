@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from "react-router-dom";
 import { Table, Form, Row, Col, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
@@ -7,6 +7,8 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { all_routes } from "../../../Router/all_routes";
 import './Delivery.css';
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
+import Sort from '../ui/Sort';
+import './implementation.css';
 
 const Implementation = () => {
     // const [BulkAdd, setBulkAdd] = useState(false);
@@ -41,6 +43,8 @@ const Implementation = () => {
     console.log('user name selected: ', name.username);
 
     const [username, setUsername] = useState('');
+
+    const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
     // Check if users data exists and is not null
     useEffect(() => {
@@ -259,6 +263,30 @@ const Implementation = () => {
         }
     };
 
+    const sortedData = useMemo(() => {
+        let sortableItems = [...filteredData1];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (a[sortConfig.key] > b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [filteredData1, sortConfig]);
+
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    }
+
     return (
         <div>
             <div className="page-wrapper">
@@ -405,25 +433,25 @@ const Implementation = () => {
                                             />
                                     </InputGroup>
                                     </Form.Group>
-                                    <div style={{ overflowX: 'auto' }}>
+                                    <div style={{ overflowX: 'auto' }} className='table-container'>
                                         <Table striped bordered hover>
-                                            <thead>
+                                            <thead className='sticky-header'>
                                                 <tr>
                                                     <th><Form.Check
                                                         type="checkbox"
                                                         onChange={handleSelectAllChange}
                                                         checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                                                     /></th>
-                                                    <th>Date</th>
-                                                    <th>Job ID</th>
-                                                    <th>Client Name</th>
-                                                    <th>Account Manager</th>
-                                                    <th>Sub Client</th>
+                                                    <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="client" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="userName" thead="Account Manager" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="subClient" thead="Sub Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Quantity</th>
-                                                    <th>Media</th>
-                                                    <th>Mounting</th>
-                                                    <th>Salon Address</th>
-                                                    <th>Deadline</th>
+                                                    <th><Sort sortKey="media" thead="Media" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="mounting" thead="Mounting" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="salonAddress" thead="Salon Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="deadline" thead="Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Width</th>
                                                     <th>Length</th>
                                                     <th>Total Sq Ft</th>
@@ -434,8 +462,8 @@ const Implementation = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {filteredData1.length > 0 ? (
-                                                    filteredData1.map((row) => (
+                                                {sortedData.length > 0 ? (
+                                                    sortedData.map((row) => (
                                                         <tr key={row.id}>
                                                             <td>
                                                                 <Form.Check

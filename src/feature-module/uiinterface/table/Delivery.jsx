@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from "react-router-dom";
 import { Table, Form, Row, Col, Button, Alert, Spinner, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
@@ -7,6 +7,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { all_routes } from "../../../Router/all_routes";
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 import './Delivery.css';
+import Sort from '../ui/Sort';
 
 const Delivery = () => {
     // const [BulkAdd, setBulkAdd] = useState(false);
@@ -42,6 +43,8 @@ const Delivery = () => {
     const [deliverPersonName, setDeliveryPersonName] = useState([]);
     const [deliverPersonNameSelect, setDeliveryPersonNameSelect] = useState('');
     const [newDeliveryPersonName, setNewDeliveryPersonName] = useState('');
+
+    const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
     // Check if users data exists and is not null
     useEffect(() => {
@@ -280,6 +283,30 @@ const Delivery = () => {
     };
     console.log('selected delivery mode: ', handTempoDelivery);
 
+    const sortedData = useMemo(() => {
+        let sortableItems = [...filteredData1];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (a[sortConfig.key] > b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [filteredData1, sortConfig]);
+
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    }
+
     return (
         <div>
             <div className="page-wrapper">
@@ -427,7 +454,7 @@ const Delivery = () => {
                                                 <Col style={{ marginTop: '25px' }}>
                                                     <Button type="submit"  onClick={(e) => handleAddDeliveryJob(e)}>Add</Button>
                                                 </Col>
-                                                <Col style={{ marginTop: '15px', marginLeft: '28em' }}>
+                                                <Col>
                                                     <FaSyncAlt size={20} style={{ cursor: 'pointer' }} onClick={() => window.location.reload()}/> 
                                                 </Col>
                                             </Row>
@@ -448,19 +475,19 @@ const Delivery = () => {
                                             />
                                     </InputGroup>
                                     </Form.Group>
-                                    <div style={{ overflowX: 'auto' }}>
+                                    <div style={{ overflowX: 'auto' }} className='table-container'>
                                         <Table striped bordered hover>
-                                            <thead>
+                                            <thead className='sticky-header'>
                                                 <tr>
                                                     <th><Form.Check
                                                         type="checkbox"
                                                         onChange={handleSelectAllChange}
                                                         checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                                                     /></th>
-                                                    <th>Production Date</th>
-                                                    <th>Job ID</th>
-                                                    <th>Client Name</th>
-                                                    <th>Location</th>
+                                                    <th><Sort sortKey="date" thead="Production Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="client" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="region" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     {/* <th>Sub Client</th>
                                                     <th>CS Name</th>
                                                     <th>Visual Code</th>
@@ -484,7 +511,7 @@ const Delivery = () => {
                                                     {/* <th>Width</th>
                                                     <th>Height</th>
                                                     <th>Total Sq Ft</th> */}
-                                                    <th>Delivery Person</th>
+                                                    <th><Sort sortKey="deliveryTo" thead="Delivery Person" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Delivery Started</th>
                                                     <th>Delivery Completed</th>
                                                     <th>Delivery Mode</th>
@@ -493,8 +520,8 @@ const Delivery = () => {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {filteredData1.length > 0 ? (
-                                                    filteredData1.map((row) => (
+                                                {sortedData.length > 0 ? (
+                                                    sortedData.map((row) => (
                                                         <tr key={row.id}>
                                                             <td>
                                                                 <Form.Check

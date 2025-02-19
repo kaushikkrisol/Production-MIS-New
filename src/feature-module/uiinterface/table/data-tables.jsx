@@ -14,6 +14,7 @@
   import { FaSyncAlt, FaSearch } from 'react-icons/fa';
   import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
+import Sort from "../ui/Sort";
   // import { responsiveArray } from "antd/es/_util/responsiveObserver";
   // import { el } from "date-fns/locale";
 
@@ -77,6 +78,8 @@ import { ToastContainer, toast } from 'react-toastify';
     const [customerName, setCustomerName] = useState("");
     const [enteredby, setEnteredby] = useState("");
     const [locationid, setLocationid] = useState("");
+
+    const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
     console.log(filteredJobNumbers, setSelectSearchTerm);
 
@@ -406,6 +409,30 @@ import { ToastContainer, toast } from 'react-toastify';
       row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase())
     ) : [];
 
+    const sortedData = useMemo(() => {
+      let sortableItems = [...filteredData1];
+      if (sortConfig !== null) {
+        sortableItems.sort((a, b) => {
+          if(a[sortConfig.key] < b[sortConfig.key]) {
+            return sortConfig.direction === 'ascending' ? -1 : 1;
+          }
+          if (a[sortConfig.key] > b[sortConfig.key]) {
+            return sortConfig.direction === 'ascending' ? 1 : -1;
+          }
+          return 0;
+        });
+      }
+      return sortableItems;
+    }, [filteredData1, sortConfig]);
+
+    const requestSort = (key) => {
+      let direction = 'ascending';
+      if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+        direction = 'descending';
+      }
+      setSortConfig({ key, direction });
+    }
+
     const toggleBulkAdd = useCallback(() => {
       if (BulkAdd) {
         // Reset states when closing the modal
@@ -608,8 +635,7 @@ import { ToastContainer, toast } from 'react-toastify';
       }
     };
 
-    console.log(customerid)
-
+    console.log(customerid);
 
     // const handleStartJob = () => {
     //   if (Object.values(selectedRows).some(v => v)) {
@@ -1122,9 +1148,9 @@ import { ToastContainer, toast } from 'react-toastify';
                         />
                       </InputGroup>
                     </Form.Group>
-                    <div style={{ overflowX: 'auto' }}>
+                    <div style={{ overflowX: 'auto' }} className="table-container">
                       <Table striped bordered hover>
-                        <thead>
+                        <thead className="sticky-header">
                           <tr>
                             {/* <th>
                               <Form.Check
@@ -1133,34 +1159,34 @@ import { ToastContainer, toast } from 'react-toastify';
                                 checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                               />
                             </th> */}
-                            <th>Job ID</th>
-                            <th>Date</th>
-                            <th>Client</th>
-                            <th>CS Name</th>
-                            <th>Sub Client</th>
-                            <th>Production Location</th>
-                            <th>Billing Location</th>
-                            <th>Visual Code</th>
-                            <th>Name & Sub Code</th>
-                            <th>City</th>
+                            <th><Sort sortKey="jobNo" thead="Job No" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="client" thead="Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="userName" thead="CS Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="subClient" thead="Sub Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="region" thead="Production Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="billingLocation" thead="Billing Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="visualCode" thead="Visual Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="nameSubCode" thead="Name Sub Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="city" thead="City" sortConfig={sortConfig} requestSort={requestSort} /></th>
                             <th>Qty</th>
                             <th>Width</th>
                             <th>Length</th>
                             <th>Total Sq.ft</th>
-                            <th>Media</th>
-                            <th>Lamination</th>
-                            <th>Mounting</th>
-                            <th>Implementation</th>
-                            <th>Salon Address</th>
-                            <th>Machine Name</th>
+                            <th><Sort sortKey="media" thead="Media" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="lamination" thead="Lamination" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="mounting" thead="Mounting" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="implementation" thead="Implementation" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="salonAddress" thead="Salon Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="machineName" thead="Machine Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
                             <th>Billing Sq Ft</th>
                             {/* <th>Installation</th> */}
-                            <th>Job Deadline</th>
-                            <th>Designer Name</th>
-                            <th>Designer Deadline</th>
-                            <th>Printer Name</th>
-                            <th>Printer Deadline</th>
-                            <th>No of Artwork</th>
+                            <th><Sort sortKey="deadline" thead="Job Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="designerName" thead="Designer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="designerDeadline" thead="Designer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="printerPrintingName" thead="Printer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="printerDeadline" thead="Printer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            <th><Sort sortKey="noOfArtwork" thead="No of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th>
                             {/* <th>Artworker Deadline</th> */}
                             <th>Remarks/Instructions</th>
                             {/* <th>Actual Complete Time</th> */}
@@ -1181,8 +1207,8 @@ import { ToastContainer, toast } from 'react-toastify';
                           </tr>
                         </thead>
                         <tbody>
-                          {filteredData1.length > 0 ? (
-                            filteredData1.map((row) => (
+                          {sortedData.length > 0 ? (
+                            sortedData.map((row) => (
                               <tr key={row.id}>
                                 <td>{row.jobNo}</td>
                                 <td>
@@ -1263,7 +1289,6 @@ import { ToastContainer, toast } from 'react-toastify';
                           </tr>
                         </tbody>
                       </Table>
-
 
 
                       {/* <div>

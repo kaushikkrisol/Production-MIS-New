@@ -18,7 +18,8 @@ const config ={
             Getalljob: BaseURL + '/api/JobSummary/Getalljob',
             TotalJobcount: BaseURL + '/api/JobSummary/TotalJobcount',
             Getallcustomer: BaseURL + '/api/JobSummary/Getallcustomer',
-           AddreprintData : BaseURL +'/api/JobSummary/AddreprintData'
+           AddreprintData : BaseURL +'/api/JobSummary/AddreprintData',
+            GetJobsWithoutExcelUpload: BaseURL + '/api/JobSummary/GetJobsWithoutExcelUpload',
         }
     },
     Design: {

@@ -9,6 +9,7 @@ import { Link } from "react-router-dom";
 import { all_routes } from "../../../Router/all_routes";
 import { useMemo } from 'react';
 import Notification from '../../Notification/Notification';
+import Sort from '../ui/Sort';
 
 import './Designn.css';
 
@@ -36,6 +37,8 @@ const Designn = () => {
 
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
+
+    const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
     // Check if users data exists and is not null
     useEffect(() => {
@@ -584,6 +587,30 @@ const Designn = () => {
         setShowNotification(false);
     }
 
+    const sortedData = useMemo(() => {
+        let sortableItems = [...filteredData1];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (a[sortConfig.key] > b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [filteredData1, sortConfig]);
+
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    }
+
     return (
         <div>
             <div className="page-wrapper">
@@ -713,9 +740,10 @@ const Designn = () => {
                                                             {/* <option value="">Select </option> */}
                                                             <option value="">Select Design Type </option>
                                                             <option value="New Layout">New Layout</option>
-                                                            <option value="Correction">Correction</option>
                                                             <option value="Print Ready File">Print Ready File</option>
                                                             <option value="Master Artwork">Master Artwork</option>
+                                                            <option value="Correction at Comart End">Correction at Comart End</option>
+                                                            <option value="Correction Required by Customer">Correction Required by Customer</option>
 
                                                         </Form.Select>
                                                     </Form.Group>
@@ -742,9 +770,9 @@ const Designn = () => {
                                                 />
                                             </InputGroup>
                                         </Form.Group>
-                                        <div style={{ overflowX: 'auto' }}>
+                                        <div style={{ overflowX: 'auto' }} className='table-container'>
                                             <Table striped bordered hover>
-                                                <thead>
+                                                <thead className='sticky-header'>
                                                     <tr>
                                                         <th>
                                                             <Form.Check
@@ -753,16 +781,16 @@ const Designn = () => {
                                                                 checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.designid])}
                                                             />
                                                         </th>
-                                                        <th>Job ID</th>
-                                                        <th>No Of Artwork</th>
-                                                        <th>Client Name</th>
+                                                        <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="designNoOfJobs" thead="No Of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="designClientName" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th>Brief</th>
-                                                        <th>Location</th>
+                                                        <th><Sort sortKey="designLocation" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         {/* <th>Status</th> */}
                                                         <th>Query/Comment</th>
 
-                                                        <th>Received Date</th>
-                                                        <th>Due Date</th>
+                                                        <th><Sort sortKey="designReceivedDate" thead="Received Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="designDueDate" thead="Due Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         {/* <th>Upload Date</th>
                                     <th>Width</th>
                                     <th>Length</th> */}
@@ -772,8 +800,8 @@ const Designn = () => {
                                                     </tr>
                                                 </thead>
                                                 <tbody>
-                                                    {filteredData1.length > 0 ? (
-                                                        filteredData1.map((row) => (
+                                                    {sortedData.length > 0 ? (
+                                                        sortedData.map((row) => (
                                                             <tr key={row.designid} className={hiddenRows.includes(row.designid) ? 'disappear' : ''}>
                                                                 <td>
                                                                     <Form.Check
@@ -833,9 +861,13 @@ const Designn = () => {
                                     <div>
                                         {showNotification && (
                                             <Notification
+                                                headline="Deadline Alert!"
                                                 message={notificationMessage}
                                                 onClose={handleCloseNotification}
                                                 show={showNotification}
+                                                containerBg="rgba(231, 116, 116, 0.445)"
+                                                bgColor="red"
+                                                headerColor="#ff5b68"
                                             />
                                         )}
                                     </div>

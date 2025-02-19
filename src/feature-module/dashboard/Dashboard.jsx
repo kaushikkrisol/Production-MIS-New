@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import DateRangePicker from "react-bootstrap-daterangepicker";
 import { Calendar } from "feather-icons-react/build/IconComponents";
 import axios from "axios";
+import config from "../../config";
+import Notification from "../Notification/Notification";
 
 const Dashboard = () => {
   // Function to get the last N days
@@ -15,10 +17,14 @@ const Dashboard = () => {
   const [productionData, setProductionData] = useState([]);
   const [delayData, setDelayData] = useState([]);
   const [lowStockData, setLowStockData] = useState([]);
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
   const [dateRange, setDateRange] = useState({
     startDate: getLastNDays(7)[0], // Ensure getLastNDays is defined before use
     endDate: new Date(),
   });
+
+  console.log(productionData);
 
   const fetchData = useCallback(
     async (url, setData) => {
@@ -35,11 +41,30 @@ const Dashboard = () => {
     [dateRange]
   );
 
+  const fetchJobsWithoutExcelUpload = async () => {
+    try {
+      const response = await axios.get(config.JobSummary.URL.GetJobsWithoutExcelUpload);
+      const data = response.data;
+      console.log('excel upload fetch: ', response.data);
+      const message = data.filter(job => job.isExcelUploaded === false).map(job => `Job No: ${job.jobNo} has not uploaded Excel data`);
+
+      if (message.length > 0) {
+        setNotificationMessage(message);
+        setShowNotification(true);
+      } else {
+        setShowNotification(false);
+      }
+    } catch (error) {
+      console.error("Error fetching jobs without Excel upload:", error);
+    }
+  }
+
   useEffect(() => {
     fetchData("https://localhost:7035/api/Printing/TotalSQFT", setProductionData);
   //  fetchData(config.Delay.URL.Delivery, setDelayData);
        setDelayData([]);
     setLowStockData([]);
+    fetchJobsWithoutExcelUpload();
     //fetchData(config.Inventory.URL.LowStock, setLowStockData);
   }, [dateRange, fetchData]);
 
@@ -60,6 +85,10 @@ const Dashboard = () => {
       startDate: picker.startDate.toDate(),
       endDate: picker.endDate.toDate(),
     });
+  };
+
+  const handleCloseNotification = () => {
+    setShowNotification(false);
   };
 
   const renderTable = (title, columns, data = []) => (
@@ -132,16 +161,30 @@ const Dashboard = () => {
             ["No of Cases", "Customer Name"],
             delayData
           )}
-          {renderTable(
+          {/* {renderTable(
             "Production",
             ["Location", "Customer", "Media", "SQFT", "Machine"],
             productionData
-          )}
+          )} */}
           {renderTable(
             "Low Stock Products",
             ["Product", "SKU", "Stock Level", "Reorder Level"],
             lowStockData
           )}
+
+          <div>
+            {showNotification && (
+              <Notification
+                headline="Excel not uploaded!"
+                message={notificationMessage}
+                onClose={handleCloseNotification}
+                show={showNotification}
+                containerBg="rgba(116, 143, 231, 0.445)"
+                bgColor="blue"
+                headerColor="#5b79ff"
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>

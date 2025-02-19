@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { all_routes } from "../../../Router/all_routes";
 import { Alert, Spinner, Button, Table, Form, InputGroup } from 'react-bootstrap';
@@ -7,6 +7,7 @@ import axios from "axios";
 import config from "../../../config";
 import { FaDownload, FaSearch } from 'react-icons/fa';
 import PdfTemplate from "../../pages/implementationUploadPdf/PdfTemplate";
+import Sort from "../ui/Sort";
 
 const ImplementationUpload = () => {
     const [error, setError] = useState(null);
@@ -14,6 +15,7 @@ const ImplementationUpload = () => {
     const [data, setData] = useState([]);
     const [salonAddresses, setSalonAddresses] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
+    const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
     const fetchImplUploadData = async () => {
         try {
@@ -56,6 +58,30 @@ const ImplementationUpload = () => {
     const urlTest = filteredData.map((data) => data.mediaFiles.map((mf) => `https://productionapi.comart.in/${mf.url}`));
     console.log('urlTest', urlTest);
 
+    const sortedData = useMemo(() => {
+        let sortableItems = [...filteredData];
+        if (sortConfig !== null) {
+            sortableItems.sort((a, b) => {
+                if (a[sortConfig.key] < b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (a[sortConfig.key] > b[sortConfig.key]) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+        }
+        return sortableItems;
+    }, [filteredData, sortConfig]);
+
+    const requestSort = (key) => {
+        let direction = 'ascending';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+            direction = 'descending';
+        }
+        setSortConfig({ key, direction });
+    }
+
     return (
         <div className="page-wrapper">
             <div className="content container-fluid">
@@ -95,12 +121,12 @@ const ImplementationUpload = () => {
                                 {loading ? (
                                     <Spinner animation="border" className="d-block mx-auto" />
                                 ) : (
-                                    <div style={{ overflowX: 'auto' }}>
+                                    <div style={{ overflowX: 'auto' }} className="table-container">
                                         {filteredData.length > 0 ? (
                                             <Table striped bordered hover>
-                                                <thead>
+                                                <thead className="sticky-header">
                                                     <tr>
-                                                            <th>Job No</th>
+                                                            <th><Sort sortKey="jobNo" thead="Job No" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th>Person Name</th>
                                                         <th>Contact</th>
                                                         <th>Authority</th>
@@ -112,8 +138,8 @@ const ImplementationUpload = () => {
                                                 <tbody>
                                                 
                                                         {
-                                                            filteredData.length > 0 ? 
-                                                            (filteredData.map((item) => (
+                                                            sortedData.length > 0 ? 
+                                                            (sortedData.map((item) => (
                                                         <tr key={item.id}>
                                                             <td>{item.jobNo}</td>
                                                             <td>{item.mediaFiles?.[0]?.personName || ''}</td>

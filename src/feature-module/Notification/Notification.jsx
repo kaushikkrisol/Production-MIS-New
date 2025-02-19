@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 import { FaExclamationTriangle } from "react-icons/fa";
 import "./notification.css";
 
-const Notification = ({message, onClose, show}) => {
+const Notification = ({ headline, message, onClose, show, containerBg, bgColor, headerColor }) => {
     const [isMinimized, setIsMinimized] = useState(false);
 
     const toggleMinimize = () => {
@@ -12,11 +12,11 @@ const Notification = ({message, onClose, show}) => {
     }
     
     return (
-        <div className={`notification ${show ? 'show' : 'hide'} ${isMinimized ? 'minimized' : ''}`}>
-            <div className={`notification-content`}>
-                <div className="notification-header">
+        <div className={`notification ${show ? 'show' : 'hide'} ${isMinimized ? 'minimized' : ''}`} style={{ backgroundColor: containerBg }}>
+            <div className={`notification-content`} style={{ backgroundColor: bgColor }}>
+                <div className="notification-header" style={{ backgroundColor: headerColor }}>
                     <FaExclamationTriangle style={{color: 'white'}} />
-                    <strong>Deadline Alert!</strong>
+                    <strong>{headline}</strong>
                     <button className="notification-toggle" onClick={toggleMinimize}>
                         {isMinimized ? '+' : '-'}
                     </button>
@@ -41,8 +41,12 @@ const Notification = ({message, onClose, show}) => {
 };
 
 Notification.propTypes = {
+    headline: PropTypes.string.isRequired,
     message: PropTypes.arrayOf(PropTypes.string).isRequired,
     onClose: PropTypes.func.isRequired,
     show: PropTypes.bool.isRequired,
+    containerBg: PropTypes.string.isRequired,
+    bgColor: PropTypes.string.isRequired,
+    headerColor: PropTypes.string.isRequired,
 }
 export default Notification;
