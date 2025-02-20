@@ -18,12 +18,13 @@ const ImplementationUpload = () => {
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
     const fetchImplUploadData = async () => {
+        setLoading(true);
+        
         try {
             const response = await axios.post(config.ImplementationUpload.URL.GetAllImplementationUpload);
             setData(response.data);        
-            response.data.forEach(item => {
-                fetchImplSalonAddress(item.id);
-            });
+            const salonAddressPromises = response.data.map(item => fetchImplSalonAddress(item.id));
+            await Promise.all(salonAddressPromises);
         } catch (e) {
             setError("Failed to fetch data.");
         } finally {
@@ -155,12 +156,12 @@ const ImplementationUpload = () => {
                                                                                     client={item.mediaFiles?.[0]?.personName || ''}
                                                                                     jobNo={item.jobNo}
                                                                                     salonAddress={salonAddresses[item.id] || 'N/A'} // Replace with actual address
-                                                                                    images={item.mediaFiles?.map(file => `https://productionapi.comart.in/${file.url}`) || []}
-                                                                                    // images={[
-                                                                                    //     "https://picsum.photos/200/300", // Random image 1
-                                                                                    //     "https://picsum.photos/200/300?random=1", // Random image 2
-                                                                                    //     "https://picsum.photos/200/300?random=2"  // Random image 3
-                                                                                    // ]}
+                                                                                    // images={item.mediaFiles?.map(file => `https://productionapi.comart.in/${file.url}`) || []}
+                                                                                    images={[
+                                                                                        "https://productionapi.comart.in/signatures/J0625021769/download.jpg", // Random image 1
+                                                                                        "https://picsum.photos/200/300?random=1", // Random image 2
+                                                                                        "https://picsum.photos/200/300?random=2"  // Random image 3
+                                                                                    ]}
                                                                                 />
                                                                             }
                                                                             fileName={`${item.jobNo}_${salonAddresses[item.id]}.pdf`}

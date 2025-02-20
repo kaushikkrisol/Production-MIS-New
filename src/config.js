@@ -1,8 +1,8 @@
 // https://production.comart.in
 
-let BaseURL = "https://localhost:7035";
+// let BaseURL = "https://localhost:7035";
 
-// let BaseURL ='https://productionapi.comart.in'
+let BaseURL ='https://productionapi.comart.in'
 
 const config ={
     User: {
