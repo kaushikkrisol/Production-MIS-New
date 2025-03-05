@@ -789,7 +789,7 @@ const Designn = () => {
                                                         {/* <th>Status</th> */}
                                                         <th>Query/Comment</th>
 
-                                                        <th><Sort sortKey="designReceivedDate" thead="Received Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        {/* <th><Sort sortKey="designReceivedDate" thead="Received Date" sortConfig={sortConfig} requestSort={requestSort} /></th> */}
                                                         <th><Sort sortKey="designDueDate" thead="Due Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         {/* <th>Upload Date</th>
                                     <th>Width</th>
@@ -828,7 +828,7 @@ const Designn = () => {
                                                                     {row.designQuery}
                                                                 </td>
 
-                                                                <td>{row.designReceivedDate}</td>
+                                                                {/* <td>{row.designReceivedDate}</td> */}
                                                                 <td>{row.designDueDate ? new Date(row.designDueDate).toLocaleString() : '-'}</td>
                                                                 {/* <td>{row.designUploadDate}</td>
                                             <td>{row.designWidth}</td>

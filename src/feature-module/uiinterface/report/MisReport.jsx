@@ -18,8 +18,8 @@ const MisReport = () => {
     const [loading, setLoading] = useState(false);
     const [newLocation, setNewLocation] = useState('');
     const [newProduction, setNewProduction] = useState('');
-    const productions = ["CS", "Design", "Printing", "Delivery", "All"];
-    const locations = ["North", "South", "East", "West", "All"];
+    const productions = ["CS", "Design", "Printing", "Delivery"];
+    const locations = ["North", "South", "East", "West"];
     const [data, setData] = useState([]);
     const [csData, setCsData] = useState([]);
     const [designData, setDesignData] = useState([]);
@@ -473,7 +473,7 @@ const MisReport = () => {
 
 
     return (
-        <Container style={{ marginLeft: 'auto', marginRight: 'auto', padding: '0 10px' }}>
+        <Container style={{ marginLeft: 'auto', marginRight: 'auto', padding: '0 10px', marginTop: '2em' }}>
             <div className="page-wrapper">
                 <div className="content container-fluid">
                     {error && <Alert variant="danger">{error}</Alert>}
@@ -564,7 +564,7 @@ const MisReport = () => {
                     {loading && <Spinner animation="border" />}
                     {error && <Alert variant="danger">{error}</Alert>}
 
-                    <div style={{ marginTop: "30px", marginLeft: "-170px", overflow: "auto", width: '84rem'}}>
+                    <div style={{ marginTop: "4em", marginLeft: "-170px", overflow: "auto", width: '84rem'}}>
                         {renderTable()}
                     </div>
 

@@ -1,8 +1,8 @@
 // https://production.comart.in
 
-// let BaseURL = "https://localhost:7035";
+let BaseURL = "https://localhost:7035";
 
-let BaseURL ='https://productionapi.comart.in'
+//  let BaseURL ='https://productionapi.comart.in'
 
 const config ={
     User: {
@@ -20,6 +20,8 @@ const config ={
             Getallcustomer: BaseURL + '/api/JobSummary/Getallcustomer',
            AddreprintData : BaseURL +'/api/JobSummary/AddreprintData',
             GetJobsWithoutExcelUpload: BaseURL + '/api/JobSummary/GetJobsWithoutExcelUpload',
+            GetAllJobsFromSql: BaseURL + '/api/JobSummary/GetAllJobsFromSql',
+            GetAllJobsAccToLocation: BaseURL + '/api/JobSummary/GetAllJobAccToLocation',
         }
     },
     Design: {

@@ -18,7 +18,7 @@
     "@fullcalendar/react": "^6.1.11",
     "@fullcalendar/timegrid": "^6.1.11",
     "@react-latest-ui/react-sticky-notes": "^0.2.6",
-    "@react-pdf/renderer": "^4.2.1",
+    "@react-pdf/renderer": "^4.2.4",
     "@reduxjs/toolkit": "^2.2.3",
     "@types/react-modal-video": "^1.2.3",
     "@types/react-slick": "^0.23.13",

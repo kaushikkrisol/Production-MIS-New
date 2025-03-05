@@ -93,9 +93,8 @@ const Production = () => {
             // Access the username
             const username = usersObject.message && usersObject.message.username;
             setUser(username);
-
             // Log the username to the console
-            console.log('Username:', username);
+            console.log('Username isss:', username);
         } else {
             console.log('No user data found in localStorage.');
         }
@@ -1081,6 +1080,8 @@ const Production = () => {
                                                     <th><Sort sortKey="userName" thead="Account Manager" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="visualCode" thead="Visual Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="nameSubCode" thead="Name Sub Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="printerPrintingName" thead="Printer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="printerDeadline" thead="Printer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Remarks</th>
                                                     
                                                 </tr>
@@ -1120,6 +1121,8 @@ const Production = () => {
                                                             <td>{row.userName}</td>
                                                             <td>{row.visualCode}</td>
                                                             <td>{row.nameSubCode}</td>
+                                                            <td>{row.printerPrintingName}</td>
+                                                            <td>{row.printerDeadline}</td>
                                                             <td>{row.remarks}</td>
 
                                                         </tr>

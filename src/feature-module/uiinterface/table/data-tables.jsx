@@ -32,6 +32,7 @@ import Sort from "../ui/Sort";
     const [BulkAdd, setBulkAdd] = useState(false);
     const [headers, setHeaders] = useState([]);
     const [data, setData] = useState([]);
+    console.log(data);
 
     const [selectSearchTerm, setSelectSearchTerm] = useState('');
     const [filteredJobNumbers, setFilteredJobNumbers] = useState([]);
@@ -49,7 +50,7 @@ import Sort from "../ui/Sort";
 
     const [userId, setUserId] = useState(null);
     const [userName, setUsername] = useState('');
-    const [subClient, setSubClient] = useState('');
+    // const [subClient, setSubClient] = useState('');
 
     console.log(userId, userName);
 
@@ -78,6 +79,9 @@ import Sort from "../ui/Sort";
     const [customerName, setCustomerName] = useState("");
     const [enteredby, setEnteredby] = useState("");
     const [locationid, setLocationid] = useState("");
+    const [locationjob, setLocationJob] = useState([]);
+
+    const [jobsFromSql, setJobsFromSql] = useState([]);
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
@@ -86,7 +90,6 @@ import Sort from "../ui/Sort";
     const resetForm = () => {
       setNewJobNo('');
       setClients('');
-      setSubClient('');
       setBusinessType('');
       setContactPerson('');
       setlpono('');
@@ -121,6 +124,7 @@ import Sort from "../ui/Sort";
       }
     }, []);
 
+    
     // const locationMapping = {
     //   1: "MumbaiNanachowk",
     //   2: "BANGALORE",
@@ -385,16 +389,43 @@ import Sort from "../ui/Sort";
       }
     };
 
+    const GetAllJobAccToLocation = async () => {
+      const payload = {
+        locationId: locationid,
+      }
+      try {
+        const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
+        console.log('response of jobs acc to location: ', response.data);
+        setLocationJob(response.data);
+      } catch (error) {
+        console.error('Error fetching jobs according to location', error);
+      }
+    }
 
+
+    const GetAllJobsFromSql = async () => {
+      const payload = {
+        locationId: locationid,
+      }
+      try {
+        const response = await axios.post(config.JobSummary.URL.GetAllJobsFromSql, payload);
+        console.log('jobs from sql: ', response.data);
+        setJobsFromSql(response.data);
+      } catch (error) {
+        console.error('Unable to fetch jobs for the location id', error);
+      }
+    }
+    
     useEffect(() => {
       fetchJobs();
       fetchcustomers();
-
-    }, []);
+      GetAllJobsFromSql();
+      GetAllJobAccToLocation();
+    }, [locationid]);
 
     useEffect(() => {
-      if (Array.isArray(data)) { // Check if data is an array
-        const totals = data.reduce((acc, row) => {
+      if (Array.isArray(locationjob)) { // Check if data is an array
+        const totals = locationjob.reduce((acc, row) => {
           acc.width += parseInt(row.width) || 0;
           acc.height += parseInt(row.height) || 0;
           return acc;
@@ -402,10 +433,10 @@ import Sort from "../ui/Sort";
 
         setTotalValues(totals);
       }
-    }, [data]);
+    }, [locationjob]);
 
 
-    const filteredData1 = Array.isArray(data) ? data.filter(row =>
+    const filteredData1 = Array.isArray(locationjob) ? locationjob.filter(row =>
       row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase())
     ) : [];
 
@@ -446,31 +477,40 @@ import Sort from "../ui/Sort";
 
 
     const fetchcustomers = async () => {
-
       try {
         const users = localStorage.getItem('users');
-        const userObj = JSON.parse(users);
+        if (!users) {
+          console.error("No user data found in local storage.");
+          return; // Exit if no user data
+        }
 
+        const userObj = JSON.parse(users);
         let location_id = userObj?.message?.location_id;
 
+        if (!location_id) {
+          console.error("Location ID is not found in user data.");
+          return; // Exit if no location ID
+        }
+
+        console.log('Location ID for fetch customers: ', location_id);
 
         let payload = {
-
           locationid: location_id
-
         };
 
-        const response = await axios.post(config.JobSummary.URL.Getallcustomer, payload, { // Make sure to send the payload here
+        console.log('Payload for fetch customers:', payload);
+
+        const response = await axios.post(config.JobSummary.URL.Getallcustomer, payload, {
           timeout: 10000,
           headers: {
-            'Content-Type': 'application/json' // Ensure the correct content type
+            'Content-Type': 'application/json'
           }
         });
 
-        setcustomer(response.data)
+        console.log('Get customer response:', response.data);
+        setcustomer(response.data);
 
-      }
-      catch (error) {
+      } catch (error) {
         console.error("Error fetching customer data:", error.response ? error.response.data : error.message);
         setError("Error fetching job data");
       } finally {
@@ -532,23 +572,23 @@ import Sort from "../ui/Sort";
     };
 
     {/*submitting excel data*/ }
-
-    const submitDataToAPI = async (e) => {
+      const submitDataToAPI = async (e) => {
       const user_id = getLoggedInUserId();
+      let ISnewjob = 1;
 
       if (!user_id) {
         setError("User not logged in");
         return;
       }
-      if (!emailid) {
-        toast.error("Email id not found!");
-        return;
-      }
+     // if (!emailid) {
+       // toast.error("Email id not found!");
+        //return;
+      //}
       e.preventDefault();
       try {
         setLoading(true);
 
-        const dataWithUsernames = data.map(item => ({
+        const dataWithUsernames = locationjob.map(item => ({
           ...item,  // Spread existing properties
           userName: userName, // Add the username field
           user_id: user_id,
@@ -564,11 +604,12 @@ import Sort from "../ui/Sort";
 
         if (newJobNo != '')
         {
-          const newdata = dataWithUsernames.map(item => ({
+          ISnewjob = 0;
+          let newdata = dataWithUsernames.map(item => ({
             ...item,  // Spread existing properties
             "Job No": newJobNo,
             "CLIENT": clients,
-            "Sub Client": subClients,
+            // "Sub Client": subClients,
 
             ISnewjob:'0'
           }));
@@ -580,9 +621,12 @@ import Sort from "../ui/Sort";
           const jobNumbers = parsedData.map(item => item['Job No']);
           console.log("Data submitted successfully: ", jobNumbers);
 
-          if (jobNumbers.length > 0) {
-            console.log("First Job No:", jobNumbers[0]);
-            toast.success(`Job created successfully. Job No: ` + jobNumbers[0]);
+          if (data.length > 0) {
+            const lastJobNo = data[data.length - 1].jobNo;
+            console.log('Last jobNo: ', lastJobNo);
+            toast.success(`Job created successfully. Job No: ` + lastJobNo);
+          } else {
+            console.log('No job numbers available.');
           }
 
           // Reset the state after submission
@@ -592,7 +636,8 @@ import Sort from "../ui/Sort";
         }
         else
         {
-          const newdata = dataWithUsernames.map(item => ({
+          ISnewjob = 1;
+          let newdata = dataWithUsernames.map(item => ({
             ...item,  // Spread existing properties
             
             ISnewjob: '1',
@@ -608,8 +653,36 @@ import Sort from "../ui/Sort";
             "enteredby": enteredby,
             "userid": userId,
             "locationid": locationid,
-            "subClient": subClient
-          }));
+            "emailid": emailid,
+            // "subClient": subClient
+          }
+          
+          ));
+
+          const newemptyjob = [];
+          if (ISnewjob == 1) {
+            newemptyjob.push({
+              ISnewjob: '1',
+              customername: customerName,
+              businessType: businessType,
+              customerEmail: customerEmail,
+              contactPerson: contactPerson,
+              customerid: customerid,
+              lpono: lpono,
+              lpodate: lpoDate.toString(),
+              potype: poType,
+              jobdesc: "",
+              enteredby: userName,
+              userid: userId,
+              locationid: locationid,
+              emailid: emailid,
+              // subClient: subClient
+            });
+            newdata = newemptyjob;
+          }
+
+          // Now newemptyjob will contain the object if ISnewjob is 1
+          console.log('new empty job', newemptyjob);
           const response = await axios.post(config.JobSummary.URL.Addjobdetails, newdata);
 
           console.log("Data submitted successfully: ", response);
@@ -617,7 +690,7 @@ import Sort from "../ui/Sort";
         }
         // Submit the filtered data to the database
         
-        await fetchJobs();
+        // await fetchJobs();
       } catch (error) {
         if (axios.isAxiosError(error)) {
           console.error("Axios error: ", error.message);
@@ -632,6 +705,7 @@ import Sort from "../ui/Sort";
         setLoading(false);
         resetForm();
         toggleBulkAdd();
+        fetchJobs();
       }
     };
 
@@ -774,10 +848,10 @@ import Sort from "../ui/Sort";
     const handleExJobNoSelectChange = (selectedOption) => {
       if (selectedOption) {
         console.log(selectedOption); // Log the selected option
-        setSelectedExJobNumber(selectedOption.value); // Set the selected customer ID
+        setSelectedExJobNumber(selectedOption.value);
 
         // Find the customer name based on the selected option
-        const selectedJobNo = jobNoOptions.find(option => option.value === selectedOption.value);
+        const selectedJobNo = uniqueJobNoOptions.find(option => option.value === selectedOption.value);
         console.log(selectedJobNo, "selected job no");
         setNewJobNo(selectedOption.value);
         if (selectedJobNo) {
@@ -804,7 +878,23 @@ import Sort from "../ui/Sort";
       label: cust.customeR_NAME,
     }));
 
-    const jobNoOptions = Array.from(new Set(exJobNumber.map(job => job.jobNo)))
+    // const jobNoOptions = Array.from(new Set(exJobNumber.map(job => job.jobNo)))
+    //   .map(jobNo => {
+    //     const job = exJobNumber.find(job => job.jobNo === jobNo); // Find the first occurrence of the job
+    //     return {
+    //       value: jobNo,
+    //       label: jobNo, // Display job number
+    //       clientName: job ? job.client : '' // Include client name if found
+    //     };
+    //   });
+
+    const jobNoOptionsFromSql =jobsFromSql.map(job => ({
+      value: job.comartjobno,
+      label: job.comartjobno,
+      clientName: job.clientName || ''
+    }));
+
+    const jobNoOptionsFromExJobNumber = Array.from(new Set(exJobNumber.map(job => job.jobNo)))
       .map(jobNo => {
         const job = exJobNumber.find(job => job.jobNo === jobNo); // Find the first occurrence of the job
         return {
@@ -814,9 +904,13 @@ import Sort from "../ui/Sort";
         };
       });
 
-    console.log('selected job No options: ', jobNoOptions);
+    const combinedJobNoOptions = [...jobNoOptionsFromSql, ...jobNoOptionsFromExJobNumber];
+    const uniqueJobNoOptions = Array.from(new Set(combinedJobNoOptions.map(option => option.value)))
+      .map(value => combinedJobNoOptions.find(option => option.value === value));
 
-    console.log('selected date is: ', lpoDate);
+    console.log('selected job No options: ', uniqueJobNoOptions);
+
+    console.log('selected date is: ', lpoDate, exJobNumber);
 
     const handleBusinessType = (e) => {
       setBusinessType(e.target.value);
@@ -824,6 +918,8 @@ import Sort from "../ui/Sort";
     const handlePoType = (e) => {
       setPoType(e.target.value);
     }
+
+    console.log('comart job no: ', jobsFromSql.comartjobno);
     
     return (
       <div>
@@ -989,11 +1085,20 @@ import Sort from "../ui/Sort";
                                         {/* Existing Job Tab */}
                                         <Tab.Pane eventKey="existingJob">
                                           {/* Job Number Dropdown */}
-                                          <Form.Group controlId="customerName">
+                                          {/* <Form.Group controlId="customerName">
                                             <Form.Label>Job Number</Form.Label>
                                             <Select
                                               options={jobNoOptions}
                                               value={jobNoOptions.find(option => option.value === selectedExJobNumber) || null} // Bind the selected value
+                                              onChange={handleExJobNoSelectChange} // Call the updated function
+                                              placeholder="Select Job No"
+                                            />
+                                          </Form.Group> */}
+                                          <Form.Group controlId="customerName">
+                                            <Form.Label>Job Number</Form.Label>
+                                            <Select
+                                              options={uniqueJobNoOptions}
+                                              value={uniqueJobNoOptions.find(option => option.value === selectedExJobNumber) || null} // Bind the selected value
                                               onChange={handleExJobNoSelectChange} // Call the updated function
                                               placeholder="Select Job No"
                                             />
@@ -1003,7 +1108,7 @@ import Sort from "../ui/Sort";
                                               <Form.Control className="form-control file-choose" type="file" onChange={handleFileChange} />
                                               <br />
                                               <h4>Excel Data:</h4>
-                                              {Array.isArray(headers) && Array.isArray(data) && headers.length > 0 && data.length > 0 ? (
+                                              {Array.isArray(headers) && Array.isArray(locationjob) && headers.length > 0 && locationjob.length > 0 ? (
                                                 <div className="table-responsive responsivetable">
                                                   <ExcelTable className="table-bordered align-middle table-nowrap mb-0">
                                                     <thead className="sticky-header table-light">
@@ -1014,7 +1119,7 @@ import Sort from "../ui/Sort";
                                                       </tr>
                                                     </thead>
                                                     <tbody>
-                                                      {data.map((row, rowIndex) => (
+                                                      {locationjob.map((row, rowIndex) => (
                                                         <tr key={rowIndex}>
                                                           {headers.map((header, colIndex) => (
                                                             <td key={colIndex}>
@@ -1179,7 +1284,7 @@ import Sort from "../ui/Sort";
                             <th><Sort sortKey="implementation" thead="Implementation" sortConfig={sortConfig} requestSort={requestSort} /></th>
                             <th><Sort sortKey="salonAddress" thead="Salon Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
                             <th><Sort sortKey="machineName" thead="Machine Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th>Billing Sq Ft</th>
+                            {/* <th>Billing Sq Ft</th> */}
                             {/* <th>Installation</th> */}
                             <th><Sort sortKey="deadline" thead="Job Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
                             <th><Sort sortKey="designerName" thead="Designer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
@@ -1244,7 +1349,7 @@ import Sort from "../ui/Sort";
                                 <td>{row.implementation}</td>
                                 <td>{row.salonAddress}</td>
                                 <td>{row.machineName}</td>
-                                <td>{row.billingSqFt}</td>
+                                {/* <td>{row.billingSqFt}</td> */}
                                 {/* <td>{row.installation}</td> */}
                                 <td>{row.deadline}</td>
                                 <td>{row.designerName}</td>

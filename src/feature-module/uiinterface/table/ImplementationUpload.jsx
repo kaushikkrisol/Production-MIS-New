@@ -9,6 +9,8 @@ import { FaDownload, FaSearch } from 'react-icons/fa';
 import PdfTemplate from "../../pages/implementationUploadPdf/PdfTemplate";
 import Sort from "../ui/Sort";
 
+
+
 const ImplementationUpload = () => {
     const [error, setError] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -16,6 +18,7 @@ const ImplementationUpload = () => {
     const [salonAddresses, setSalonAddresses] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
+    const [imageURLs, setImageURLs] = useState({}); 
 
     const fetchImplUploadData = async () => {
         setLoading(true);
@@ -39,14 +42,12 @@ const ImplementationUpload = () => {
             console.log(response.data);
         } catch (e) {
             setError("Failed to fetch salon address");
-
         }
     };
 
     useEffect(() => {
         fetchImplUploadData();
     }, []);
-
 
     console.log('salon address is: ', salonAddresses);
 
@@ -58,6 +59,7 @@ const ImplementationUpload = () => {
 
     const urlTest = filteredData.map((data) => data.mediaFiles.map((mf) => `https://productionapi.comart.in/${mf.url}`));
     console.log('urlTest', urlTest);
+
 
     const sortedData = useMemo(() => {
         let sortableItems = [...filteredData];
@@ -81,7 +83,18 @@ const ImplementationUpload = () => {
             direction = 'descending';
         }
         setSortConfig({ key, direction });
-    }
+    };
+
+    // download test
+    const downloadImageAndDisplayInPDF = (imageURL, jobNo) => {
+        // Download the image (you can use a temporary link for download)
+        const link = document.createElement('a');
+        link.href = imageURL;
+        link.download = `${jobNo}_image.jpg`;
+        link.click();
+
+        setImageURLs(prev => ({ ...prev, [jobNo]: imageURL }));
+    };
 
     return (
         <div className="page-wrapper">
@@ -149,29 +162,32 @@ const ImplementationUpload = () => {
                                                             <td>{item.signDate || 'N/A'}</td>
                                                             <td>{item.mediaFiles?.[0]?.imageType || '' }</td>
                                                             <td>
+                                                                        <Button variant="primary" onClick={() => downloadImageAndDisplayInPDF(`https://productionapi.comart.in/${item.mediaFiles?.[0]?.url}`, item.jobNo)}>
+                                                                            <FaDownload /> Download Image & Generate PDF
+                                                                        </Button>
+                                                                        
+
                                                                         <PDFDownloadLink
                                                                             document={
                                                                                 <PdfTemplate
-                                                                                    logoUrl="path/to/your/logo.png" // Replace with your logo URL
                                                                                     client={item.mediaFiles?.[0]?.personName || ''}
                                                                                     jobNo={item.jobNo}
                                                                                     salonAddress={salonAddresses[item.id] || 'N/A'} // Replace with actual address
-                                                                                    // images={item.mediaFiles?.map(file => `https://productionapi.comart.in/${file.url}`) || []}
-                                                                                    images={[
-                                                                                        "https://productionapi.comart.in/signatures/J0625021769/download.jpg", // Random image 1
-                                                                                        "https://picsum.photos/200/300?random=1", // Random image 2
-                                                                                        "https://picsum.photos/200/300?random=2"  // Random image 3
-                                                                                    ]}
+                                                                                    // images={item.mediaFiles?.map(file => `https://localhost:7035/`+ file.url) || []}
+                                                                                    images={imageURLs[item.jobNo] ? [imageURLs[item.jobNo]] : []}
+                                                                                    // images={[
+                                                                                    //     "https://productionapi.comart.in/signatures/J0625021769/download.jpg",
+                                                                                    //     "https://picsum.photos/200/300?random=1", // Random image 2
+                                                                                    //     "https://picsum.photos/200/300?random=2"  // Random image 3
+                                                                                    // ]}
                                                                                 />
                                                                             }
                                                                             fileName={`${item.jobNo}_${salonAddresses[item.id]}.pdf`}
                                                                         >
-                                                                            {({ loading }) => (
-                                                                                <Button variant="primary" className="download-btn">
-                                                                                    {loading ? 'Loading...' : <><FaDownload /> Download</>}
-                                                                                </Button>
-                                                                            )}
-                                                                        </PDFDownloadLink>
+                                                                            <Button variant="primary">
+                                                                                <FaDownload /> Generate PDF
+                                                                            </Button>
+                                                                        </PDFDownloadLink> 
                                                             </td>
                                                         </tr>
                                                             ))) : (
