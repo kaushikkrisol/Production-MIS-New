@@ -1,15 +1,13 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { all_routes } from "../../../Router/all_routes";
-import { Alert, Spinner, Button, Table, Form, InputGroup } from 'react-bootstrap';
-import { PDFDownloadLink } from '@react-pdf/renderer';
+import { Alert, Spinner, Table, Button, Form, InputGroup } from 'react-bootstrap';
+// import { PDFDownloadLink } from '@react-pdf/renderer';
 import axios from "axios";
 import config from "../../../config";
 import { FaDownload, FaSearch } from 'react-icons/fa';
-import PdfTemplate from "../../pages/implementationUploadPdf/PdfTemplate";
+// import PdfTemplate from "../../pages/implementationUploadPdf/PdfTemplate";
 import Sort from "../ui/Sort";
-
-
 
 const ImplementationUpload = () => {
     const [error, setError] = useState(null);
@@ -18,21 +16,54 @@ const ImplementationUpload = () => {
     const [salonAddresses, setSalonAddresses] = useState({});
     const [searchTerm, setSearchTerm] = useState('');
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
-    const [imageURLs, setImageURLs] = useState({}); 
+    // const [imageURLs, setImageURLs] = useState({});
 
     const fetchImplUploadData = async () => {
         setLoading(true);
-        
+
         try {
             const response = await axios.post(config.ImplementationUpload.URL.GetAllImplementationUpload);
-            setData(response.data);        
-            const salonAddressPromises = response.data.map(item => fetchImplSalonAddress(item.id));
-            await Promise.all(salonAddressPromises);
-        } catch (e) {
-            setError("Failed to fetch data.");
+            setData(response.data);
+            console.log('Impl Upload response: ', response.data);
+        } catch (error) {
+            console.error("Error fetching Implementation Upload Data: ", error);
         } finally {
             setLoading(false);
         }
+
+        // let configData = {
+        //     method: 'post',
+        //     maxBodyLength: Infinity,
+        //     url: config.ImplementationUpload.URL.GetAllImplementationUpload,
+        //     headers: {}
+        // }
+
+        // axios.request(configData)
+        //     .then((response) => {
+        //         console.log("response of impl upload", response.data);  // Log the initial response data
+        //         setData(response.data);
+
+        //         // const salonAddressPromises = response.data.map(item => fetchImplSalonAddress(item.id));
+        //         // return Promise.all(salonAddressPromises); 
+        //     })
+        //     .catch((error) => {
+        //         console.log(error);  // Log any errors that occur during the process
+        //     });
+
+        // try {
+        //     const response = await axios.post(config.ImplementationUpload.URL.GetAllImplementationUpload);
+        //     setData(response.data);        
+        //     console.log('response of impl upload: ', response.data);
+        //     const salonAddressPromises = response.data.map(item => fetchImplSalonAddress(item.id));
+        //     await Promise.all(salonAddressPromises);
+        //     // for (const item of response.data) {
+        //     //     await fetchImplSalonAddress(item.id);
+        //     // }
+        // } catch (e) {
+        //     setError("Failed to fetch data.");
+        // } finally {
+        //     setLoading(false);
+        // }
     };
 
     const fetchImplSalonAddress = async (id) => {
@@ -44,6 +75,7 @@ const ImplementationUpload = () => {
             setError("Failed to fetch salon address");
         }
     };
+    console.log(fetchImplSalonAddress);
 
     useEffect(() => {
         fetchImplUploadData();
@@ -85,16 +117,20 @@ const ImplementationUpload = () => {
         setSortConfig({ key, direction });
     };
 
-    // download test
-    const downloadImageAndDisplayInPDF = (imageURL, jobNo) => {
-        // Download the image (you can use a temporary link for download)
-        const link = document.createElement('a');
-        link.href = imageURL;
-        link.download = `${jobNo}_image.jpg`;
-        link.click();
+    const handlePdfDownload = () => {
 
-        setImageURLs(prev => ({ ...prev, [jobNo]: imageURL }));
-    };
+    }
+
+    // download test
+    // const downloadImageAndDisplayInPDF = (imageURL, jobNo) => {
+    //     // Download the image (you can use a temporary link for download)
+    //     const link = document.createElement('a');
+    //     link.href = imageURL;
+    //     link.download = `${jobNo}_image.jpg`;
+    //     link.click();
+
+    //     setImageURLs(prev => ({ ...prev, [jobNo]: imageURL }));
+    // };
 
     return (
         <div className="page-wrapper">
@@ -162,12 +198,12 @@ const ImplementationUpload = () => {
                                                             <td>{item.signDate || 'N/A'}</td>
                                                             <td>{item.mediaFiles?.[0]?.imageType || '' }</td>
                                                             <td>
-                                                                        <Button variant="primary" onClick={() => downloadImageAndDisplayInPDF(`https://productionapi.comart.in/${item.mediaFiles?.[0]?.url}`, item.jobNo)}>
-                                                                            <FaDownload /> Download Image & Generate PDF
+                                                                        <Button variant="primary" onClick={handlePdfDownload}>
+                                                                            <FaDownload /> Download PDF
                                                                         </Button>
                                                                         
 
-                                                                        <PDFDownloadLink
+                                                                        {/* <PDFDownloadLink
                                                                             document={
                                                                                 <PdfTemplate
                                                                                     client={item.mediaFiles?.[0]?.personName || ''}
@@ -187,7 +223,7 @@ const ImplementationUpload = () => {
                                                                             <Button variant="primary">
                                                                                 <FaDownload /> Generate PDF
                                                                             </Button>
-                                                                        </PDFDownloadLink> 
+                                                                        </PDFDownloadLink>  */}
                                                             </td>
                                                         </tr>
                                                             ))) : (

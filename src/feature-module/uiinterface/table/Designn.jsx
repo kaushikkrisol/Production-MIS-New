@@ -34,6 +34,7 @@ const Designn = () => {
     const [newQuery, setNewQuery] = useState('');
     // const [designName, setDesignName] = useState('');
     const [user, setUser] = useState('');
+    const [locationId, setLocationId] = useState('');
 
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
@@ -53,8 +54,12 @@ const Designn = () => {
             const username = usersObject.message && usersObject.message.username;
             setUser(username);
 
+            const locationid = usersObject.message && usersObject.message.location_id;
+            const stringlocationid = String(locationid);
+            setLocationId(stringlocationid);
+
             // Log the username to the console
-            console.log('Username:', username, jobs);
+            console.log('Username:', username, jobs, 'Location: ', stringlocationid);
         } else {
             console.log('No user data found in localStorage.');
         }
@@ -127,6 +132,22 @@ const Designn = () => {
         }
     };
 
+    const fetchDesignJobsAccToLocation = async () => {
+        const payload = {
+            locationId: locationId,
+            username: user,
+        }
+        try {
+            const response = await axios.post(config.Design.URL.GetAllDesignAccToLocation, payload);
+            console.log('Design data acc to location: ', response.data);
+        } catch (error) {
+            console.error("Error fetching design jobs according to location", error);
+        }
+    }
+    useEffect(() => {
+        fetchDesignJobsAccToLocation();
+    }, [locationId, user]);
+
     const fetchDesignJobs = async () => {
         setLoading(true);
         try {
@@ -169,6 +190,8 @@ const Designn = () => {
         };
         fetchData();
     }, []);
+
+    
 
     const handleAddJob = async () => {
         // e.preventDefault();

@@ -2,7 +2,7 @@
 
 let BaseURL = "https://localhost:7035";
 
-//  let BaseURL ='https://productionapi.comart.in'
+//  let BaseURL ='https://productionapi.comart.in';
 
 const config ={
     User: {
@@ -31,6 +31,7 @@ const config ={
             AddStart: BaseURL + '/api/Design/Addesignstart',
             AddStop: BaseURL + '/api/Design/Addesignstop',
             TotalHoursWork: BaseURL + '/api/Design/TotalHoursWork',
+            GetAllDesignAccToLocation: BaseURL + '/api/Design/GetAllDesignAccToLocation',
         }
     },
     Printing: {
@@ -52,6 +53,7 @@ const config ={
             Addeliverystart: BaseURL + '/api/Delivery/Addeliverystart',
             Addeliverystop: BaseURL + '/api/Delivery/Addeliverystop',
             Getalldeliveryjobs: BaseURL + '/api/Delivery/Getalldeliveryjobs',
+            GetAllDeliveryAccToLocation: BaseURL + '/api/Delivery/GetAllDeliveryAccToLocation',
         }
     },
     Implementation: {
@@ -61,6 +63,7 @@ const config ={
             AddImplementationStart: BaseURL + '/api/Implementation/AddImplementationStart',
             AddImplementationStop: BaseURL + '/api/Implementation/AddImplementationStop',
             GetallImplementationJobs: BaseURL + '/api/Implementation/GetAllImplementationjobs',
+            GetAllImplementationAccToLocation: BaseURL + '/api/Implementation/GetAllImplementationAccToLocation',
         }
     },
     ImplementationUpload: {

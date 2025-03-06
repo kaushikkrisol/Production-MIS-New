@@ -79,7 +79,7 @@ import Sort from "../ui/Sort";
     const [customerName, setCustomerName] = useState("");
     const [enteredby, setEnteredby] = useState("");
     const [locationid, setLocationid] = useState("");
-    const [locationjob, setLocationJob] = useState([]);
+    // const [locationjob, setLocationJob] = useState([]);
 
     const [jobsFromSql, setJobsFromSql] = useState([]);
 
@@ -392,13 +392,17 @@ import Sort from "../ui/Sort";
     const GetAllJobAccToLocation = async () => {
       const payload = {
         locationId: locationid,
+        username: userName,
       }
       try {
+        setLoading(true);
         const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
         console.log('response of jobs acc to location: ', response.data);
-        setLocationJob(response.data);
+        // setLocationJob(response.data);
       } catch (error) {
         console.error('Error fetching jobs according to location', error);
+      } finally {
+        setLoading(false);
       }
     }
 
@@ -421,11 +425,11 @@ import Sort from "../ui/Sort";
       fetchcustomers();
       GetAllJobsFromSql();
       GetAllJobAccToLocation();
-    }, [locationid]);
+    }, [locationid, userName]);
 
     useEffect(() => {
-      if (Array.isArray(locationjob)) { // Check if data is an array
-        const totals = locationjob.reduce((acc, row) => {
+      if (Array.isArray(data)) { // Check if data is an array
+        const totals = data.reduce((acc, row) => {
           acc.width += parseInt(row.width) || 0;
           acc.height += parseInt(row.height) || 0;
           return acc;
@@ -433,10 +437,10 @@ import Sort from "../ui/Sort";
 
         setTotalValues(totals);
       }
-    }, [locationjob]);
+    }, [data]);
 
 
-    const filteredData1 = Array.isArray(locationjob) ? locationjob.filter(row =>
+    const filteredData1 = Array.isArray(data) ? data.filter(row =>
       row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase())
     ) : [];
 
@@ -588,7 +592,7 @@ import Sort from "../ui/Sort";
       try {
         setLoading(true);
 
-        const dataWithUsernames = locationjob.map(item => ({
+        const dataWithUsernames = data.map(item => ({
           ...item,  // Spread existing properties
           userName: userName, // Add the username field
           user_id: user_id,
@@ -1108,7 +1112,7 @@ import Sort from "../ui/Sort";
                                               <Form.Control className="form-control file-choose" type="file" onChange={handleFileChange} />
                                               <br />
                                               <h4>Excel Data:</h4>
-                                              {Array.isArray(headers) && Array.isArray(locationjob) && headers.length > 0 && locationjob.length > 0 ? (
+                                              {Array.isArray(headers) && Array.isArray(data) && headers.length > 0 && data.length > 0 ? (
                                                 <div className="table-responsive responsivetable">
                                                   <ExcelTable className="table-bordered align-middle table-nowrap mb-0">
                                                     <thead className="sticky-header table-light">
@@ -1119,7 +1123,7 @@ import Sort from "../ui/Sort";
                                                       </tr>
                                                     </thead>
                                                     <tbody>
-                                                      {locationjob.map((row, rowIndex) => (
+                                                      {data.map((row, rowIndex) => (
                                                         <tr key={rowIndex}>
                                                           {headers.map((header, colIndex) => (
                                                             <td key={colIndex}>

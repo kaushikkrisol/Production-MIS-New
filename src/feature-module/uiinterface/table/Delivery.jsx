@@ -13,6 +13,9 @@ const Delivery = () => {
     // const [BulkAdd, setBulkAdd] = useState(false);
     // const [headers, setHeaders] = useState([]);
     const [data, setData] = useState([]);
+    console.log(data);
+
+    const [locationData, setLocationData] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState('');
     // const [selectedRows, setSelectedRows] = useState({});
@@ -38,6 +41,8 @@ const Delivery = () => {
     console.log(setPrintingData);
     console.log(printingData, isJobRunning, totalValues);
     const [user, setUser] = useState('');
+    const [location_id, setLocationId] = useState('');
+
     const currentDate = new Date().toISOString().split('T')[0];
     const [enteredBy, setEnteredBy] = useState('');
     const [deliverPersonName, setDeliveryPersonName] = useState([]);
@@ -54,13 +59,17 @@ const Delivery = () => {
         if (users) {
             // Parse the JSON string into an object
             const usersObject = JSON.parse(users);
+            console.log('users obj, local: ', usersObject);
 
             // Access the username
             const username = usersObject.message && usersObject.message.username;
             setUser(username);
 
+            const locationid = usersObject.message && usersObject.message.location_id;
+            setLocationId(locationid);
+
             // Log the username to the console
-            console.log('Username:', username);
+            console.log('Username:', username, 'Location id: ', location_id);
         } else {
             console.log('No user data found in localStorage.');
         }
@@ -95,14 +104,29 @@ const Delivery = () => {
         }
     };
 
+    const fetchDeliveryAccToLocation = async () => {
+        const payload = {
+            locationId: location_id,
+            username: user,
+        }
+        try {
+            const response = await axios.post(config.Delivery.URL.GetAllDeliveryAccToLocation, payload);
+            setLocationData(response.data);
+            console.log('Delivery response acc to location: ', response.data);
+        } catch (error) {
+            console.error("Failed to fetch Delivery data according to location");
+        }
+    }
+
 
     useEffect(() => {
         fetchDeliveryJobs();
-    }, []);
+        fetchDeliveryAccToLocation();
+    }, [location_id, user]);
 
     useEffect(() => {
-        if (Array.isArray(data)) { // Check if data is an array
-            const totals = data.reduce((acc, row) => {
+        if (Array.isArray(locationData)) { // Check if data is an array
+            const totals = locationData.reduce((acc, row) => {
                 acc.width += parseInt(row.width) || 0;
                 acc.height += parseInt(row.height) || 0;
                 return acc;
@@ -110,10 +134,10 @@ const Delivery = () => {
 
             setTotalValues(totals);
         }
-    }, [data]);
+    }, [locationData]);
 
 
-    const filteredData1 = Array.isArray(data) ? data.filter(row =>
+    const filteredData1 = Array.isArray(locationData) ? locationData.filter(row =>
         row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase())
     ) : [];
 
@@ -245,6 +269,7 @@ const Delivery = () => {
         } catch (error) {
             handleError(error);
         } finally {
+            window.location.reload();
             setLoading(false);
         }
     }

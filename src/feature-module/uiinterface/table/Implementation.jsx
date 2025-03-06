@@ -14,6 +14,9 @@ const Implementation = () => {
     // const [BulkAdd, setBulkAdd] = useState(false);
     // const [headers, setHeaders] = useState([]);
     const [data, setData] = useState([]);
+    const [locationAccData, setLocationAccData] = useState([]);
+
+    console.log(data);
 
     const [searchTerm, setSearchTerm] = useState('');
     // const [selectedRows, setSelectedRows] = useState({});
@@ -43,6 +46,7 @@ const Implementation = () => {
     console.log('user name selected: ', name.username);
 
     const [username, setUsername] = useState('');
+    const [locationId, setLocationId] = useState('');
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
@@ -58,6 +62,9 @@ const Implementation = () => {
             // Access the username
             const username = usersObject.message && usersObject.message.username;
             setUsername(username);
+
+            const locationid = usersObject.message && usersObject.message.location_id;
+            setLocationId(locationid);
 
             // Log the username to the console
             console.log('Username:', username);
@@ -90,14 +97,29 @@ const Implementation = () => {
         }
     };
 
+    const fetchImplementationAccToLocation = async () => {
+        const payload = {
+            locationId: locationId,
+            username: username,
+        }
+        try {
+            const response = await axios.post(config.Implementation.URL.GetAllImplementationAccToLocation, payload);
+            setLocationAccData(response.data);
+            console.log("Implementation response acc to location: ", response.data);
+        } catch (error) {
+            console.error("Error fetching implementation data: ", error);
+        }
+    }
+
 
     useEffect(() => {
         fetchImplementationJobs();
-    }, []);
+        fetchImplementationAccToLocation();
+    }, [locationId, username]);
 
     useEffect(() => {
-        if (Array.isArray(data)) { // Check if data is an array
-            const totals = data.reduce((acc, row) => {
+        if (Array.isArray(locationAccData)) { // Check if data is an array
+            const totals = locationAccData.reduce((acc, row) => {
                 acc.width += parseInt(row.width) || 0;
                 acc.height += parseInt(row.height) || 0;
                 return acc;
@@ -105,7 +127,7 @@ const Implementation = () => {
 
             setTotalValues(totals);
         }
-    }, [data]);
+    }, [locationAccData]);
 
     useEffect(() => {
         const getUserNames = async () => {
@@ -121,7 +143,7 @@ const Implementation = () => {
     }, []);
 
 
-    const filteredData1 = Array.isArray(data) ? data.filter(row =>
+    const filteredData1 = Array.isArray(locationAccData) ? locationAccData.filter(row =>
         row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase())
     ) : [];
 
