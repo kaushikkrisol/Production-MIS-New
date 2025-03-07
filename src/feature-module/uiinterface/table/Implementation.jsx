@@ -272,6 +272,7 @@ const Implementation = () => {
             handleError(error);
         } finally {
             setLoading(false);
+            window.location.reload();
         }
     }
 

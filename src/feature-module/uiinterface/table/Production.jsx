@@ -436,6 +436,7 @@ const Production = () => {
                 MediaWidth: mediaWidth,    // Use the updated state value for MediaWidth
                 MediaLength: mediaLength,  // Use the updated state value for MediaLength
                 PrinterName: selectedPrinter,
+                entereddt: row.entereddt
             }));
 
         console.log("Payload being sent to Addprintingstart:", JSON.stringify(selectedJobs, null, 2));
@@ -518,6 +519,7 @@ const Production = () => {
                 enddate: new Date().toISOString(),
                 lastUpdatedBy: user, // Last Updated By
                 lastUpdated: new Date().toISOString(),
+                entereddt: row.entereddt
                 // lastUpdated: new Date().toISOString(), // Timestamp for last update
             }));
 
@@ -546,6 +548,7 @@ const Production = () => {
             handleError(error);
         } finally {
             setLoading(false);
+            window.location.reload();
             // setIsJobRunning(false);
                      
 

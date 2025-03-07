@@ -895,7 +895,7 @@ import Sort from "../ui/Sort";
     const jobNoOptionsFromSql =jobsFromSql.map(job => ({
       value: job.comartjobno,
       label: job.comartjobno,
-      clientName: job.clientName || ''
+      clientName: job.client || ''
     }));
 
     const jobNoOptionsFromExJobNumber = Array.from(new Set(exJobNumber.map(job => job.jobNo)))
@@ -1098,7 +1098,7 @@ import Sort from "../ui/Sort";
                                               placeholder="Select Job No"
                                             />
                                           </Form.Group> */}
-                                          <Form.Group controlId="customerName">
+                                          <Form.Group controlId="customerName" style={{position: 'relative', zIndex: 999}}>
                                             <Form.Label>Job Number</Form.Label>
                                             <Select
                                               options={uniqueJobNoOptions}

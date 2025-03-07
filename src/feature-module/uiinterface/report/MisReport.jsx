@@ -28,6 +28,9 @@ const MisReport = () => {
     const [fromDate, setFromDate] = useState(null);
     const [toDate, setToDate] = useState(null);
     const [enteredDt, setEnteredDt] = useState(null);
+    const [designEnteredDt, setDesignEnteredDt] = useState(null);
+    const [printingEnteredDt, setPrintingEnteredDt] = useState(null);
+    const [deliveryEnteredDt, setDeliveryEnteredDt] = useState(null);
 
     console.log(setFromDate, setToDate, data, setEnteredDt);
 
@@ -75,15 +78,23 @@ const MisReport = () => {
             
             if (reporttype === 'CS') {
                 response = await axios.post(config.JobSummary.URL.Getalljob);
+                console.log(enteredDt, 'entered datae of cs: ', response.data);
+                setEnteredDt(response.data)
                 setCsData(response.data);
             } else if (reporttype === 'Design') {
                 response = await axios.post(config.Design.URL.Getalldesign);
+                console.log(designEnteredDt, 'entered datae of design: ', response.data);
+                setDesignEnteredDt(response.data)
                 setDesignData(response.data);
             } else if (reporttype === 'Printing') {
-                response = await axios.post(config.Printing.URL.Getallprinting);
+                response = await axios.post(config.Printing.URL.GetCompletedPrinting);
+                console.log(printingEnteredDt, 'entered datae of printing: ', response.data);
+                setPrintingEnteredDt(response.data)
                 setPrintingData(response.data);
             } else if (reporttype === 'Delivery') {
                 response = await axios.post(config.Delivery.URL.Getalldelivery);
+                console.log(deliveryEnteredDt, 'entered datae of delivery: ', response.data);
+                setDeliveryEnteredDt(response.data);
                 setDeliveryData(response.data);
             } else {
                 console.log('Invalid production type');
@@ -105,9 +116,10 @@ const MisReport = () => {
         let payload = {
             fromDate: fromDate,
             toDate: toDate,
-            entereddt: enteredDt,
+            // entereddt: enteredDt,
             reporttype: newProduction,
             location: newLocation,
+            // lstupdatedt: lstupdatedt,
         };
 
         try {
@@ -261,51 +273,41 @@ const MisReport = () => {
         },
         Printing: {
             data: printingData,
-            headers: ["Job No", "Date", "Client Name", "Sub Client", "User Name", "Location", "Visual Code", "Name Sub Code",
-                "City", "Quantity", "Media", "Installation", "Deadline", "Lamination", "Mounting", "Salon Address",
-                "Dispatch Address", "Deadline", "Remarks", "Actual Complete Time", "On Time Delayed", "Entered By", "Entered Date",
-                "Last Update By", "Last Updated By", "IP Address", "Width", "Height", "Total Sq Ft", "Start Job", "Stop Job"],
+            headers: ["Job No", "Date", "Printer Name", "Location", "Qty", "Print W.", "Print L.", "Print SQ.Ft.", "Media",
+                "Implementation (Y/N)", "Deadline", "Lamination Media Type", "Salon Address", "Lamination", "Mounting", "Salon Address",
+                "Job Start Date", "Job End Date", "Client", "Sub Client", "Account Manager", "Visual Code", "Name Sub Code",
+                "Printer Deadline", "Remarks"],
             renderRow: (row) => (
                 <tr key={row.id}>
                     <td>{row.jobNo}</td>
                     <td>
                         {row.date}
                     </td>
+                    <td>{row.printerName}</td>
+                    <td>{row.region}</td>
+                    <td>{row.qty}</td>
+                    <td>{row.width}</td>
+                    <td>{row.height}</td>
+                    <td>{row.totalSqFt}</td>
+                    <td>{row.media}</td>
+                    <td>{row.installation}</td>
+                    <td>{row.lamination}</td>
+                    <td>{row.mounting}</td>
+                    <td>{row.salonAddress}</td>
+                    <td>{row.startdate || '-'}</td>
+                    <td>{row.enddate || '-'}</td>
                     <td>
                         {row.client}
                     </td>
                     <td>{row.subClient}</td>
                     <td>{row.userName}</td>
-                    <td>{row.region}</td>
-                    <td>{row.installation}</td>
-                    <td>{row.deadline}</td>
                     <td>
                         {row.visualCode}
                     </td>
                     <td>{row.nameSubCode}</td>
-                    <td>
-                        {row.city}
-                    </td>
-                    <td>{row.qty}</td>
-                    <td>{row.media}</td>
-                    <td>{row.lamination}</td>
-                    <td>{row.mounting}</td>
-                    {/* <td>{row.implementation}</td> */}
-                    <td>{row.salonAddress}</td>
-                    <td>{row.dispatchAddress}</td>
-                    <td>{row.remarks}</td>
-                    <td>{row.actCompleteTime}</td>
-                    <td>{row.onTimeDelayed}</td>
-                    <td>{row.enteredby}</td>
-                    <td>{row.entereddt}</td>
-                    <td>{row.lstupateby}</td>
-                    <td>{row.lstupdatedt}</td>
-                    <td>{row.ipaddress}</td>
-                    <td>{row.width}</td>
-                    <td>{row.height}</td>
-                    <td>{row.totalSqFt}</td>
-                    <td>{row.startdate || '-'}</td>
-                    <td>{row.enddate || '-'}</td>
+                    <td>{row.deadline}</td>
+                    <td>{row.remarks}</td>                    
+                    
                 </tr>
             ),
         },

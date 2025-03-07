@@ -15,6 +15,7 @@ import './Designn.css';
 
 const Designn = () => {
     const [jobs, setJobs] = useState([]);
+    const [jobsFromSql, setJobsFromSql] = useState([]);
     const [selectedDesignIds, setSelectedDesignIds] = useState([]);
     const [data, setData] = useState([]);
     const [newJobNo, setNewJobNo] = useState('');
@@ -175,6 +176,19 @@ const Designn = () => {
         }
     };
 
+    const GetAllJobsFromSql = async () => {
+        const payload = {
+            locationId: locationId,
+        }
+        try {
+            const response = await axios.post(config.JobSummary.URL.GetAllJobsFromSql, payload);
+            console.log('jobs from sql: ', response.data);
+            setJobsFromSql(response.data);
+        } catch (error) {
+            console.error('Unable to fetch jobs for the location id', error);
+        }
+    }
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -189,7 +203,8 @@ const Designn = () => {
             }
         };
         fetchData();
-    }, []);
+        GetAllJobsFromSql();
+    }, [locationId]);
 
     
 
@@ -526,14 +541,35 @@ const Designn = () => {
         setNewClientName(selectedJob ? selectedJob.client : ''); // Set client name or reset
     };
 
-    const jobNoOptions = useMemo(() => {
-        const uniqueJobNumbers = [...new Set(exJobNumber.map(job => job.jobNo))]; // Get unique job numbers
-        return uniqueJobNumbers.map(jobNo => ({
-            value: jobNo,
-            label: jobNo,
-            clientName: exJobNumber.find(job => job.jobNo === jobNo)?.client // Assuming job object has a client property
-        }));
-    }, [exJobNumber]);
+    const jobNoOptionsFromSql = jobsFromSql.map(job => ({
+        value: job.comartjobno,
+        label: job.comartjobno,
+        clientName: job.client || ''
+    }));
+
+    // const jobNoOptions = useMemo(() => {
+    //     const uniqueJobNumbers = [...new Set(exJobNumber.map(job => job.jobNo))]; // Get unique job numbers
+    //     return uniqueJobNumbers.map(jobNo => ({
+    //         value: jobNo,
+    //         label: jobNo,
+    //         clientName: exJobNumber.find(job => job.jobNo === jobNo)?.client // Assuming job object has a client property
+    //     }));
+    // }, [exJobNumber]);
+
+    const jobNoOptionsFromExJobNumber = Array.from(new Set(exJobNumber.map(job => job.jobNo)))
+        .map(jobNo => {
+            const job = exJobNumber.find(job => job.jobNo === jobNo); // Find the first occurrence of the job
+            return {
+                value: jobNo,
+                label: jobNo, // Display job number
+                clientName: job ? job.client : '' // Include client name if found
+            };
+        });
+
+    const combinedJobNoOptions = [...jobNoOptionsFromSql, ...jobNoOptionsFromExJobNumber];
+    const uniqueJobNoOptions = Array.from(new Set(combinedJobNoOptions.map(option => option.value)))
+        .map(value => combinedJobNoOptions.find(option => option.value === value));
+
 
     const handleExJobNoSelectChange = (selectedOption) => {
         if (selectedOption) {
@@ -542,7 +578,7 @@ const Designn = () => {
             setNewClientName(selectedOption.clientName);
             setNewJobNo(selectedOption.value);
             // Find the customer name based on the selected option
-            const selectedJobNo = jobNoOptions.find(option => option.value === selectedOption.value);
+            const selectedJobNo = uniqueJobNoOptions.find(option => option.value === selectedOption.value);
 
             // setCustomerName(selectedJobNo ? selectedJobNo.label : ''); // Set the customer name
             console.log("Job No :", selectedOption.value);
@@ -674,19 +710,19 @@ const Designn = () => {
                                         <Form className="mb-3">
                                             <Row className="mb-3 align-items-center">
                                                 <Col xs={2}>
-                                                    <Form.Group>
+                                                    <Form.Group style={{ position: 'relative', zIndex: 999 }}>
                                                         <Form.Label style={{ width: '200px' }}>Job No</Form.Label>
                                                         <Select
-                                                            options={jobNoOptions}
-                                                            value={jobNoOptions.find(option => option.value === selectedExJobNumber) || null} // Bind the selected value
-                                                            onChange={handleExJobNoSelectChange} // Call the updated function
+                                                            options={uniqueJobNoOptions}
+                                                            value={uniqueJobNoOptions.find(option => option.value === selectedExJobNumber) || null} // Bind the selected value
+                                                            onChange={handleExJobNoSelectChange}
                                                             placeholder="Select Job No"
                                                         />
                                                     </Form.Group>
                                                 </Col>
                                                 <Col xs={2}>
                                                     <Form.Group controlId="formClientName">
-                                                        <Form.Label style={{ width: '200px' }}>Client Name</Form.Label>
+                                                        <Form.Label style={{ width: '200px'}}>Client Name</Form.Label>
                                                         <Form.Control
                                                             type='text'
                                                             value={newClientName}
