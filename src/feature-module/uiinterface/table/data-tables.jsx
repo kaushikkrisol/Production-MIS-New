@@ -1295,7 +1295,7 @@ import Sort from "../ui/Sort";
                             <th><Sort sortKey="designerDeadline" thead="Designer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
                             <th><Sort sortKey="printerPrintingName" thead="Printer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
                             <th><Sort sortKey="printerDeadline" thead="Printer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="noOfArtwork" thead="No of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                            {/* <th><Sort sortKey="noOfArtwork" thead="No of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th> */}
                             {/* <th>Artworker Deadline</th> */}
                             <th>Remarks/Instructions</th>
                             {/* <th>Actual Complete Time</th> */}
@@ -1360,7 +1360,7 @@ import Sort from "../ui/Sort";
                                 <td>{row.designerDeadline}</td>
                                 <td>{row.printerPrintingName}</td>
                                 <td>{row.printerDeadline}</td>
-                                <td>{row.noOfArtwork}</td>
+                                {/* <td>{row.noOfArtwork}</td> */}
                                 {/* <td>{row.artworkerDeadline}</td> */}
                                 <td>{row.remarks}</td>
                                 {/* <td>{row.actCompleteTime}</td> */}

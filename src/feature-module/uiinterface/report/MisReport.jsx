@@ -458,7 +458,7 @@ const MisReport = () => {
         }
 
         return (
-            <Table striped bordered hover>
+            <Table striped bordered hover className='tableBody'>
                 <thead>
                     <tr>
                         {config.headers.map((header, index) => (

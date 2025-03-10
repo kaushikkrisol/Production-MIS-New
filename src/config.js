@@ -9,6 +9,7 @@ const config ={
         URL: {
             Checkuser: BaseURL + '/User/Checkuser',
             GetAllUserrole: BaseURL + '/User/getalluserrole/getalluserrole',
+            GetAllUserAccToLocation: BaseURL + '/User/GetAllUserAccToLocation/GetAllUserAccToLocation',
         }
     },
     JobSummary: {

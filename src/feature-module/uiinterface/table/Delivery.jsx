@@ -287,6 +287,21 @@ const Delivery = () => {
         getUserNames();
     }, []);
 
+    useEffect(() => {
+        const handleGetUsernameAccLocation = async () => {
+            const payload = {
+                "locationId": location_id,
+            }
+            try {
+                const response = await axios.post(config.User.URL.GetAllUserAccToLocation, payload);
+                console.log('users acc to location: ', response.data);
+            } catch (error) {
+                console.error("Error fetching user names according to location ", error);
+            }
+        };
+        handleGetUsernameAccLocation();
+    }, []);
+
     const handleDeliverNameChange = (username) => {
         setDeliveryPersonNameSelect(username);
         const selectedName = deliverPersonName.find(u => u.username === username);
