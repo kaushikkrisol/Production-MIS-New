@@ -598,10 +598,12 @@ const Production = () => {
                 .reduce((total, row) => {
                     const width = parseFloat(row.width) || 0;
                     const height = parseFloat(row.height) || 0;
-                    const area = (width * height) / 144; // Convert to square feet
+                    const qty = parseFloat(row.qty) || 0;
+                    const area = (width * height * qty) / 144; // Convert to square feet
                     console.log('Row width: ', width);
                     console.log('Row height: ', height);
-                    console.log('total area: ', area);
+                    console.log('total area: ', area, qty);
+                    console.log('qty', qty);
                     return total + area; // Add the area to the total
                 }, 0);
 
@@ -644,7 +646,8 @@ const Production = () => {
             .reduce((total, row) => {
                 const width = parseFloat(row.width) || 0;
                 const height = parseFloat(row.height) || 0;
-                const area = (width * height) / 144; // Convert to square feet
+                const qty = parseFloat(row.qty) || 0;
+                const area = (width * height * qty) / 144; // Convert to square feet
                 return total + area; // Add the area to the total
             }, 0);
 

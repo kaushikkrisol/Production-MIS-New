@@ -81,6 +81,8 @@ import Sort from "../ui/Sort";
     const [locationid, setLocationid] = useState("");
     // const [locationjob, setLocationJob] = useState([]);
 
+    const [customerNameAccLocation, setCustomerNameAccLocation] = useState([]);
+
     const [jobsFromSql, setJobsFromSql] = useState([]);
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
@@ -101,6 +103,8 @@ import Sort from "../ui/Sort";
       setSelectedExJobNumber('');
       setCustomerEmail('');  
     }
+
+    
 
     // Check if users data exists and is not null
     useEffect(() => {
@@ -522,6 +526,22 @@ import Sort from "../ui/Sort";
       }
     };
 
+    useEffect(() => {
+      const fetchCustomerName = async () => {
+        const payload = {
+          locationId: locationid,
+        }
+        try {
+          const response = await axios.post(config.JobSummary.URL.GetCustomerNameAccToLocation, payload);
+          setCustomerNameAccLocation(response.data);
+          console.log('customer names', response.data);
+        } catch (error) {
+          console.error('Error fetching customer name');
+        }
+      }
+      fetchCustomerName();
+    }, [locationid]);
+
     const handleFileChange = (e) => {
       const file = e.target.files[0];
       const reader = new FileReader();
@@ -877,9 +897,15 @@ import Sort from "../ui/Sort";
       }
     };
 
-    const customerOptions = customer.map((cust) => ({
-      value: cust.customeR_ID,
-      label: cust.customeR_NAME,
+    // const customerOptions = customer.map((cust) => ({
+    //   value: cust.customeR_ID,
+    //   label: cust.customeR_NAME,
+    // }));
+    console.log(customer, customerNameAccLocation, 'customer name');
+
+    const customerOptions = customerNameAccLocation.map((cust) => ({
+      value: cust.customerid,
+      label: cust.client,
     }));
 
     // const jobNoOptions = Array.from(new Set(exJobNumber.map(job => job.jobNo)))

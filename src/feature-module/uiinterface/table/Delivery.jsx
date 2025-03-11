@@ -49,6 +49,8 @@ const Delivery = () => {
     const [deliverPersonNameSelect, setDeliveryPersonNameSelect] = useState('');
     const [newDeliveryPersonName, setNewDeliveryPersonName] = useState('');
 
+    // const [userAccToLoc, setUserAccToLoc] = useState([]);
+
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
     // Check if users data exists and is not null
@@ -278,7 +280,7 @@ const Delivery = () => {
         const getUserNames = async () => {
             try {
                 const response = await axios.get(config.User.URL.GetAllUserrole);
-                setDeliveryPersonName(response.data);
+                // setDeliveryPersonName(response.data);
                 console.log('Deliv person name', response.data);
             } catch (error) {
                 console.error('Failed to fetch users ', error);
@@ -290,27 +292,33 @@ const Delivery = () => {
     useEffect(() => {
         const handleGetUsernameAccLocation = async () => {
             const payload = {
-                "locationId": location_id,
+                locationId: location_id,
             }
             try {
                 const response = await axios.post(config.User.URL.GetAllUserAccToLocation, payload);
                 console.log('users acc to location: ', response.data);
+                // setUserAccToLoc(response.data);
+                setDeliveryPersonName(response.data);
+
             } catch (error) {
                 console.error("Error fetching user names according to location ", error);
             }
         };
         handleGetUsernameAccLocation();
-    }, []);
+    }, [location_id]);
 
-    const handleDeliverNameChange = (username) => {
+    console.log('deliverr person', deliverPersonName);
+
+    const handleDeliverNameChange = (username, e) => {
         setDeliveryPersonNameSelect(username);
-        const selectedName = deliverPersonName.find(u => u.username === username);
-        console.log("Selected Name: ", selectedName);
-        setNewDeliveryPersonName(selectedName ? selectedName.client : '');
+        console.log('deliverrr person name', deliverPersonName)
+        // const selectedName = deliverPersonName.find(u => u.username === username);
+        // console.log("Selected Name: ", selectedName);
+        setNewDeliveryPersonName(e.target.value);
     }
     console.log('new name: ', deliverPersonNameSelect, newDeliveryPersonName);
     
-    const filteredUserNames = [...new Set(deliverPersonName.map((u) => u.username))];
+    const filteredUserNames = [...new Set(deliverPersonName.map((u) => u))];
 
     const handleError = (error) => {
         if (axios.isAxiosError(error)) {

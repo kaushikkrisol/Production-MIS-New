@@ -133,7 +133,7 @@ const Implementation = () => {
         const getUserNames = async () => {
             try {
                 const response = await axios.get(config.User.URL.GetAllUserrole);
-                setUser(response.data);
+                // setUser(response.data);
                 console.log('user name: ', response.data);
             } catch (error) {
                 console.error('Failed to fetch users', error);
@@ -141,6 +141,24 @@ const Implementation = () => {
         };
         getUserNames();
     }, []);
+
+    useEffect(() => {
+        const handleGetUsernameAccLocation = async () => {
+            const payload = {
+                locationId: locationId,
+            }
+            try {
+                const response = await axios.post(config.User.URL.GetAllUserAccToLocation, payload);
+                console.log('users acc to location: ', response.data);
+                // setUserAccToLoc(response.data);
+                setUser(response.data);
+
+            } catch (error) {
+                console.error("Error fetching user names according to location ", error);
+            }
+        };
+        handleGetUsernameAccLocation();
+    }, [locationId]);
 
 
     const filteredData1 = Array.isArray(locationAccData) ? locationAccData.filter(row =>
@@ -157,16 +175,16 @@ const Implementation = () => {
     };
     console.log(resetForm);
 
-    const handleNameChange = (username) => {
+    const handleNameChange = (username, e) => {
         setName(username);
-        const selectedName = user.find(u => u.username === username);
-        console.log("Selected Name: ", selectedName);
-        setNewName(selectedName ? selectedName.client : '');
+        // const selectedName = user.find(u => u.username === username);
+        // console.log("Selected Name: ", selectedName);
+        setNewName(e.target.value);
     };
 
     console.log('new name: ', name);
 
-    const uniqueNames = [...new Set(user.map((u) => u.username))];
+    const uniqueNames = [...new Set(user.map((u) => u))];
 
     const handleCheckboxChange = (id) => {
         setSelectedRows(prev => {
