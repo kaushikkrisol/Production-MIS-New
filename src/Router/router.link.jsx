@@ -76,9 +76,11 @@ import Designn from "../feature-module/uiinterface/table/Designn";
 import Delivery from "../feature-module/uiinterface/table/Delivery";
 import Implementation from "../feature-module/uiinterface/table/Implementation";
 import ImplementationUpload from "../feature-module/uiinterface/table/ImplementationUpload";
+import MyPriority from "../feature-module/pages/myPriority/MyPriority";
 
 import MisReport from "../feature-module/uiinterface/report/MisReport";
 import JobTracker from "../feature-module/uiinterface/summary/JobTrack";
+import Approval from "../feature-module/pages/approvalPage/Approval";
 
 import FormBasicInputs from "../feature-module/uiinterface/forms/formelements/basic-inputs";
 import CheckboxRadios from "../feature-module/uiinterface/forms/formelements/checkbox-radios";
@@ -627,6 +629,13 @@ export const publicRoutes = [
     route: Route,
   },
   {
+    id: 63,
+    path: routes.myPriority,
+    name: "myPriority",
+    element: <MyPriority />,
+    route: Route,
+  },
+  {
     id: 49,
     path: routes.misreport,
     name: "misreport",
@@ -638,6 +647,13 @@ export const publicRoutes = [
     path: routes.jobtracker,
     name: "jobtracker",
     element: <JobTracker />,
+    route: Route,
+  },
+  {
+    id: 52,
+    path: routes.approval,
+    name: "approval",
+    element: <Approval />,
     route: Route,
   },
   {

@@ -1,17 +1,18 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import DateRangePicker from "react-bootstrap-daterangepicker";
 import { Calendar } from "feather-icons-react/build/IconComponents";
 import "bootstrap-daterangepicker/daterangepicker.css";
 import { Link } from "react-router-dom";
 import { all_routes } from "../../../Router/all_routes";
 import axios from 'axios';
-import { Container, Form, Row, Col, Alert, Spinner, Button, Table } from 'react-bootstrap';
+import { Container, Form, Row, Col, Alert, Spinner, Button, Table} from 'react-bootstrap';
 import moment from 'moment';
 import config from '../../../config';
 import './MisReport.css';
 import * as XLSX from "xlsx";
 import jsPDF from "jspdf";
 import "jspdf-autotable";
+import Select from 'react-select';
 
 const MisReport = () => {
     const [error, setError] = useState(null);
@@ -473,6 +474,120 @@ const MisReport = () => {
         );
     };
 
+    const [jobsFromSql, setJobsFromSql] = useState([]);
+    const [user, setUser] = useState('');
+    const [locationId, setLocationId] = useState('');
+    const [exJobNumber, setExJobNumber] = useState([]);
+    const [selectedExJobNumber, setSelectedExJobNumber] = useState('');
+    const [productData, setProductData] = useState([]);
+
+    const fetchJobs = async () => {
+        setLoading(true);
+        try {
+
+            const response = await axios.post(config.JobSummary.URL.Getalljob, {
+                timeout: 10000,
+                username: user,
+            });
+            console.log("Data fetched successfully: ", response.data);
+            setExJobNumber(response.data);
+
+        } catch (error) {
+            console.error("Error fetching job data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        const users = localStorage.getItem('users');
+
+        if (users) {
+            const usersObject = JSON.parse(users);
+
+            const username = usersObject.message && usersObject.message.username;
+            setUser(username);
+
+            const locationid = usersObject.message && usersObject.message.location_id;
+            const stringlocationid = String(locationid);
+            setLocationId(stringlocationid);
+
+            console.log('Username:', username, user, 'Location: ', stringlocationid);
+        } else {
+            console.log('No user data found in localStorage.');
+        }
+    }, []);
+
+
+    const jobNoOptionsFromSql = jobsFromSql.map(job => ({
+        value: job.comartjobno,
+        label: job.comartjobno,
+        clientName: job.client || ''
+    }));
+
+    const jobNoOptionsFromExJobNumber = Array.from(new Set(exJobNumber.map(job => job.jobNo)))
+        .map(jobNo => {
+            const job = exJobNumber.find(job => job.jobNo === jobNo); // Find the first occurrence of the job
+            return {
+                value: jobNo,
+                label: jobNo, // Display job number
+                clientName: job ? job.client : '' // Include client name if found
+            };
+        });
+
+    const combinedJobNoOptions = [...jobNoOptionsFromSql, ...jobNoOptionsFromExJobNumber];
+    const uniqueJobNoOptions = Array.from(new Set(combinedJobNoOptions.map(option => option.value)))
+        .map(value => combinedJobNoOptions.find(option => option.value === value));
+
+    const GetAllJobsFromSql = async () => {
+        const payload = {
+            locationId: locationId,
+        }
+        try {
+            const response = await axios.post(config.JobSummary.URL.GetAllJobsFromSql, payload);
+            console.log('jobs from sql: ', response.data);
+            setJobsFromSql(response.data);
+        } catch (error) {
+            console.error('Unable to fetch jobs for the location id', error);
+        }
+    }
+
+    const handleExJobNoSelectChange = (selectedOption) => {
+        if (selectedOption) {
+            console.log(selectedOption); // Log the selected option
+            setSelectedExJobNumber(selectedOption.value);
+            // Find the customer name based on the selected option
+            const selectedJobNo = uniqueJobNoOptions.find(option => option.value === selectedOption.value);
+
+            // setCustomerName(selectedJobNo ? selectedJobNo.label : ''); // Set the customer name
+            console.log("Job No :", selectedOption.value);
+            console.log("Job No is:", selectedJobNo ? selectedJobNo.label : '');
+        } else {
+            setSelectedExJobNumber('');
+        }
+    };
+
+    const fetchProductReportWithJobNo = async (jobNo) => {
+        try {
+            const url = `${config.Report.URL.GetProductReportWithJobNo}?jobNo=${encodeURIComponent(jobNo)}`
+            const res = await axios.post(url);
+            console.log(res.data);
+            setProductData(res.data);
+        } catch (error) {
+            console.error('Error fetching Report ', error);
+        }
+    }
+    const handleGoOfProduct = () => {
+        if (selectedExJobNumber) {
+            fetchProductReportWithJobNo(selectedExJobNumber);
+        } else {
+            alert("Please select a Job No before proceeding.");
+        }
+    }
+    useEffect(() => {
+        fetchJobs();
+        GetAllJobsFromSql();
+    }, []);
 
     return (
         <Container style={{ marginLeft: 'auto', marginRight: 'auto', padding: '0 10px', marginTop: '2em' }}>
@@ -568,6 +683,95 @@ const MisReport = () => {
 
                     <div style={{ marginTop: "4em", marginLeft: "-170px", overflow: "auto", width: '84rem'}}>
                         {renderTable()}
+                    </div>
+
+                </div>
+
+                <div className="content container-fluid mt-4 mb-4">
+                    {error && <Alert variant="danger">{error}</Alert>}
+                    {loading && <Spinner animation="border" className="d-block mx-auto" />}
+                    <Row>
+                        <Row>
+                            <Col className="d-flex justify-content-end btn-grp">
+                                <Button type="submit" className='goBtn me-2' variant="primary" onClick={exportToExcel}>
+                                    To Excel
+                                </Button>
+                                <Button type="submit" className='goBtn me-2' variant="primary" onClick={exportToCsv}>
+                                    To CSV
+                                </Button>
+                            </Col>
+                        </Row>
+                        <Row>
+                            <Col xs={5}>
+                                <Form.Group style={{ position: 'relative', zIndex: 999 }}>
+                                    <Form.Label>Job No</Form.Label>
+                                    <Select
+                                        options={uniqueJobNoOptions}
+                                        value={uniqueJobNoOptions.find(option => option.value === selectedExJobNumber) || null} // Bind the selected value
+                                        onChange={handleExJobNoSelectChange}
+                                        placeholder="Select Job No"
+                                    />
+                                </Form.Group>
+                            </Col>
+                            <Col>
+                                <Button style={{marginTop: "29px"}} onClick={handleGoOfProduct}>Go</Button>
+                            </Col>
+                        </Row>
+                    </Row>
+
+                    {loading && <Spinner animation="border" />}
+                    {error && <Alert variant="danger">{error}</Alert>}
+
+                    <div style={{ marginTop: "4em", marginLeft: "-170px", overflow: "auto", width: '84rem' }}>
+                        <Table striped bordered hover>
+                            <thead className='sticky-header'>
+                                <tr>
+                                    <th>Job No</th>
+                                    <th>Client Product Name</th>
+                                    <th>Width</th>
+                                    <th>Height</th>
+                                    <th>Unit</th>
+                                    <th>Rate</th>
+                                    <th>Qty</th>
+                                    <th>HSN Code</th>
+                                    <th>Gj Code</th>
+                                    <th>Store Location</th>
+                                    <th>Billing Location</th>
+                                    <th>Production Location</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {productData.length > 0 ? (
+                                    productData.map((row) => (
+                                        <tr key={row.id}>
+                                            <td>{row.jobNo}</td>
+                                            <td>{row.media}</td>
+                                            <td>{row.width}</td>
+                                            <td>{row.height}</td>
+                                            <td></td>
+                                            <td></td>
+                                            <td>{row.qty}</td>
+                                            <td></td>
+                                            <td></td>
+                                            <td></td>
+                                            <td>{row.billingLocation}</td>
+                                            <td>{row.productionLocation}</td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="15" className="text-center">No results found</td>
+                                    </tr>
+                                )}
+                                {/* Row for displaying total values */}
+                                {/* <tr>
+                                    <td colSpan="10" className="text-center"><strong>Total</strong></td>
+                                    <td><strong>{totalValues.width}</strong></td>
+                                    <td><strong>{totalValues.height}</strong></td>
+                                    <td colSpan="3"></td>
+                                </tr> */}
+                            </tbody>
+                        </Table>
                     </div>
 
                 </div>

@@ -47,9 +47,11 @@ export const all_routes = {
   delivery: "/Delivery",
   implementation: "/Implementation",
   implementationUpload: "/ImplementationUpload",
+  myPriority: "/myPriority",
 
   misreport: "/MisReport",
   jobtracker: "/JobTracker",
+  approval: "/Approval",
 
   Ajgrid:"/Ajgrid",
   basicinput: "/form-basic-inputs",

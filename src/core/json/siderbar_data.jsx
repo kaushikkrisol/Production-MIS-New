@@ -1001,6 +1001,7 @@ export const SidebarData = [
           { label: "Delivery", link: "/delivery" },
           { label: "Implementation", link: "/implementation" },
           { label: "Implementation Upload", link: "/implementationUpload" },
+          { label: "My Priority", link: "/myPriority" },
           // { label: "Ajgrid", link:"/Ajgrid"},
         ],
       },

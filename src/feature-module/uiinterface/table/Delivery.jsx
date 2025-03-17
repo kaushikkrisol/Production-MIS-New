@@ -564,6 +564,7 @@ const Delivery = () => {
                                                     <th>Delivery Completed</th>
                                                     <th>Delivery Mode</th>
                                                     <th>Address</th>
+                                                    <th>Implementation</th>
                                                     {/* <th>Delivery To</th> */}
                                                 </tr>
                                             </thead>
@@ -626,6 +627,7 @@ const Delivery = () => {
                                                             <td>{row.deliveryOutDate || '-'}</td>
                                                             <td>{row.handTempoDelivery || '-'}</td>
                                                             <td>{row.salonAddress}</td>
+                                                            <td>{row.implementation}</td>
                                                             {/* <td>{row.startdate || '-'}</td>
                                                             <td>{row.enddate || '-'}</td> */}
                                                             {/* <td>{row.startJobTime || '-'}</td>

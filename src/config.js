@@ -1,8 +1,8 @@
 // https://production.comart.in
 
-// let BaseURL = "https://localhost:7035";
+let BaseURL = "https://localhost:7035";
 
- let BaseURL ='https://productionapi.comart.in';
+//  let BaseURL ='https://productionapi.comart.in';
 
 const config ={
     User: {
@@ -74,10 +74,16 @@ const config ={
             GetImplementationUploadWithSalonAddress: BaseURL + '/api/ImplementationUpload/GetImplementationUploadWithSalonAddress',
         }
     },
+    MyPriority: {
+        URL: {
+            GetAllPriority: BaseURL + '/api/MyPriority/GetAllPriority',
+        }
+    },
     Report: {
         URL: {
             AddReport: BaseURL + '/api/Report',
             Getallreport: BaseURL + '/api/Report/Getallreport',
+            GetProductReportWithJobNo: BaseURL + '/api/Report/GetProductReportWithJobNo',
         }
     }
 }
