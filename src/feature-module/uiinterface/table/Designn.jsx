@@ -4,7 +4,6 @@ import axios from 'axios';
 import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
-import Select from 'react-select';
 import { Link } from "react-router-dom";
 import { all_routes } from "../../../Router/all_routes";
 import { useMemo } from 'react';
@@ -19,7 +18,7 @@ const Designn = () => {
     const [selectedDesignIds, setSelectedDesignIds] = useState([]);
     const [data, setData] = useState([]);
     const [newJobNo, setNewJobNo] = useState('');
-    const [newDropdown, setNewDropdown] = useState('');
+    // const [newDropdown, setNewDropdown] = useState('');
 
     const [jobNumbers, setJobNumbers] = useState([]);
     const [newClientName, setNewClientName] = useState('');
@@ -36,6 +35,7 @@ const Designn = () => {
     // const [designName, setDesignName] = useState('');
     const [user, setUser] = useState('');
     const [locationId, setLocationId] = useState('');
+    const [userId, setUserId] = useState('');
 
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
@@ -58,6 +58,9 @@ const Designn = () => {
             const locationid = usersObject.message && usersObject.message.location_id;
             const stringlocationid = String(locationid);
             setLocationId(stringlocationid);
+
+            const userid = usersObject.message && usersObject.message.user_id;
+            setUserId(userid);
 
             // Log the username to the console
             console.log('Username:', username, jobs, 'Location: ', stringlocationid);
@@ -104,12 +107,30 @@ const Designn = () => {
     const [selectedExJobNumber, setSelectedExJobNumber] = useState('');
     const [exJobNumber, setExJobNumber] = useState([]);
 
-    const locations = ["North", "South", "East", "West", "All"];
+    // const locations = ["North", "South", "East", "West", "All"];
     const status = ["Done", "Hold"];
-    console.log(status);
+
+    const [userName, setUserName] = useState("");
+
+    console.log(status, userName);
 
     console.log(jobNumbers, setStartDate, setEndDate, setHiddenRows);
-    console.log(clientNames, setData, selectedDesignIds, endDate);
+    console.log(clientNames, setData, selectedDesignIds, endDate, selectedExJobNumber);
+
+    useEffect(() => {
+        const users = localStorage.getItem('users');
+
+        if (users) {
+            // Parse the JSON string into an object
+            const usersObject = JSON.parse(users);
+
+            const username = usersObject.message && usersObject.message.username;
+            setUserName(username);
+
+        } else {
+            console.log('No user data found in localStorage.');
+        }
+    }, []);
     // const currentDate = new Date().toISOString().split('T')[0];
 
     const fetchJobs = async () => {
@@ -118,7 +139,11 @@ const Designn = () => {
             console.log("Fetching data from:", config.JobSummary.URL.Getalljob);
             console.log("Fetching data from:", config.Design.URL.Getalldesign);
 
-            const response = await axios.post(config.JobSummary.URL.Getalljob, {
+            const payload = {
+                userId: userId
+            }
+
+            const response = await axios.post(config.Design.URL.GetDesignByUserId, payload, {
                 timeout: 10000,
                 username: user,
             });
@@ -151,10 +176,14 @@ const Designn = () => {
 
     const fetchDesignJobs = async () => {
         setLoading(true);
-        try {
-            console.log("Fetching data from:", config.Design.URL.Getalldesign);
+        const payload = {
+            userId: userId,
+        };
 
-            const response = await axios.post(config.Design.URL.Getalldesign);
+        try {
+            console.log("Fetching data from:", config.Design.URL.Getalldesign, payload);
+
+            const response = await axios.post(config.Design.URL.GetDesignByUserId, payload);
             console.log('Design of data fetch: ', response.data);
             console.log('designfetch', designData);
 
@@ -259,6 +288,7 @@ const Designn = () => {
             
         }
     };
+    console.log(handleAddJob);
 
     // const handleStartJob = () => {
     //     if (Object.values(selectedRows).some(v => v)) {
@@ -296,8 +326,8 @@ const Designn = () => {
 
     const handleStartJob = async () => {
         const selectedJobs = filteredData1
-            .filter(row => selectedRows[row.designid]) // Get selected rows
-            .map(row => ({ designid: row.designid, name: row.name }));
+            .filter(row => selectedRows[row.id]) // Get selected rows
+            .map(row => ({ id: row.id, name: row.name }));
 
         const startData = selectedJobs.map(job => ({
             ...job,
@@ -320,14 +350,14 @@ const Designn = () => {
                 // Mark jobs as started by adding them to designData
                 setDesignData(prevData =>
                     prevData.map(job =>
-                        selectedJobs.some(selectedJob => selectedJob.designid === job.designid)
+                        selectedJobs.some(selectedJob => selectedJob.id === job.id)
                             ? { ...job, isStarted: true, startDate: new Date().toISOString() }
                             : job
                     )
                 );
 
                 // Store only the selected jobs in designData after starting
-                const startedJobs = filteredData1.filter(row => selectedRows[row.designid]);
+                const startedJobs = filteredData1.filter(row => selectedRows[row.id]);
                 setDesignData(startedJobs);  // Update designData to show only started jobs
 
                 // Update selectedRows
@@ -348,8 +378,8 @@ const Designn = () => {
 
     const handleStopJob = async () => {
         const selectedJobs = filteredData1
-            .filter(row => selectedRows[row.designid]) // Get selected rows
-            .map(row => ({ designid: row.designid, name: row.name }));
+            .filter(row => selectedRows[row.id]) // Get selected rows
+            .map(row => ({ id: row.id, name: row.name }));
 
         const stopData = selectedJobs.map(job => ({
             ...job,
@@ -370,7 +400,7 @@ const Designn = () => {
                 console.log("Stop Data submitted successfully:", response.data);
 
                 // Only keep the started jobs in the designData
-                const updatedData = filteredData1.filter(row => selectedRows[row.designid]);
+                const updatedData = filteredData1.filter(row => selectedRows[row.id]);
                 setDesignData(updatedData);  // Update the data to show only selected jobs
                 setSelectedRows({});  // Clear selected rows after stopping
 
@@ -502,7 +532,7 @@ const Designn = () => {
         const newSelectedRows = {};
         filteredData1.forEach(row => {
             if (!row.isCompleted) {
-                newSelectedRows[row.designid] = isChecked;
+                newSelectedRows[row.id] = isChecked;
             }
         });
         setSelectedRows(newSelectedRows);
@@ -590,6 +620,7 @@ const Designn = () => {
 
         }
     };
+    console.log(handleExJobNoSelectChange);
 
     // const sortedData = filteredData1.sort((a, b) => {
     //     const dateA = a.date1;
@@ -706,7 +737,7 @@ const Designn = () => {
                                             <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
                                         </Col>
                                     </Row>
-                                    <div style={{  }}>
+                                    {/* <div style={{  }}>
                                         <Form className="mb-3">
                                             <Row className="mb-3 align-items-center">
                                                 <Col xs={2}>
@@ -796,7 +827,6 @@ const Designn = () => {
                                                             value={newDropdown}
                                                             onChange={(e) => setNewDropdown(e.target.value)}
                                                         >
-                                                            {/* <option value="">Select </option> */}
                                                             <option value="">Select Design Type </option>
                                                             <option value="New Layout">New Layout</option>
                                                             <option value="Print Ready File">Print Ready File</option>
@@ -812,7 +842,7 @@ const Designn = () => {
                                                 </Col>
                                             </Row>
                                         </Form>
-                                    </div>
+                                    </div> */}
                                     <hr />
                                     <div>
                                         <Form.Group className="mb-3 mt-3">
@@ -837,61 +867,68 @@ const Designn = () => {
                                                             <Form.Check
                                                                 type="checkbox"
                                                                 onChange={handleSelectAllChange}
-                                                                checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.designid])}
+                                                                checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                                                             />
                                                         </th>
-                                                        <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        {/* <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="designNoOfJobs" thead="No Of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="designClientName" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th>Brief</th>
                                                         <th><Sort sortKey="designLocation" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                        {/* <th>Status</th> */}
                                                         <th>Query/Comment</th>
-
-                                                        {/* <th><Sort sortKey="designReceivedDate" thead="Received Date" sortConfig={sortConfig} requestSort={requestSort} /></th> */}
                                                         <th><Sort sortKey="designDueDate" thead="Due Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                        {/* <th>Upload Date</th>
-                                    <th>Width</th>
-                                    <th>Length</th> */}
                                                         <th>Artwork: Start time</th>
                                                         <th>Artwork: End time</th>
-                                                        <th>Artwork: Production time</th>
+                                                        <th>Artwork: Production time</th> */}
+
+                                                        <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="client" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="visualCode" thead="Visual Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="nameSubCode" thead="Name Sub Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="city" thead="City" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="designerName" thead="Designer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="designerDeadline" thead="Designer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="noOfArtwork" thead="No Of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="artworkerDeadline" thead="Artworker Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="productionLocation" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th>Start Time</th>
+                                                        <th>End Time</th>
+                                                        <th>Total Time</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {sortedData.length > 0 ? (
                                                         sortedData.map((row) => (
-                                                            <tr key={row.designid} className={hiddenRows.includes(row.designid) ? 'disappear' : ''}>
+                                                            <tr key={row.id} className={hiddenRows.includes(row.id) ? 'disappear' : ''}>
                                                                 <td>
                                                                     <Form.Check
-                                                                        key={row.designid}
+                                                                        key={row.id}
                                                                         type="checkbox"
-                                                                        checked={!!selectedRows[row.designid]}
-                                                                        onChange={() => handleCheckboxChange(row.designid)}
+                                                                        checked={!!selectedRows[row.id]}
+                                                                        onChange={() => handleCheckboxChange(row.id)}
                                                                         disabled={row.isCompleted}
                                                                     />
                                                                 </td>
                                                                 <td>{row.jobNo}</td>
-                                                                <td>{row.designNoOfJobs}</td>
+                                                                <td>{row.date}</td>
                                                                 <td>
-                                                                    {row.designClientName}
+                                                                    {row.client}
                                                                 </td>
                                                                 <td>
-                                                                    {row.designBrief}
+                                                                    {row.visualCode}
                                                                 </td>
-                                                                <td>{row.designLocation}</td>
-                                                                {/* <td>
-                                                {row.designStatus}
-                                            </td> */}
+                                                                <td>{row.nameSubCode}</td>
                                                                 <td>
-                                                                    {row.designQuery}
+                                                                    {row.city}
                                                                 </td>
+                                                                <td>{row.designerName}</td>
+                                                                <td>{row.designerDeadline}</td>
+                                                                <td>{row.noOfArtwork}</td>
+                                                                <td>{row.artworkerDeadline}</td>
+                                                                <td>{row.location}</td>
 
-                                                                {/* <td>{row.designReceivedDate}</td> */}
-                                                                <td>{row.designDueDate ? new Date(row.designDueDate).toLocaleString() : '-'}</td>
-                                                                {/* <td>{row.designUploadDate}</td>
-                                            <td>{row.designWidth}</td>
-                                            <td>{row.designHeight}</td> */}
+                                                                {/* <td>{row.designDueDate ? new Date(row.designDueDate).toLocaleString() : '-'}</td> */}
                                                                 <td>{row.startdate || '-'}</td>
                                                                 <td>{row.enddate || '-'}</td>
                                                                 <td>

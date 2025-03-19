@@ -376,6 +376,7 @@ const MisReport = () => {
         XLSX.writeFile(workbook, "Report.xlsx"); // Save as Excel file
     };
 
+
     // Function to export to CSV
     const exportToCsv = () => {
         const worksheet = XLSX.utils.json_to_sheet(data); // Convert data to a worksheet
@@ -480,6 +481,7 @@ const MisReport = () => {
     const [exJobNumber, setExJobNumber] = useState([]);
     const [selectedExJobNumber, setSelectedExJobNumber] = useState('');
     const [productData, setProductData] = useState([]);
+    const [showTable, setShowTable] = useState(false);
 
     const fetchJobs = async () => {
         setLoading(true);
@@ -577,13 +579,45 @@ const MisReport = () => {
             console.error('Error fetching Report ', error);
         }
     }
-    const handleGoOfProduct = () => {
-        if (selectedExJobNumber) {
-            fetchProductReportWithJobNo(selectedExJobNumber);
-        } else {
-            alert("Please select a Job No before proceeding.");
+    const handleGoOfProduct = async () => {
+        setLoading(true);
+        try {
+            if (selectedExJobNumber) {
+                setProductData([]);
+                setShowTable(false);
+
+                await fetchProductReportWithJobNo(selectedExJobNumber);
+                setShowTable(true);
+            } else {
+                alert("Please select a Job No before proceeding.");
+            }
+        } catch (error) {
+            console.error('Error while fetching data ', error);
+        }
+         finally {
+            setLoading(false);
         }
     }
+    const exportProductsToExcel = () => {
+        const displayedData = productData.map(row => ({
+            "Client Product Name": row.media,
+            "Width": row.width,
+            "Height": row.height,
+            "Unit": "2", // Static value as per your table
+            "Rate": "", // Static value as per your table
+            "Qty": row.qty,
+            "HSN Code": "39219099", // Static value as per your table
+            "Gj Code": "394", // Static value as per your table
+            "Store Location": row.salonAddress,
+            "Billing Location": row.billingLocation,
+            "Production Location": row.productionLocation,
+        }));
+
+        const worksheet = XLSX.utils.json_to_sheet(displayedData); // Convert data to a worksheet
+        const workbook = XLSX.utils.book_new(); // Create a new workbook
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1"); // Append the worksheet to the workbook
+        XLSX.writeFile(workbook, "ProductsReport.xlsx"); // Save as Excel file
+    };
     useEffect(() => {
         fetchJobs();
         GetAllJobsFromSql();
@@ -693,15 +727,12 @@ const MisReport = () => {
                     <Row>
                         <Row>
                             <Col className="d-flex justify-content-end btn-grp">
-                                <Button type="submit" className='goBtn me-2' variant="primary" onClick={exportToExcel}>
+                                <Button type="submit" className='goBtn me-2' variant="primary" onClick={exportProductsToExcel}>
                                     To Excel
-                                </Button>
-                                <Button type="submit" className='goBtn me-2' variant="primary" onClick={exportToCsv}>
-                                    To CSV
                                 </Button>
                             </Col>
                         </Row>
-                        <Row>
+                        <Row className='mb-3'>
                             <Col xs={5}>
                                 <Form.Group style={{ position: 'relative', zIndex: 999 }}>
                                     <Form.Label>Job No</Form.Label>
@@ -722,58 +753,60 @@ const MisReport = () => {
                     {loading && <Spinner animation="border" />}
                     {error && <Alert variant="danger">{error}</Alert>}
 
-                    <div style={{ marginTop: "4em", marginLeft: "-170px", overflow: "auto", width: '84rem' }}>
-                        <Table striped bordered hover>
-                            <thead className='sticky-header'>
-                                <tr>
-                                    <th>Job No</th>
-                                    <th>Client Product Name</th>
-                                    <th>Width</th>
-                                    <th>Height</th>
-                                    <th>Unit</th>
-                                    <th>Rate</th>
-                                    <th>Qty</th>
-                                    <th>HSN Code</th>
-                                    <th>Gj Code</th>
-                                    <th>Store Location</th>
-                                    <th>Billing Location</th>
-                                    <th>Production Location</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {productData.length > 0 ? (
-                                    productData.map((row) => (
-                                        <tr key={row.id}>
-                                            <td>{row.jobNo}</td>
-                                            <td>{row.media}</td>
-                                            <td>{row.width}</td>
-                                            <td>{row.height}</td>
-                                            <td></td>
-                                            <td></td>
-                                            <td>{row.qty}</td>
-                                            <td></td>
-                                            <td></td>
-                                            <td></td>
-                                            <td>{row.billingLocation}</td>
-                                            <td>{row.productionLocation}</td>
-                                        </tr>
-                                    ))
-                                ) : (
+                    {showTable && (
+                        <div style={{ marginTop: "4em", marginLeft: "-170px", overflow: "auto", width: '84rem' }}>
+                            <Table striped bordered hover>
+                                <thead className='sticky-header'>
                                     <tr>
-                                        <td colSpan="15" className="text-center">No results found</td>
+                                        <th>Client Product Name</th>
+                                        <th>Width</th>
+                                        <th>Height</th>
+                                        <th>Unit</th>
+                                        <th>Rate</th>
+                                        <th>Qty</th>
+                                        <th>HSN Code</th>
+                                        <th>Gj Code</th>
+                                        <th>Store Location</th>
+                                        <th>Billing Location</th>
+                                        <th>Production Location</th>
                                     </tr>
-                                )}
-                                {/* Row for displaying total values */}
-                                {/* <tr>
+                                </thead>
+                                <tbody>
+                                    {productData.length > 0 ? (
+                                        productData.map((row) => (
+                                            <tr key={row.id}>
+                                                <td>{row.media}</td>
+                                                <td>{row.width}</td>
+                                                <td>{row.height}</td>
+                                                <td>2</td>
+                                                <td></td>
+                                                <td>{row.qty}</td>
+                                                <td>39219099</td>
+                                                <td>394</td>
+                                                <td>{row.salonAddress}</td>
+                                                <td>{row.billingLocation}</td>
+                                                <td>{row.productionLocation}</td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="15" className="text-center">No results found</td>
+                                        </tr>
+                                    )}
+                                    {/* Row for displaying total values */}
+                                    {/* <tr>
                                     <td colSpan="10" className="text-center"><strong>Total</strong></td>
                                     <td><strong>{totalValues.width}</strong></td>
                                     <td><strong>{totalValues.height}</strong></td>
                                     <td colSpan="3"></td>
                                 </tr> */}
-                            </tbody>
-                        </Table>
-                    </div>
+                                </tbody>
+                            </Table>
+                        </div>
 
+                    )}
+
+                    
                 </div>
             </div>
         </Container>

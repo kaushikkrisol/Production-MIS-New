@@ -633,6 +633,7 @@ import Sort from "../ui/Sort";
             ...item,  // Spread existing properties
             "Job No": newJobNo,
             "CLIENT": clients,
+            "UserId": userId,
             // "Sub Client": subClients,
 
             ISnewjob:'0'

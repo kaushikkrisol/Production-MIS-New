@@ -30,6 +30,8 @@ const config ={
         URL: {
             AddDesign: BaseURL + '/api/Design',
             Getalldesign: BaseURL + '/api/Design/Getalldesign',
+            GetAllDesignFromCs: BaseURL + '/api/Design/GetAllDesignFromCs',
+            GetDesignByUserId: BaseURL + '/api/Design/GetDesignByUserId',
             AddStart: BaseURL + '/api/Design/Addesignstart',
             AddStop: BaseURL + '/api/Design/Addesignstop',
             TotalHoursWork: BaseURL + '/api/Design/TotalHoursWork',
@@ -77,6 +79,7 @@ const config ={
     MyPriority: {
         URL: {
             GetAllPriority: BaseURL + '/api/MyPriority/GetAllPriority',
+            UpdatePriority: BaseURL + '/api/MyPriority/UpdateDesignPriority',
         }
     },
     Report: {
