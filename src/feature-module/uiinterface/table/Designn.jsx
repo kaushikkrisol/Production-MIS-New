@@ -10,8 +10,11 @@ import { useMemo } from 'react';
 import Notification from '../../Notification/Notification';
 import Sort from '../ui/Sort';
 import Select from 'react-select';
-
+import ApprovalPage from '../../components/approvalcomp/approvalPage';
+// import { Modal } from 'antd'; // Ensure this is the correct import
 import './Designn.css';
+
+
 
 const Designn = () => {
     const [jobs, setJobs] = useState([]);
@@ -27,6 +30,8 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
     const [newLocation, setNewLocation] = useState('');
     const [newStatus, setNewStatus] = useState('');
     const [newDueDate, setNewDueDate] = useState('');
+    //approval model for design 
+    const [showApprovalModal, setShowApprovalModal] = useState(false);
     const [newUploadDate, setNewUploadDate] = useState('');
     const [newWidth, setNewWidth] = useState('');
     const [newHeight, setNewHeight] = useState('');
@@ -578,6 +583,17 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
         setSelectedRows(newSelectedRows);
     };
 
+    const handleMailForCustomer = () => {
+        console.log("opening the modal");
+        setShowApprovalModal(true); // Open the modal
+      };
+    
+      // Function to handle closing the modal
+      const closeModal = () => {
+        setShowApprovalModal(false); // Close the modal
+      };
+
+
     const uniqueJobNumbers = useMemo(() => { return [...new Set(jobs.map(job => job.jobNo))] }, [jobs]);
 
     const filteredData1 = Array.isArray(designData) ? designData.filter(row =>
@@ -870,6 +886,11 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
                                                 <Col>
                                                     <Button type="button" variant="primary" style={{ marginTop: '28px' }} onClick={handleAddJob}>Add</Button>
                                                 </Col>
+                                                <Col>
+                                            <Button type="button" variant="primary" onClick={handleMailForCustomer}>
+                                                Send Approval to Customer
+                                            </Button>
+                                                </Col>  
                                             </Row>
                                         </Form>
                                     </div>
@@ -998,6 +1019,16 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
                     </div>
                 </div>
             </div>
+
+            {showApprovalModal && (
+        <div className="modal">
+          <div className="modal-content">
+            <button onClick={closeModal}>Close</button>
+            {/* Render ApprovalPage Component inside Modal */}
+            <ApprovalPage />
+          </div>
+        </div>
+      )}
         </div>
     );
 };

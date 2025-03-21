@@ -223,6 +223,7 @@ export const publicRoutes = [
     element: <ProductList />,
     route: Route,
   },
+  
   {
     id: 3,
     path: routes.addproduct,
