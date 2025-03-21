@@ -14,7 +14,7 @@
   import { FaSyncAlt, FaSearch } from 'react-icons/fa';
   import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
-import Sort from "../ui/Sort";
+// import Sort from "../ui/Sort";
   // import { responsiveArray } from "antd/es/_util/responsiveObserver";
   // import { el } from "date-fns/locale";
 
@@ -86,6 +86,7 @@ import Sort from "../ui/Sort";
     const [jobsFromSql, setJobsFromSql] = useState([]);
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
+    console.log(setSortConfig)
 
     console.log(filteredJobNumbers, setSelectSearchTerm);
 
@@ -464,13 +465,13 @@ import Sort from "../ui/Sort";
       return sortableItems;
     }, [filteredData1, sortConfig]);
 
-    const requestSort = (key) => {
-      let direction = 'ascending';
-      if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
-        direction = 'descending';
-      }
-      setSortConfig({ key, direction });
-    }
+    // const requestSort = (key) => {
+    //   let direction = 'ascending';
+    //   if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+    //     direction = 'descending';
+    //   }
+    //   setSortConfig({ key, direction });
+    // }
 
     const toggleBulkAdd = useCallback(() => {
       if (BulkAdd) {
@@ -482,6 +483,8 @@ import Sort from "../ui/Sort";
         setBulkAdd(true);
       }
     }, [BulkAdd]);
+
+    
 
 
     const fetchcustomers = async () => {
@@ -1286,144 +1289,81 @@ import Sort from "../ui/Sort";
                     </Form.Group>
                     <div style={{ overflowX: 'auto' }} className="table-container">
                       <Table striped bordered hover>
-                        <thead className="sticky-header">
-                          <tr>
-                            {/* <th>
-                              <Form.Check
-                                type="checkbox"
-                                onChange={handleSelectAllChange}
-                                checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
-                              />
-                            </th> */}
-                            <th><Sort sortKey="jobNo" thead="Job No" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="client" thead="Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="userName" thead="CS Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="subClient" thead="Sub Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="region" thead="Production Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="billingLocation" thead="Billing Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="visualCode" thead="Visual Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="nameSubCode" thead="Name Sub Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="city" thead="City" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th>Qty</th>
-                            <th>Width</th>
-                            <th>Length</th>
-                            <th>Total Sq.ft</th>
-                            <th><Sort sortKey="media" thead="Media" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="lamination" thead="Lamination" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="mounting" thead="Mounting" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="implementation" thead="Implementation" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="salonAddress" thead="Salon Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="machineName" thead="Machine Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            {/* <th>Billing Sq Ft</th> */}
-                            {/* <th>Installation</th> */}
-                            <th><Sort sortKey="deadline" thead="Job Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="designerName" thead="Designer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="designerDeadline" thead="Designer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="printerPrintingName" thead="Printer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            <th><Sort sortKey="printerDeadline" thead="Printer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                            {/* <th><Sort sortKey="noOfArtwork" thead="No of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th> */}
-                            {/* <th>Artworker Deadline</th> */}
-                            <th>Remarks/Instructions</th>
-                            {/* <th>Actual Complete Time</th> */}
-                            {/* <th>On Time Delayed 2</th> */}
-                            {/* <th>Sub Client</th>
-                            <th>CS Name</th>
-                            <th>Billing Location</th>
-                            <th>Billing Sq Ft</th>
-                            <th>Installation</th>
-                            <th>Job Deadline</th>
-                            <th>No of Artwork</th>
-                            <th>Artworker Deadline</th> */}
-
-
-                            {/* <th>Start Job</th>
-                            <th>Stop Job</th>
-                            <th>Total Time</th> */}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {sortedData.length > 0 ? (
-                            sortedData.map((row) => (
-                              <tr key={row.id}>
-                                <td>{row.jobNo}</td>
-                                <td>
-                                  {row.date}
-                                </td>
-                                <td>
-                                  {row.client}
-                                </td>
-                                <td>{row.userName}</td>
-                                <td>{row.subClient}</td>
-                                <td>{row.region}</td>
-                                <td>{row.billingLocation}</td>
-                                <td>
-                                  {row.visualCode}
-                                </td>
-                                <td>{row.nameSubCode}</td>
-                                <td>
-                                  {row.city}
-                                </td>
-                                <td>
-                                  {row.qty}
-                                </td>
-                                <td>
-                                  {row.width}
-                                </td>
-                                <td>
-                                  {row.height}
-                                </td>
-                                <td>{row.totalSqFt}</td>
-                                <td>{row.media}</td>
-                                <td>{row.lamination}</td>
-                                <td>{row.mounting}</td>
-                                <td>{row.implementation}</td>
-                                <td>{row.salonAddress}</td>
-                                <td>{row.machineName}</td>
-                                {/* <td>{row.billingSqFt}</td> */}
-                                {/* <td>{row.installation}</td> */}
-                                <td>{row.deadline}</td>
-                                <td>{row.designerName}</td>
-                                <td>{row.designerDeadline}</td>
-                                <td>{row.printerPrintingName}</td>
-                                <td>{row.printerDeadline}</td>
-                                {/* <td>{row.noOfArtwork}</td> */}
-                                {/* <td>{row.artworkerDeadline}</td> */}
-                                <td>{row.remarks}</td>
-                                {/* <td>{row.actCompleteTime}</td> */}
-                                {/* <td>{row.onTimeDelayed}</td> */}
-
-
-                                {/* <td>{row.subClient}</td>
-                                <td>
-                                  {row.userName}
-                                </td>
-                                <td>{row.billingLocation}</td>
-                                <td>{row.deadline}</td>
-                                */}
-
-
-                                {/* <td>{row.startJobTime || '-'}</td>
-                                <td>{row.stopJobTime || '-'}</td>
-                                <td>
-                                  {row.startJobTime && row.stopJobTime ?
-                                    calculateTotalTime(row.startJobTime, row.stopJobTime) : '-'}
-                                </td> */}
-                              </tr>
-                            ))
-                          ) : (
-                            <tr>
-                              <td colSpan="10" className="text-center">No results found</td>
-                            </tr>
-                          )}
-                          {/* Row for displaying total values */}
-                          <tr>
-                            <td colSpan="11" className="text-center"><strong>Total</strong></td>
-                            <td><strong>{totalWidth}</strong></td>
-                            <td><strong>{totalHeight}</strong></td>
-                            <td colSpan="15"></td>
-                          </tr>
-                        </tbody>
+                      <thead className="sticky-header">
+      <tr>
+        <th>Job No</th>
+        <th>Date</th>
+        <th>Client</th>
+        <th>CS Name</th>
+        <th>Sub Client</th>
+        <th>Production Location</th>
+        <th>Billing Location</th>
+        <th>Visual Code</th>
+        <th>Name Sub Code</th>
+        <th>City</th>
+        <th>Qty</th>
+        <th>Width</th>
+        <th>Length</th>
+        <th>Total Sq.ft</th>
+        <th>Media</th>
+        <th>Lamination</th>
+        <th>Mounting</th>
+        <th>Implementation</th>
+        <th>Salon Address</th>
+        <th>Machine Name</th>
+        <th>Job Deadline</th>
+        <th>Designer Name</th>
+        <th>Designer Deadline</th>
+        <th>Printer Name</th>
+        <th>Printer Deadline</th>
+        <th>Remarks/Instructions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {sortedData.length > 0 ? (
+        sortedData.map((row) => (
+          <tr key={row.id}>
+            <td>{row.jobNo}</td>
+            <td>{row.date}</td>
+            <td>{row.client}</td>
+            <td>{row.userName}</td>
+            <td>{row.subClient}</td>
+            <td>{row.region}</td>
+            <td>{row.billingLocation}</td>
+            <td>{row.visualCode}</td>
+            <td>{row.nameSubCode}</td>
+            <td>{row.city}</td>
+            <td>{row.qty}</td>
+            <td>{row.width}</td>
+            <td>{row.height}</td>
+            <td>{row.totalSqFt}</td>
+            <td>{row.media}</td>
+            <td>{row.lamination}</td>
+            <td>{row.mounting}</td>
+            <td>{row.implementation}</td>
+            <td>{row.salonAddress}</td>
+            <td>{row.machineName}</td>
+            <td>{row.deadline}</td>
+            <td>{row.designerName}</td>
+            <td>{row.designerDeadline}</td>
+            <td>{row.printerPrintingName}</td>
+            <td>{row.printerDeadline}</td>
+            <td>{row.remarks}</td>
+          </tr>
+        ))
+      ) : (
+        <tr>
+          <td colSpan="10" className="text-center">No results found</td>
+        </tr>
+      )}
+      {/* Row for displaying total values */}
+      <tr>
+        <td colSpan="11" className="text-center"><strong>Total</strong></td>
+        <td><strong>{totalWidth}</strong></td>
+        <td><strong>{totalHeight}</strong></td>
+        <td colSpan="15"></td>
+      </tr>
+    </tbody>
                       </Table>
 
 

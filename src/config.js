@@ -33,6 +33,7 @@ const config ={
             GetAllDesignFromCs: BaseURL + '/api/Design/GetAllDesignFromCs',
             GetDesignByUserId: BaseURL + '/api/Design/GetDesignByUserId',
             AddStart: BaseURL + '/api/Design/Addesignstart',
+            Sendmailforcustomer:BaseURL+'/api/Design/Sendmailforcustomer',
             AddStop: BaseURL + '/api/Design/Addesignstop',
             TotalHoursWork: BaseURL + '/api/Design/TotalHoursWork',
             GetAllDesignAccToLocation: BaseURL + '/api/Design/GetAllDesignAccToLocation',

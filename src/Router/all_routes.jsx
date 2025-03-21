@@ -51,7 +51,7 @@ export const all_routes = {
 
   misreport: "/MisReport",
   jobtracker: "/JobTracker",
-  approval: "/Approval",
+  approval: "/approval",
 
   Ajgrid:"/Ajgrid",
   basicinput: "/form-basic-inputs",

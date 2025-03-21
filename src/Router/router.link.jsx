@@ -80,7 +80,7 @@ import MyPriority from "../feature-module/pages/myPriority/MyPriority";
 
 import MisReport from "../feature-module/uiinterface/report/MisReport";
 import JobTracker from "../feature-module/uiinterface/summary/JobTrack";
-import Approval from "../feature-module/pages/approvalPage/Approval";
+import Approval from "../.././src/approvalPage/Approval";
 
 import FormBasicInputs from "../feature-module/uiinterface/forms/formelements/basic-inputs";
 import CheckboxRadios from "../feature-module/uiinterface/forms/formelements/checkbox-radios";
@@ -223,6 +223,7 @@ export const publicRoutes = [
     element: <ProductList />,
     route: Route,
   },
+  
   {
     id: 3,
     path: routes.addproduct,
@@ -1495,6 +1496,15 @@ export const posRoutes = [
   },
 ];
 
+export const ApprovalRoute = [
+  {
+    id: 1,
+    path: routes.approval,
+    name: "approval",
+    element: <Approval />,
+    route: Route,
+  },
+];
 export const pagesRoute = [
   {
     id: 1,
