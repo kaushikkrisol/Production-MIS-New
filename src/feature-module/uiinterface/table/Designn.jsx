@@ -143,7 +143,8 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
             console.log("Fetching data from:", config.Design.URL.Getalldesign);
 
             const payload = {
-                userId: userId
+                userId: userId,
+                username: user
             }
 
             const response = await axios.post(config.Design.URL.GetDesignByUserId, payload, {
@@ -181,6 +182,7 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
         setLoading(true);
         const payload = {
             userId: userId,
+            username: user
         };
 
         try {
@@ -259,6 +261,7 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
             receivedDate: newReceivedDate,
             dueDate: newDueDate,
             uploadDate: newUploadDate,
+            designType: newDropdown,
             width: newWidth,
             height: newHeight,
             brief: newBrief,
@@ -531,6 +534,7 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
     console.log(totalValues);
 
     const resetForm = () => {
+        handleExJobNoSelectChange('');
         setNewJobNo('');
         setNewClientName('');
         setNewNoOfJobs('');
@@ -914,6 +918,7 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
                                                         <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="client" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="username" thead="CS Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="visualCode" thead="Visual Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="nameSubCode" thead="Name Sub Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="city" thead="City" sortConfig={sortConfig} requestSort={requestSort} /></th>
@@ -944,6 +949,7 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
                                                                 <td>
                                                                     {row.client}
                                                                 </td>
+                                                                <td>{row.userName}</td>
                                                                 <td>
                                                                     {row.visualCode}
                                                                 </td>
