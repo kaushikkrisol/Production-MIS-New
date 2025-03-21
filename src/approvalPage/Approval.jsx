@@ -1,10 +1,8 @@
 import React, {useState} from "react";
-import { Link } from "react-router-dom";
-import { all_routes } from "../../../Router/all_routes";
 import {  Table, Form, Row, Col, Button, Modal } from "react-bootstrap";
 import { FaTrash } from "react-icons/fa";
 import 'react-toastify/dist/ReactToastify.css'; 
-import { ToastContainer, toast } from 'react-toastify';
+import {  toast } from 'react-toastify';
 
 
 const Approval = () => {
@@ -60,20 +58,12 @@ const Approval = () => {
     return(
         <>
             <div>
-                <div className="page-wrapper">
-                    <div className="content container-fluid">
-                        <ToastContainer />
-                        <div className="page-header">
-                            <div className="row">
-                                <div className="col">
-                                    <ul className="breadcrumb">
-                                        <li className="breadcrumb-item">
-                                            <Link to={all_routes.dashboard}></Link>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
+                <div>
+                    <div>
+                      
+                        
+                               
+                           
                         <div className="row">
                             <div className="col-sm-12">
                                 <div className="card">

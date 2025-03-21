@@ -26,12 +26,14 @@ const Designn = () => {
 
     const [jobNumbers, setJobNumbers] = useState([]);
     const [newClientName, setNewClientName] = useState('');
-const [newNoOfJobs, setNewNoOfJobs] = useState('');
+    const [newNoOfJobs, setNewNoOfJobs] = useState('');
     const [newLocation, setNewLocation] = useState('');
     const [newStatus, setNewStatus] = useState('');
     const [newDueDate, setNewDueDate] = useState('');
     //approval model for design 
     const [showApprovalModal, setShowApprovalModal] = useState(false);
+    const [lineItems,setLineItems]=useState([{}]);
+
     const [newUploadDate, setNewUploadDate] = useState('');
     const [newWidth, setNewWidth] = useState('');
     const [newHeight, setNewHeight] = useState('');
@@ -571,10 +573,45 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
         setSelectedRows((prev) => {
             const newSelection = { ...prev, [designid]: !prev[designid] }; 
             console.log("Current selected rows state:", newSelection); 
+    
+            // Update lineItems based on the selected designid
+            const selectedDesignIds = Object.keys(newSelection).filter(key => newSelection[key]);
+            fetchDesignData(selectedDesignIds);
+
+            console.log("selecteddesignIDs",selectedDesignIds)
             return newSelection;
         });
+    
         console.log("After change:", { ...selectedRows, [designid]: !selectedRows[designid] });
     };
+
+    const fetchDesignData = (selectedDesignIds) => {
+        if (selectedDesignIds.length === 0) {
+
+           
+            setLineItems([]); // Clear lineItems if no designs are selected
+            return;
+        }
+
+        console.log("selecteddesignIDs",selectedDesignIds)
+
+        // Filter jobs based on selected design IDs
+        const updatedLineItems = jobs
+            .filter(job => selectedDesignIds.includes(job.designid)) // Assuming designid is a property in jobs
+            .map(item => ({
+                username: item.username,
+                visualCode: item.visualCode,
+                csName: item.csName,
+                designid: item.designid
+            }));
+
+            //  console.log("updated line items ",updatedLineItems)
+
+        setLineItems(updatedLineItems); // Update lineItems state
+    };
+
+    // console.log("lineitems are as follows",lineItems)
+
 
     const handleSelectAllChange = (e) => {
         const isChecked = e.target.checked;
@@ -585,13 +622,16 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
             }
         });
         setSelectedRows(newSelectedRows);
+
     };
 
     const handleMailForCustomer = () => {
         console.log("opening the modal");
         setShowApprovalModal(true); // Open the modal
-      };
-    
+      }; 
+      
+      
+
       // Function to handle closing the modal
       const closeModal = () => {
         setShowApprovalModal(false); // Close the modal
@@ -661,26 +701,27 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
         .map(value => combinedJobNoOptions.find(option => option.value === value));
 
 
-    const handleExJobNoSelectChange = (selectedOption) => {
-        if (selectedOption) {
-            console.log(selectedOption); // Log the selected option
-            setSelectedExJobNumber(selectedOption.value); // Set the selected customer ID
-            setNewClientName(selectedOption.clientName);
-            setNewJobNo(selectedOption.value);
-            // Find the customer name based on the selected option
-            const selectedJobNo = uniqueJobNoOptions.find(option => option.value === selectedOption.value);
+        const handleExJobNoSelectChange = (selectedOption) => {
+            if (selectedOption) {
+                console.log("selectedOption",selectedOption); // Log the selected option
+                setSelectedExJobNumber(selectedOption.value); // Set the selected customer ID
+                setNewClientName(selectedOption.clientName);
+                setNewJobNo(selectedOption.value);
+                // Find the customer name based on the selected option
+                const selectedJobNo = uniqueJobNoOptions.find(option => option.value === selectedOption.value);
+    
+                // setCustomerName(selectedJobNo ? selectedJobNo.label : ''); // Set the customer name
+                console.log("Job No :", selectedOption.value);
+                console.log("Job No is:", selectedJobNo ? selectedJobNo.label : '');
+            } else {
+                setSelectedExJobNumber('');
+                setNewClientName('');
+                setNewJobNo('');
+    
+            }
+        };
+    // console.log(handleExJobNoSelectChange);
 
-            // setCustomerName(selectedJobNo ? selectedJobNo.label : ''); // Set the customer name
-            console.log("Job No :", selectedOption.value);
-            console.log("Job No is:", selectedJobNo ? selectedJobNo.label : '');
-        } else {
-            setSelectedExJobNumber('');
-            setNewClientName('');
-            setNewJobNo('');
-
-        }
-    };
-    console.log(handleExJobNoSelectChange);
 
     // const sortedData = filteredData1.sort((a, b) => {
     //     const dateA = a.date1;
@@ -1031,7 +1072,7 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
           <div className="modal-content">
             <button onClick={closeModal}>Close</button>
             {/* Render ApprovalPage Component inside Modal */}
-            <ApprovalPage />
+            <ApprovalPage  lineItems={lineItems}/>
           </div>
         </div>
       )}

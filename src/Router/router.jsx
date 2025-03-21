@@ -2,10 +2,11 @@ import React from "react";
 import { Route, Routes } from "react-router-dom";
 import Header from "../InitialPage/Sidebar/Header";
 import Sidebar from "../InitialPage/Sidebar/Sidebar";
-import { pagesRoute, posRoutes, publicRoutes } from "./router.link";
+import { ApprovalRoute, pagesRoute, posRoutes, publicRoutes } from "./router.link";
 import { Outlet } from "react-router-dom";
 import { useSelector } from "react-redux";
 import ThemeSettings from "../InitialPage/themeSettings";
+// import Approval from "../approvalPage/Approval";
 
 const AllRoutes = () => {
   const data = useSelector((state) => state.toggle_header);
@@ -23,6 +24,13 @@ const AllRoutes = () => {
     <div className={data ? "header-collapse" : ""}>
       <Outlet />
       {/* <Loader /> */}
+      <ThemeSettings />
+    </div>
+  );
+
+  const CustomerApproval = () => (
+    <div>
+      <Outlet />
       <ThemeSettings />
     </div>
   );
@@ -55,7 +63,14 @@ const AllRoutes = () => {
             <Route path={route.path} element={route.element} key={id} />
           ))}
         </Route>
+
+       <Route path="/approval" element={<CustomerApproval/>}>
+          {ApprovalRoute.map((route, id) => (
+            <Route path={route.path} element={route.element} key={id} />
+          ))}
+        </Route>
       </Routes>
+
     </div>
   );
 };

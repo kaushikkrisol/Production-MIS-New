@@ -1,29 +1,32 @@
 import React, { useState } from 'react';
+import PropTypes from 'prop-types'; // Import PropTypes
+import config from '../../../config';
 
-const ApprovalPage = () => {
+const ApprovalPage = ({ lineItems }) => {
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
-  const [status, setStatus] = useState('');
   const [message, setMessage] = useState('');
+
+  console.log("lineItems are", lineItems);
 
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     // Check if all fields are provided
-    if (!email || !mobile || !status) {
+    if (!email || !mobile) {
       setMessage('Please provide email, mobile number, and status');
       return;
     }
 
     try {
       // Send a POST request to the backend API to send the approval email
-      const response = await fetch('https://localhost:7035/api/Design/Sendmailforcustomer', {
+      const response = await fetch(config.Design.URL.Sendmailforcustomer, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, mobile, status }),
+        body: JSON.stringify({ email, mobile ,lineItems}),
       });
 
       // Handle the response from the server
@@ -41,17 +44,23 @@ const ApprovalPage = () => {
   return (
     <div>
       <h2>Approval Page</h2>
+
+      <h3>Selected Line Items:</h3>
+      {lineItems.length === 0 ? (
+                <p>No items selected for approval.</p>
+            ) : (
+                <ul>
+                    {lineItems.map((item, index) => (
+                        <li key={index}>
+                            <strong>Username:</strong> {item.username} <br />
+                            <strong>Visual Code:</strong> {item.visualCode} <br />
+                            <strong>CS Name:</strong> {item.csName} <br />
+                            <strong>Design ID:</strong> {item.designid} <br />
+                        </li>
+                    ))}
+                </ul>
+            )}
       <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="status">Status:</label>
-          <input
-            type="text"
-            id="status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            required
-          />
-        </div>
         <div>
           <label htmlFor="email">Email:</label>
           <input
@@ -78,6 +87,11 @@ const ApprovalPage = () => {
       {message && <p>{message}</p>}
     </div>
   );
+};
+
+// Add prop validation
+ApprovalPage.propTypes = {
+  lineItems: PropTypes.array.isRequired, // Ensuring lineItems is an array and is required
 };
 
 export default ApprovalPage;
