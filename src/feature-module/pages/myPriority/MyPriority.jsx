@@ -4,7 +4,7 @@ import { all_routes } from "../../../Router/all_routes";
 import { Table, Button } from "react-bootstrap";
 import axios from "axios";
 import config from "../../../config";
-import { ArrowDown, ArrowUp } from "react-feather";
+import { ArrowUp } from "react-feather";
 
 const MyPriority = () => {
     const [locationId, setLocationId] = useState("");
@@ -12,35 +12,38 @@ const MyPriority = () => {
     const [userId, setUserId] = useState("");
     const [data, setData] = useState([]);
 
-    const moveRowUp = (index) => {
+    const moveRowUp = (currentPriority, index) => {
+        console.log('Moving up priority: ', currentPriority);
         if (index === 0) return; // Can't move the first row up
+
         const newData = [...data];
         // Swap the current row with the one above it
         [newData[index], newData[index - 1]] = [newData[index - 1], newData[index]];
-        setData(newData);
-        updatePriorityInBackend(newData, index - 1, index); // Update backend with new order
-    };
 
-    const moveRowDown = (index) => {
-        if (index === data.length - 1) return; // Can't move the last row down
-        const newData = [...data];
-        [newData[index], newData[index + 1]] = [newData[index + 1], newData[index]];
-        setData(newData);
-        updatePriorityInBackend(newData, index + 1, index);
-    };
+        // Update the priorities
+        newData[index].priority = currentPriority; // Current row takes the priority of the row above
+        newData[index - 1].priority = currentPriority - 1; // Row above gets decremented priority
 
-    const updatePriorityInBackend = async (updatedData, newIndex) => {
+        if (newData[index - 1].priority < 1) {
+            newData[index - 1].priority = 1; // Reset to 1 if it goes below
+        }
+
+        setData(newData);
+        updatePriorityInBackend(newData[index - 1]);
+    };
+    const updatePriorityInBackend = async (row) => {
         try {
-            const newPriority = newIndex + 1;
             const priorityUpdates = {
-                designId: updatedData[newIndex].designid,
-                newPriority: newPriority
+                designId: row.designid,
+                newPriority: row.priority // Send the updated priority
             };
 
             await axios.post(config.MyPriority.URL.UpdatePriority, priorityUpdates);
             console.log('Priority updated successfully');
         } catch (error) {
             console.error('Error updating priority:', error);
+        } finally {
+            await fetchDesignPriority(); // Refresh the data after updating
         }
     };
     
@@ -103,7 +106,7 @@ const MyPriority = () => {
                             <div className="col-sm-12">
                                 <div className="card">
                                     <div className="card-body">
-                                        <h1 style={{ maxWidth: '100%' }} className="display-4 text-center mb-4">My Priority</h1>
+                                        <h1 style={{ maxWidth: '100%' }} className="display-4 text-center mb-4">My Design Priority</h1>
                                         <hr />
                                         <div>
                                             <div style={{ overflowX: 'auto' }} className='table-container'>
@@ -116,8 +119,8 @@ const MyPriority = () => {
                                                             <th>Brief</th>
                                                             <th>Location</th>
                                                             <th>Query/Comment</th>
-                                                            <th>Due Date</th>
                                                             <th>Designer Name</th>
+                                                            <th>Designer Deadline</th>
                                                             <th>Set Priority</th>
                                                         </tr>
                                                     </thead>
@@ -126,20 +129,18 @@ const MyPriority = () => {
                                                     {data.length > 0 && data.map((row, index) => (
                                                         <tr key={row.designid}>
                                                             <td>{row.jobNo}</td>
-                                                            <td>{row.designNoOfJobs}</td>
+                                                            <td>{row.noOfArtwork}</td>
                                                             <td>{row.client}</td>
                                                             <td>{row.designBrief}</td>
-                                                            <td>{row.productionLocation}</td>
+                                                            <td>{row.location}</td>
                                                             <td>{row.designQuery}</td>
+                                                            <td>{row.designerName}</td>
                                                             <td>{row.designerDeadline ? new Date(row.designerDeadline).toLocaleString() : '-'}</td>
-                                                            <td>{row.enteredby}</td>
                                                             <td>
-                                                                <Button variant="link" onClick={() => moveRowUp(index)} disabled={index === 0}>
+                                                                <Button variant="link" onClick={() => moveRowUp(row.priority, index)} disabled={index === 0}>
                                                                     <ArrowUp />
                                                                 </Button>
-                                                                <Button variant="link" onClick={() => moveRowDown(index)} disabled={index === data.length - 1}>
-                                                                    <ArrowDown />
-                                                                </Button>
+                                                                
                                                             </td>
                                                         </tr>
                                                     ))}

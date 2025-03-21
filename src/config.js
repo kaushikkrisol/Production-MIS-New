@@ -36,6 +36,7 @@ const config ={
             AddStop: BaseURL + '/api/Design/Addesignstop',
             TotalHoursWork: BaseURL + '/api/Design/TotalHoursWork',
             GetAllDesignAccToLocation: BaseURL + '/api/Design/GetAllDesignAccToLocation',
+            UpdateDesign: BaseURL + '/api/Design/UpdateDesign',
         }
     },
     Printing: {

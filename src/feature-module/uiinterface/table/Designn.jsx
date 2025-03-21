@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Button, Row, Col, Alert, Spinner, Table, InputGroup } from 'react-bootstrap';
+import { Form, Button, Row, Col, Alert, Spinner, Table, InputGroup} from 'react-bootstrap';
 import axios from 'axios';
 import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -9,6 +9,7 @@ import { all_routes } from "../../../Router/all_routes";
 import { useMemo } from 'react';
 import Notification from '../../Notification/Notification';
 import Sort from '../ui/Sort';
+import Select from 'react-select';
 
 import './Designn.css';
 
@@ -18,17 +19,19 @@ const Designn = () => {
     const [selectedDesignIds, setSelectedDesignIds] = useState([]);
     const [data, setData] = useState([]);
     const [newJobNo, setNewJobNo] = useState('');
-    // const [newDropdown, setNewDropdown] = useState('');
+    const [newDropdown, setNewDropdown] = useState('');
 
     const [jobNumbers, setJobNumbers] = useState([]);
     const [newClientName, setNewClientName] = useState('');
-    const [newNoOfJobs, setNewNoOfJobs] = useState('');
+const [newNoOfJobs, setNewNoOfJobs] = useState('');
     const [newLocation, setNewLocation] = useState('');
     const [newStatus, setNewStatus] = useState('');
     const [newDueDate, setNewDueDate] = useState('');
     const [newUploadDate, setNewUploadDate] = useState('');
     const [newWidth, setNewWidth] = useState('');
     const [newHeight, setNewHeight] = useState('');
+
+    console.log(newClientName, newStatus, newDueDate, newUploadDate, newWidth, newHeight, newJobNo);
 
     const [newBrief, setNewBrief] = useState('');
     const [newQuery, setNewQuery] = useState('');
@@ -85,7 +88,7 @@ const Designn = () => {
     const [newMonth, setNewMonth] = useState(date.getMonth());
     const [newWeek, setNewWeek] = useState(getISOWeek(date));
     const [newReceivedDate, setNewReceivedDate] = useState(`${recDay}/${recMonth}/${recYear}`);
-    console.log(data, setNewMonth, setNewWeek, setNewReceivedDate);
+    console.log(data);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [selectSearchTerm, setSelectSearchTerm] = useState('');
@@ -107,7 +110,7 @@ const Designn = () => {
     const [selectedExJobNumber, setSelectedExJobNumber] = useState('');
     const [exJobNumber, setExJobNumber] = useState([]);
 
-    // const locations = ["North", "South", "East", "West", "All"];
+    const locations = ["North", "South", "East", "West", "All"];
     const status = ["Done", "Hold"];
 
     const [userName, setUserName] = useState("");
@@ -271,7 +274,7 @@ const Designn = () => {
             const response = await axios.post(config.Design.URL.AddDesign, newData);
             console.log("Design Data submitted successfully: ", response.data);
             // setIsJobRunning(true);
-            resetForm();           
+            resetForm();
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 console.error("Axios error: ", error.message);
@@ -283,9 +286,9 @@ const Designn = () => {
             }
         } finally {
             setLoading(false); // End loading state.
-            
+
             fetchDesignJobs();
-            
+
         }
     };
     console.log(handleAddJob);
@@ -324,10 +327,45 @@ const Designn = () => {
     // };
     console.log(startDate);
 
-    const handleStartJob = async () => {
+    const handleStartJob = async (e) => {
+        e.preventDefault();
+
         const selectedJobs = filteredData1
-            .filter(row => selectedRows[row.id]) // Get selected rows
-            .map(row => ({ id: row.id, name: row.name }));
+            .filter(row => selectedRows[row.designid]) // Get selected rows
+            .map(row => ({ 
+                id: row.id, 
+                designid: row.designid,
+                priority: row.priority,
+                jobNo: row.jobNo,
+                date: row.date,
+                client: row.client,
+                subClient: row.subClient,
+                visualCode: row.visualCode,
+                location: row.location,
+                billingLoction: row.billingLoction,
+                region: row.region,
+                nameSubCode: row.nameSubCode,
+                city: row.city,
+                qty: row.qty,
+                width: row.width,
+                height: row.height,
+                totalSqFt: row.totalSqFt,
+                designerName: row.designerName,
+                designerId: row.designerId,
+                designerDeadline: row.designerDeadline,
+                printerName: row.printerPrintingName,
+                printerDeadline: row.printerDeadline,
+                noOfArtwork: row.noOfArtwork,
+                artworkerDeadline: row.artworkerDeadline,
+                machineName: row.machineName,
+                media: row.media,
+                userName: user,
+                deadline: row.deadline,
+                salonAddress: row.salonAddress,
+                entrdby: row.entrdby,
+                entereddt: row.entereddt,
+                name: row.name
+             }));
 
         const startData = selectedJobs.map(job => ({
             ...job,
@@ -339,7 +377,7 @@ const Designn = () => {
 
         console.log("Starting jobs:", startData);
 
-        setLoading(true);
+        // setLoading(true);
         setIsJobRunning(true);
 
         try {
@@ -357,7 +395,7 @@ const Designn = () => {
                 );
 
                 // Store only the selected jobs in designData after starting
-                const startedJobs = filteredData1.filter(row => selectedRows[row.id]);
+                const startedJobs = filteredData1.filter(row => selectedRows[row.designid]);
                 setDesignData(startedJobs);  // Update designData to show only started jobs
 
                 // Update selectedRows
@@ -368,8 +406,9 @@ const Designn = () => {
             }
         } catch (error) {
             handleError(error);
-        } finally {
-            setLoading(false);
+        } 
+        finally {
+            // setLoading(false);
             setIsJobRunning(false);
         }
     };
@@ -378,8 +417,8 @@ const Designn = () => {
 
     const handleStopJob = async () => {
         const selectedJobs = filteredData1
-            .filter(row => selectedRows[row.id]) // Get selected rows
-            .map(row => ({ id: row.id, name: row.name }));
+            .filter(row => selectedRows[row.designid]) // Get selected rows
+            .map(row => ({ id: row.id, name: row.name, designid: row.designid }));
 
         const stopData = selectedJobs.map(job => ({
             ...job,
@@ -400,7 +439,7 @@ const Designn = () => {
                 console.log("Stop Data submitted successfully:", response.data);
 
                 // Only keep the started jobs in the designData
-                const updatedData = filteredData1.filter(row => selectedRows[row.id]);
+                const updatedData = filteredData1.filter(row => selectedRows[row.designid]);
                 setDesignData(updatedData);  // Update the data to show only selected jobs
                 setSelectedRows({});  // Clear selected rows after stopping
 
@@ -477,6 +516,7 @@ const Designn = () => {
 
         return `${hours}h ${minutes}m ${seconds}s`; // Include seconds in the return value
     };
+    console.log(calculateTotalTime);
 
     const totalValues = Object.keys(selectedRows).reduce((totals, id) => {
         if (selectedRows[id]) {
@@ -496,15 +536,15 @@ const Designn = () => {
         setNewNoOfJobs('');
         setNewLocation('');
         setNewStatus('');
-        // setNewReceivedDate('');
+        setNewReceivedDate('');
         setNewDueDate('');
         setNewUploadDate('');
         setNewWidth('');
         setNewHeight('');
         setNewBrief('');
         setNewQuery('');
-        // setNewMonth('');
-        // setNewWeek('');
+        setNewMonth('');
+        setNewWeek('');
         setSelectedDesignIds([]);
         // setStartDate('');
         // setEndDate('');
@@ -518,13 +558,13 @@ const Designn = () => {
     //     fetchDesignJobs();
     // }, []);
 
-    const handleCheckboxChange = (id) => {
+    const handleCheckboxChange = (designid) => {
         setSelectedRows((prev) => {
-            const newSelection = { ...prev, [id]: !prev[id] }; 
+            const newSelection = { ...prev, [designid]: !prev[designid] }; 
             console.log("Current selected rows state:", newSelection); 
             return newSelection;
         });
-        console.log("After change:", { ...selectedRows, [id]: !selectedRows[id] });
+        console.log("After change:", { ...selectedRows, [designid]: !selectedRows[designid] });
     };
 
     const handleSelectAllChange = (e) => {
@@ -532,7 +572,7 @@ const Designn = () => {
         const newSelectedRows = {};
         filteredData1.forEach(row => {
             if (!row.isCompleted) {
-                newSelectedRows[row.id] = isChecked;
+                newSelectedRows[row.designid] = isChecked;
             }
         });
         setSelectedRows(newSelectedRows);
@@ -728,7 +768,7 @@ const Designn = () => {
                                         <Col>
                                             {(isJobRunning) ?
 
-                                                <Button variant="success" onClick={handleStartJob} disabled={!Object.values(selectedRows).some(v => v)}>Start Job</Button>
+                                                <Button variant="success" onClick={handleStartJob} disabled={!Object.values(selectedRows).some(v => v)} type='button'>Start Job</Button>
                                                 :
                                                 <Button variant="danger" onClick={handleStopJob} className="ml-3" disabled={isJobRunning || !Object.values(selectedRows).some(v => v)}>Stop Job</Button>
                                             } </Col>
@@ -737,7 +777,7 @@ const Designn = () => {
                                             <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
                                         </Col>
                                     </Row>
-                                    {/* <div style={{  }}>
+                                    <div style={{  }}>
                                         <Form className="mb-3">
                                             <Row className="mb-3 align-items-center">
                                                 <Col xs={2}>
@@ -766,7 +806,7 @@ const Designn = () => {
                                                     <Form.Group controlId="formNoOfJobs">
                                                         <Form.Label style={{ width: '200px' }}>No Of Artworker</Form.Label>
                                                         <Form.Control
-                                                            type="text"
+                                                            type="number"
                                                             placeholder="Enter no. of jobs"
                                                             value={newNoOfJobs}
                                                             onChange={(e) => setNewNoOfJobs(e.target.value)}
@@ -811,16 +851,6 @@ const Designn = () => {
                                                     </Form.Group>
                                                 </Col>
                                                 <Col xs={2}>
-                                                    <Form.Group controlId="formDueDate">
-                                                        <Form.Label style={{ width: '200px' }}>Due Date</Form.Label>
-                                                        <Form.Control
-                                                            type="datetime-local"
-                                                            value={newDueDate}
-                                                            onChange={(e) => setNewDueDate(e.target.value)}
-                                                        />
-                                                    </Form.Group>
-                                                </Col>
-                                                <Col xs={2}>
                                                     <Form.Group>
                                                         <Form.Label style={{ width: '200px' }}>Design Type</Form.Label>
                                                         <Form.Select
@@ -838,11 +868,11 @@ const Designn = () => {
                                                     </Form.Group>
                                                 </Col>
                                                 <Col>
-                                                    <Button type="submit" variant="primary" style={{ marginTop: '28px' }} onClick={(e) => handleAddJob(e)}>Add</Button>
+                                                    <Button type="button" variant="primary" style={{ marginTop: '28px' }} onClick={handleAddJob}>Add</Button>
                                                 </Col>
                                             </Row>
                                         </Form>
-                                    </div> */}
+                                    </div>
                                     <hr />
                                     <div>
                                         <Form.Group className="mb-3 mt-3">
@@ -867,7 +897,7 @@ const Designn = () => {
                                                             <Form.Check
                                                                 type="checkbox"
                                                                 onChange={handleSelectAllChange}
-                                                                checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
+                                                                checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.designid])}
                                                             />
                                                         </th>
                                                         {/* <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
@@ -894,19 +924,18 @@ const Designn = () => {
                                                         <th><Sort sortKey="productionLocation" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th>Start Time</th>
                                                         <th>End Time</th>
-                                                        <th>Total Time</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
                                                     {sortedData.length > 0 ? (
                                                         sortedData.map((row) => (
-                                                            <tr key={row.id} className={hiddenRows.includes(row.id) ? 'disappear' : ''}>
+                                                            <tr key={row.designid} className={hiddenRows.includes(row.designid) ? 'disappear' : ''}>
                                                                 <td>
                                                                     <Form.Check
-                                                                        key={row.id}
+                                                                        key={row.designid}
                                                                         type="checkbox"
-                                                                        checked={!!selectedRows[row.id]}
-                                                                        onChange={() => handleCheckboxChange(row.id)}
+                                                                        checked={!!selectedRows[row.designid]}
+                                                                        onChange={() => handleCheckboxChange(row.designid)}
                                                                         disabled={row.isCompleted}
                                                                     />
                                                                 </td>
@@ -931,10 +960,6 @@ const Designn = () => {
                                                                 {/* <td>{row.designDueDate ? new Date(row.designDueDate).toLocaleString() : '-'}</td> */}
                                                                 <td>{row.startdate || '-'}</td>
                                                                 <td>{row.enddate || '-'}</td>
-                                                                <td>
-                                                                    {row.startJobTime && row.stopJobTime ?
-                                                                        calculateTotalTime(row.startJobTime, row.stopJobTime) : '-'}
-                                                                </td>
                                                             </tr>
                                                         ))
                                                     ) : (
