@@ -43,3 +43,71 @@ h6 {
     z-index: 10;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+
+/* Container for the image upload with preview */
+.image-upload-container {
+    width: 500px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed #95312F;
+    padding: 20px;
+    border-radius: 10px;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: background-color 0.3s, border-color 0.3s;
+    margin-left: auto;
+    margin-right: 20px;
+}
+
+.image-upload-container:hover {
+    background-color: #e9ecef;
+    border-color: #95312F;
+}
+
+/* Hide the file input by default */
+.file-input {
+    display: none;
+}
+
+/* Stylish button for uploading the image */
+.custom-upload-button {
+    display: inline-block;
+    padding: 12px 30px;
+    background-color: #95312F;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.custom-upload-button:hover {
+    background-color: #95312F;
+}
+
+.custom-upload-button span {
+    display: inline-block;
+}
+
+/* Optional: Add a loader or progress bar */
+.uploading-spinner {
+    margin-top: 10px;
+    animation: spin 2s linear infinite;
+}
+label span {
+    color: white;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}

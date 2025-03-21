@@ -44,6 +44,7 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
     const [notificationMessage, setNotificationMessage] = useState('');
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
+    // const [imagePreviews, setImagePreviews] = useState(null);
 
     // Check if users data exists and is not null
     useEffect(() => {
@@ -112,6 +113,7 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
 
     const locations = ["North", "South", "East", "West", "All"];
     const status = ["Done", "Hold"];
+    // const [canStartJob, setCanStartJob] = useState(false);
 
     const [userName, setUserName] = useState("");
 
@@ -333,6 +335,11 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
     const handleStartJob = async (e) => {
         e.preventDefault();
 
+        // if (!canStartJob) {
+        //     alert("Please upload an image for all selected jobs.");
+        //     return; 
+        // }
+
         const selectedJobs = filteredData1
             .filter(row => selectedRows[row.designid]) // Get selected rows
             .map(row => ({ 
@@ -367,8 +374,16 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
                 salonAddress: row.salonAddress,
                 entrdby: row.entrdby,
                 entereddt: row.entereddt,
-                name: row.name
+                name: row.name,
+                // image: imagePreviews[row.designid]
              }));
+        
+            //  const allImagesUploaded = selectedJobs.every(job => imagePreviews[job.designid]);
+
+            //  if (!allImagesUploaded) {
+            //     alert("Please upload an image for all selected jobs before starting.");
+            //     return;
+            //  }
 
         const startData = selectedJobs.map(job => ({
             ...job,
@@ -745,6 +760,33 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
         setSortConfig({ key, direction });
     }
 
+    // const handleImageUpload = (e) => {
+    //     const files = e.target.files;
+    //     if (files.length > 0) {
+    //         const file = files[0];
+    //         const reader = new FileReader();
+
+    //         reader.onloadend = () => {
+    //             const updatedPreviews = { ...imagePreviews };
+    //             selectedDesignIds.forEach(id => {
+    //                 if (selectedRows[id]) {
+    //                     updatedPreviews[id] = reader.result;
+    //                 }
+    //             })
+    //             console.log('Updated image previews: ', updatedPreviews);
+    //             setImagePreviews(updatedPreviews);
+
+    //             const allSelectedJobsHaveImages = selectedDesignIds.every(id => 
+    //                 selectedRows[id] ? updatedPreviews[id] : true
+    //                 );
+    //             setCanStartJob(allSelectedJobsHaveImages);
+    //         };
+    //         reader.readAsDataURL(file);
+
+    //         console.log("Selected file: ", file);
+    //     }
+    // }
+
     return (
         <div>
             <div className="page-wrapper">
@@ -781,8 +823,47 @@ const [newNoOfJobs, setNewNoOfJobs] = useState('');
                                             <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
                                         </Col>
                                     </Row>
+                                    {/* <Row>
+                                        <Col className="text-center">
+                                            <div className='image-upload-container' style={{ position: 'relative', textAlign: 'center' }}>
+                                                {imagePreviews && (
+                                                    <div style={{ marginBottom: '10px' }}>
+                                                        <img
+                                                            src={imagePreviews}
+                                                            alt="Preview"
+                                                            style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px' }}
+                                                        />
+                                                    </div>
+                                                )}
+                                                {selectedDesignIds.map(id => imagePreviews[id] && (
+                                                    <div key={id} style={{ marginTop: '1em' }}>
+                                                        <img
+                                                            src={imagePreviews[id]}
+                                                            alt={`Preview for ${id}`}
+                                                            style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px' }}
+                                                        />
+                                                    </div>
+                                                ))}
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    onChange={(e) => {
+                                                        console.log('File Selected: ', e.target.files);
+                                                        handleImageUpload(e);
+                                                    }}
+                                                    className='file-input'
+                                                    id='imageUpload'
+                                                    style={{ display: 'none' }}
+                                                />
+                                                <label htmlFor='imageUpload' style={{cursor: 'pointer'}} className='custom-upload-button'>
+                                                    <span role='img' aria-label='upload'> 📸 Upload Image</span>
+                                                </label>
+                                            </div>
+                                            
+                                        </Col>
+                                    </Row> */}
                                     <div style={{  }}>
-                                        <Form className="mb-3">
+                                        <Form className="mb-3 mt-2">
                                             <Row className="mb-3 align-items-center">
                                                 <Col xs={2}>
                                                     <Form.Group style={{ position: 'relative', zIndex: 999 }}>
