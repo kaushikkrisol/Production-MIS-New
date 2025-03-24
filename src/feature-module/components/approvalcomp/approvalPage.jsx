@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import PropTypes from 'prop-types'; // Import PropTypes
 import config from '../../../config';
+import { Alert, Container, Form, Row, Col, Button } from 'react-bootstrap';
 
 const ApprovalPage = ({ lineItems }) => {
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState('');
 
   console.log("lineItems are", lineItems);
 
@@ -15,6 +17,7 @@ const ApprovalPage = ({ lineItems }) => {
 
     // Check if all fields are provided
     if (!email || !mobile) {
+      setMessageType('danger');
       setMessage('Please provide email, mobile number, and status');
       return;
     }
@@ -31,25 +34,28 @@ const ApprovalPage = ({ lineItems }) => {
 
       // Handle the response from the server
       if (response.ok) {
+        setMessageType('success');
         setMessage('Approval email sent successfully! Please check your inbox.');
       } else {
         const errorResponse = await response.json();
+        setMessageType('danger');
         setMessage(`Error: ${errorResponse.message}`);
       }
     } catch (error) {
+      setMessageType('danger');
       setMessage('Error occurred while sending approval email');
     }
   };
 
   return (
-    <div>
-      <h2>Approval Page</h2>
+    <Container>
+      <h2 className='text-center my-4'>Approval Page</h2>
 
       <h3>Selected Line Items:</h3>
       {lineItems.length === 0 ? (
                 <p>No items selected for approval.</p>
             ) : (
-                <ul>
+                <ul className='list-group mb-4'>
                     {lineItems.map((item, index) => (
                         <li key={index}>
                             <strong>Username:</strong> {item.username} <br />
@@ -60,32 +66,46 @@ const ApprovalPage = ({ lineItems }) => {
                     ))}
                 </ul>
             )}
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label htmlFor="email">Email:</label>
-          <input
-            type="email"
-            id="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div>
-          <label htmlFor="mobile">Mobile Number:</label>
-          <input
-            type="text"
-            id="mobile"
-            value={mobile}
-            onChange={(e) => setMobile(e.target.value)}
-            required
-          />
-        </div>
-        <button type="submit">Send Approval Email</button>
-      </form>
+      <Form onSubmit={handleSubmit}>
+        <Row className="mb-3">
+          <Col md={6}>
+            <Form.Group controlId="email">
+              <Form.Label>Email:</Form.Label>
+              <Form.Control
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                placeholder="Enter your email"
+              />
+            </Form.Group>
+          </Col>
+          <Col md={6}>
+            <Form.Group controlId="mobile">
+              <Form.Label>Mobile Number:</Form.Label>
+              <Form.Control
+                type="text"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value)}
+                required
+                placeholder="Enter your mobile number"
+              />
+            </Form.Group>
+          </Col>
+        </Row>
+        <Row className="mb-3">
+          <Col className="d-flex justify-content-center">
+            <Button variant="primary" type="submit">Send Approval Email</Button>
+          </Col>
+        </Row>
+      </Form>
 
-      {message && <p>{message}</p>}
-    </div>
+      {message && (
+       <Alert variant={messageType} className='mt-3'>
+        {message}
+       </Alert> 
+        )}
+    </Container>
   );
 };
 

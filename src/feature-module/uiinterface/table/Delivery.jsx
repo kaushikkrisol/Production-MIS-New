@@ -309,7 +309,8 @@ const Delivery = () => {
 
     console.log('deliverr person', deliverPersonName);
 
-    const handleDeliverNameChange = (username, e) => {
+    const handleDeliverNameChange = (e) => {
+        const username = e.target.value;
         setDeliveryPersonNameSelect(username);
         console.log('deliverrr person name', deliverPersonName)
         // const selectedName = deliverPersonName.find(u => u.username === username);
@@ -435,7 +436,7 @@ const Delivery = () => {
                                                         <Form.Select
                                                             id='deliverPerson'
                                                             value={deliverPersonNameSelect}
-                                                            onChange={(e) => handleDeliverNameChange(e.target.value)}
+                                                            onChange={handleDeliverNameChange}
                                                             required
                                                         >
                                                         <option value="">Select Delivery Person</option>
@@ -500,7 +501,7 @@ const Delivery = () => {
                                                     </Form.Group>
                                                 </Col>
                                                 <Col style={{ marginTop: '25px' }}>
-                                                    <Button type="submit"  onClick={(e) => handleAddDeliveryJob(e)}>Add</Button>
+                                                    <Button type="button"  onClick={handleAddDeliveryJob}>Add</Button>
                                                 </Col>
                                                 <Col>
                                                     <FaSyncAlt size={20} style={{ cursor: 'pointer' }} onClick={() => window.location.reload()}/> 

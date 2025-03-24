@@ -1012,7 +1012,6 @@ import { ToastContainer, toast } from 'react-toastify';
                         isOpen={BulkAdd}
                         toggle={toggleBulkAdd}
                         centered
-                        size="xl"
                         className="border-0"
                         modalClassName='modal fade zoomIn'
                         backdrop={'static'}

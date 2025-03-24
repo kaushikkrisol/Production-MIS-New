@@ -13,6 +13,7 @@ import Select from 'react-select';
 import ApprovalPage from '../../components/approvalcomp/approvalPage';
 // import { Modal } from 'antd'; // Ensure this is the correct import
 import './Designn.css';
+import ImageUploadModal from '../ui/ImageUploadModal';
 
 
 
@@ -124,7 +125,10 @@ const Designn = () => {
 
     const [userName, setUserName] = useState("");
 
-    console.log(status, userName);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [imageUrl, setImageUrl] = useState(null);
+
+    console.log(status, userName, imageUrl);
 
     console.log(jobNumbers, setStartDate, setEndDate, setHiddenRows);
     console.log(clientNames, setData, selectedDesignIds, endDate, selectedExJobNumber);
@@ -341,13 +345,97 @@ const Designn = () => {
 
     const handleStartJob = async (e) => {
         e.preventDefault();
+        setIsModalOpen(true);
 
-        // if (!canStartJob) {
-        //     alert("Please upload an image for all selected jobs.");
-        //     return; 
+        // const selectedJobs = filteredData1
+        //     .filter(row => selectedRows[row.designid]) // Get selected rows
+        //     .map(row => ({ 
+        //         id: row.id, 
+        //         designid: row.designid,
+        //         priority: row.priority,
+        //         jobNo: row.jobNo,
+        //         date: row.date,
+        //         client: row.client,
+        //         subClient: row.subClient,
+        //         visualCode: row.visualCode,
+        //         location: row.location,
+        //         billingLoction: row.billingLoction,
+        //         region: row.region,
+        //         nameSubCode: row.nameSubCode,
+        //         city: row.city,
+        //         qty: row.qty,
+        //         width: row.width,
+        //         height: row.height,
+        //         totalSqFt: row.totalSqFt,
+        //         designerName: row.designerName,
+        //         designerId: row.designerId,
+        //         designerDeadline: row.designerDeadline,
+        //         printerName: row.printerPrintingName,
+        //         printerDeadline: row.printerDeadline,
+        //         noOfArtwork: row.noOfArtwork,
+        //         artworkerDeadline: row.artworkerDeadline,
+        //         machineName: row.machineName,
+        //         media: row.media,
+        //         userName: user,
+        //         deadline: row.deadline,
+        //         salonAddress: row.salonAddress,
+        //         entrdby: row.entrdby,
+        //         entereddt: row.entereddt,
+        //         name: row.name,
+        //      }));
+
+        // const startData = selectedJobs.map(job => ({
+        //     ...job,
+        //     startdate: new Date().toISOString(),
+        //     lastUpdated: new Date().toISOString(),
+        //     entereddt: new Date().toISOString(),
+        //     username: user
+        // }));
+
+        // console.log("Starting jobs:", startData);
+
+        // setIsJobRunning(true);
+
+        // try {
+        //     const response = await axios.post(config.Design.URL.AddStart, startData);
+        //     if (response.status === 200) {
+        //         console.log("Start Data submitted successfully:", response.data);
+
+        //         // Mark jobs as started by adding them to designData
+        //         setDesignData(prevData =>
+        //             prevData.map(job =>
+        //                 selectedJobs.some(selectedJob => selectedJob.id === job.id)
+        //                     ? { ...job, isStarted: true, startDate: new Date().toISOString() }
+        //                     : job
+        //             )
+        //         );
+
+        //         // Store only the selected jobs in designData after starting
+        //         const startedJobs = filteredData1.filter(row => selectedRows[row.designid]);
+        //         setDesignData(startedJobs);  // Update designData to show only started jobs
+
+        //         // Update selectedRows
+        //         setSelectedRows({});  // Clear selection after starting
+
+        //     } else {
+        //         setError("Unexpected response from the server.");
+        //     }
+        // } catch (error) {
+        //     handleError(error);
+        // } 
+        // finally {
+        //     // setLoading(false);
+        //     setIsJobRunning(false);
         // }
+    };
 
-        const selectedJobs = filteredData1
+    const handleImageUploadConfirm = (uploadedImageUrl) => {
+        setImageUrl(uploadedImageUrl);
+        startJobs(uploadedImageUrl);
+    }
+
+    const startJobs = async (uploadedImageUrl) => {
+         const selectedJobs = filteredData1
             .filter(row => selectedRows[row.designid]) // Get selected rows
             .map(row => ({ 
                 id: row.id, 
@@ -382,61 +470,52 @@ const Designn = () => {
                 entrdby: row.entrdby,
                 entereddt: row.entereddt,
                 name: row.name,
-                // image: imagePreviews[row.designid]
+                imageUrl: uploadedImageUrl,
              }));
-        
-            //  const allImagesUploaded = selectedJobs.every(job => imagePreviews[job.designid]);
 
-            //  if (!allImagesUploaded) {
-            //     alert("Please upload an image for all selected jobs before starting.");
-            //     return;
-            //  }
+            const startData = selectedJobs.map(job => ({
+                ...job,
+                startdate: new Date().toISOString(),
+                lastUpdated: new Date().toISOString(),
+                entereddt: new Date().toISOString(),
+                username: user
+            }));
 
-        const startData = selectedJobs.map(job => ({
-            ...job,
-            startdate: new Date().toISOString(),
-            lastUpdated: new Date().toISOString(),
-            entereddt: new Date().toISOString(),
-            username: user
-        }));
+             console.log("Starting jobs: ", selectedJobs);
+             setIsJobRunning(true);
 
-        console.log("Starting jobs:", startData);
+              try {
+                const response = await axios.post(config.Design.URL.AddStart, startData);
+                if (response.status === 200) {
+                    console.log("Start Data submitted successfully:", response.data);
 
-        // setLoading(true);
-        setIsJobRunning(true);
+                    // Mark jobs as started by adding them to designData
+                    setDesignData(prevData =>
+                        prevData.map(job =>
+                            selectedJobs.some(selectedJob => selectedJob.id === job.id)
+                                ? { ...job, isStarted: true, startDate: new Date().toISOString() }
+                                : job
+                        )
+                    );
 
-        try {
-            const response = await axios.post(config.Design.URL.AddStart, startData);
-            if (response.status === 200) {
-                console.log("Start Data submitted successfully:", response.data);
+                    // Store only the selected jobs in designData after starting
+                    const startedJobs = filteredData1.filter(row => selectedRows[row.designid]);
+                    setDesignData(startedJobs);  // Update designData to show only started jobs
 
-                // Mark jobs as started by adding them to designData
-                setDesignData(prevData =>
-                    prevData.map(job =>
-                        selectedJobs.some(selectedJob => selectedJob.id === job.id)
-                            ? { ...job, isStarted: true, startDate: new Date().toISOString() }
-                            : job
-                    )
-                );
+                    // Update selectedRows
+                    setSelectedRows({});  // Clear selection after starting
 
-                // Store only the selected jobs in designData after starting
-                const startedJobs = filteredData1.filter(row => selectedRows[row.designid]);
-                setDesignData(startedJobs);  // Update designData to show only started jobs
-
-                // Update selectedRows
-                setSelectedRows({});  // Clear selection after starting
-
-            } else {
-                setError("Unexpected response from the server.");
+                } else {
+                    setError("Unexpected response from the server.");
+                }
+            } catch (error) {
+                handleError(error);
+            } 
+            finally {
+                // setLoading(false);
+                setIsJobRunning(false);
             }
-        } catch (error) {
-            handleError(error);
-        } 
-        finally {
-            // setLoading(false);
-            setIsJobRunning(false);
-        }
-    };
+    }
 
 
 
@@ -644,9 +723,7 @@ const Designn = () => {
         console.log("opening the modal");
         setShowApprovalModal(true); // Open the modal
       }; 
-      
-      
-
+     
       // Function to handle closing the modal
       const closeModal = () => {
         setShowApprovalModal(false); // Close the modal
@@ -817,33 +894,6 @@ const Designn = () => {
         setSortConfig({ key, direction });
     }
 
-    // const handleImageUpload = (e) => {
-    //     const files = e.target.files;
-    //     if (files.length > 0) {
-    //         const file = files[0];
-    //         const reader = new FileReader();
-
-    //         reader.onloadend = () => {
-    //             const updatedPreviews = { ...imagePreviews };
-    //             selectedDesignIds.forEach(id => {
-    //                 if (selectedRows[id]) {
-    //                     updatedPreviews[id] = reader.result;
-    //                 }
-    //             })
-    //             console.log('Updated image previews: ', updatedPreviews);
-    //             setImagePreviews(updatedPreviews);
-
-    //             const allSelectedJobsHaveImages = selectedDesignIds.every(id => 
-    //                 selectedRows[id] ? updatedPreviews[id] : true
-    //                 );
-    //             setCanStartJob(allSelectedJobsHaveImages);
-    //         };
-    //         reader.readAsDataURL(file);
-
-    //         console.log("Selected file: ", file);
-    //     }
-    // }
-
     return (
         <div>
             <div className="page-wrapper">
@@ -880,45 +930,12 @@ const Designn = () => {
                                             <FaSyncAlt size={20} style={{ cursor: 'pointer', marginLeft: '89em' }} onClick={() => window.location.reload()} />
                                         </Col>
                                     </Row>
-                                    {/* <Row>
-                                        <Col className="text-center">
-                                            <div className='image-upload-container' style={{ position: 'relative', textAlign: 'center' }}>
-                                                {imagePreviews && (
-                                                    <div style={{ marginBottom: '10px' }}>
-                                                        <img
-                                                            src={imagePreviews}
-                                                            alt="Preview"
-                                                            style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px' }}
-                                                        />
-                                                    </div>
-                                                )}
-                                                {selectedDesignIds.map(id => imagePreviews[id] && (
-                                                    <div key={id} style={{ marginTop: '1em' }}>
-                                                        <img
-                                                            src={imagePreviews[id]}
-                                                            alt={`Preview for ${id}`}
-                                                            style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'cover', borderRadius: '10px' }}
-                                                        />
-                                                    </div>
-                                                ))}
-                                                <input
-                                                    type="file"
-                                                    accept="image/*"
-                                                    onChange={(e) => {
-                                                        console.log('File Selected: ', e.target.files);
-                                                        handleImageUpload(e);
-                                                    }}
-                                                    className='file-input'
-                                                    id='imageUpload'
-                                                    style={{ display: 'none' }}
-                                                />
-                                                <label htmlFor='imageUpload' style={{cursor: 'pointer'}} className='custom-upload-button'>
-                                                    <span role='img' aria-label='upload'> 📸 Upload Image</span>
-                                                </label>
-                                            </div>
-                                            
-                                        </Col>
-                                    </Row> */}
+                                    <ImageUploadModal 
+                                        isOpen={isModalOpen}
+                                        onClose={() => setIsModalOpen(false)}
+                                        onConfirm={handleImageUploadConfirm}
+                                    />
+                                    
                                     <div style={{  }}>
                                         <Form className="mb-3 mt-2">
                                             <Row className="mb-3 align-items-center">
@@ -1009,11 +1026,12 @@ const Designn = () => {
                                                         </Form.Select>
                                                     </Form.Group>
                                                 </Col>
+                                                
                                                 <Col>
                                                     <Button type="button" variant="primary" style={{ marginTop: '28px' }} onClick={handleAddJob}>Add</Button>
                                                 </Col>
                                                 <Col>
-                                            <Button type="button" variant="primary" onClick={handleMailForCustomer}>
+                                                    <Button type="button" variant="primary" style={{ marginTop: '28px' }} onClick={handleMailForCustomer}>
                                                 Send Approval to Customer
                                             </Button>
                                                 </Col>  
