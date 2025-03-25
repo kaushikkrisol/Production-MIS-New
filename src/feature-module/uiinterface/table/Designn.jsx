@@ -694,9 +694,11 @@ const Designn = () => {
             .filter(job => selectedDesignIds.includes(job.designid)) // Assuming designid is a property in jobs
             .map(item => ({
                 username: item.username,
+                jobNo:item.jobNo,
                 visualCode: item.visualCode,
                 csName: item.csName,
-                designid: item.designid
+                designid: item.designid,
+                imageUrl:item.imageUrl
             }));
 
             //  console.log("updated line items ",updatedLineItems)

@@ -1,5 +1,6 @@
 // https://production.comart.in
 
+
 let BaseURL = "https://localhost:7035";
 
 //  let BaseURL ='https://productionapi.comart.in';
@@ -33,11 +34,16 @@ const config ={
             GetAllDesignFromCs: BaseURL + '/api/Design/GetAllDesignFromCs',
             GetDesignByUserId: BaseURL + '/api/Design/GetDesignByUserId',
             AddStart: BaseURL + '/api/Design/Addesignstart',
-            Sendmailforcustomer:BaseURL+'/api/Design/Sendmailforcustomer',
             AddStop: BaseURL + '/api/Design/Addesignstop',
             TotalHoursWork: BaseURL + '/api/Design/TotalHoursWork',
             GetAllDesignAccToLocation: BaseURL + '/api/Design/GetAllDesignAccToLocation',
             UpdateDesign: BaseURL + '/api/Design/UpdateDesign',
+        }
+    },
+    Approval:{
+        URL:{
+            Sendmailforcustomer:BaseURL+'/api/Approval/Sendmailforcustomer',
+            getApprovalRequest:BaseURL+'/api/Approval/getApprovalRequest'
         }
     },
     Printing: {
