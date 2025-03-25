@@ -2,6 +2,7 @@
 
 let BaseURL = "https://localhost:7035";
 
+
 //  let BaseURL ='https://productionapi.comart.in';
 
 const config ={
@@ -13,6 +14,7 @@ const config ={
         }
     },
     JobSummary: {
+        
         URL: {
 
             Addjobdetails: BaseURL + '/api/JobSummary/Addjobdetails',

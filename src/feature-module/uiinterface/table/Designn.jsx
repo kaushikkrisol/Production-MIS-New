@@ -795,9 +795,11 @@ const Designn = () => {
 
         const handleExJobNoSelectChange = (selectedOption) => {
             if (selectedOption) {
-                console.log("selectedOption",selectedOption); // Log the selected option
+                console.log("selectedOption",selectedOption.clientName); // Log the selected option
                 setSelectedExJobNumber(selectedOption.value); // Set the selected customer ID
                 setNewClientName(selectedOption.clientName);
+
+
                 setNewJobNo(selectedOption.value);
                 // Find the customer name based on the selected option
                 const selectedJobNo = uniqueJobNoOptions.find(option => option.value === selectedOption.value);
@@ -812,7 +814,12 @@ const Designn = () => {
     
             }
         };
-    // console.log(handleExJobNoSelectChange);
+
+
+        console.log("selected client name is ",newClientName)
+        
+        
+        // console.log(handleExJobNoSelectChange);
 
 
     // const sortedData = filteredData1.sort((a, b) => {
@@ -1068,7 +1075,7 @@ const Designn = () => {
                                                         {/* <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="designNoOfJobs" thead="No Of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="designClientName" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                        <th>Brief</th>
+                                                       
                                                         <th><Sort sortKey="designLocation" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th>Query/Comment</th>
                                                         <th><Sort sortKey="designDueDate" thead="Due Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
@@ -1077,19 +1084,27 @@ const Designn = () => {
                                                         <th>Artwork: Production time</th> */}
 
                                                         <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                        <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="client" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="noOfArtwork" thead="No Of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="brief" thead="Brief" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="productionLocation" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="designQuery" thead="Design Query" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="designType" thead="Design Type" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                        <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="username" thead="CS Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="visualCode" thead="Visual Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="nameSubCode" thead="Name Sub Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="city" thead="City" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="designerName" thead="Designer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                         <th><Sort sortKey="designerDeadline" thead="Designer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                        <th><Sort sortKey="noOfArtwork" thead="No Of Artwork" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                       
                                                         <th><Sort sortKey="artworkerDeadline" thead="Artworker Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                        <th><Sort sortKey="productionLocation" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                       
                                                         <th>Start Time</th>
                                                         <th>End Time</th>
+                                                       
+                                                       
+
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -1106,11 +1121,18 @@ const Designn = () => {
                                                                     />
                                                                 </td>
                                                                 <td>{row.jobNo}</td>
-                                                                <td>{row.date}</td>
                                                                 <td>
-                                                                    {row.client}
+                                                                    {row.designClientName || row.client }
                                                                 </td>
-                                                                <td>{row.userName}</td>
+                                                                <td>{row.noOfArtwork || row.noOfArtworker}</td>
+                                                                <td>{row.designBrief}</td>
+                                                                <td>{row.location || row.designLocation}</td>
+                                                                <td>{row.designQuery}</td>
+                                                                <td>{row.designType}</td>
+
+                                                                <td>{row.date}</td>
+                                                              
+                                                                <td>{row.Entrdby}</td>
                                                                 <td>
                                                                     {row.visualCode}
                                                                 </td>
@@ -1120,13 +1142,16 @@ const Designn = () => {
                                                                 </td>
                                                                 <td>{row.designerName}</td>
                                                                 <td>{row.designerDeadline}</td>
-                                                                <td>{row.noOfArtwork}</td>
+                                                               
                                                                 <td>{row.artworkerDeadline}</td>
-                                                                <td>{row.location}</td>
+                                                               
 
                                                                 {/* <td>{row.designDueDate ? new Date(row.designDueDate).toLocaleString() : '-'}</td> */}
                                                                 <td>{row.startdate || '-'}</td>
                                                                 <td>{row.enddate || '-'}</td>
+                                                               
+                                                               
+
                                                             </tr>
                                                         ))
                                                     ) : (
