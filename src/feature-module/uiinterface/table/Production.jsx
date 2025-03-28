@@ -12,6 +12,7 @@ import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 import CompletedPrinting from './CompletedPrinting';
 import Notification from '../../Notification/Notification';
 import Sort from "../ui/Sort";
+import Notification2 from '../../Notification/Notification2';
 
 const Production = () => {
     const [BulkAdd, setBulkAdd] = useState(false);
@@ -23,6 +24,7 @@ const Production = () => {
     const [open, setOpen] = useState(false);
     const toggle = () => setOpen(!open);
 
+    const [csJobs, setcsJobs] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [mediaSearchTerm, setMediaSearchTerm] = useState('');
     // const [selectedRows, setSelectedRows] = useState({});
@@ -72,6 +74,9 @@ const Production = () => {
 
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
+
+    const [showNotification2, setShowNotification2] = useState(false);
+    const [notificationMessage2, setNotificationMessage2] = useState('');
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
@@ -210,8 +215,18 @@ const Production = () => {
         }
     }
 
+    const fetchcsJobs = async () => {
+        try {
+            const response = await axios.post(config.JobSummary.URL.Getalljob);
+            setcsJobs(response.data);
+        } catch (error) {
+            console.error('Unable to fetch jobs', error);
+        }
+    }
+
     useEffect(() => {
         fetchPrinting();
+        fetchcsJobs();
     }, []);
 
     useEffect(() => {
@@ -721,6 +736,43 @@ const Production = () => {
         setShowNotification(false);
     }
 
+    useEffect(() => {
+        const checkDeadlines2 = () => {
+            const now = new Date();
+            const message = [];
+            console.log('now: ', now);
+
+            csJobs.forEach(csJob => {
+                const Deadline = new Date(csJob.deadline);
+                const csName = csJob.userName;
+                const timeUntilDeadline = Deadline - now;
+
+                console.log('design deadline: ', csJob);
+                console.log('design deadline: ', Deadline);
+
+                if (!csJob.isCompleted && timeUntilDeadline > 0 && timeUntilDeadline <= 8 * 60 * 60 * 1000) {
+                    const totalHours = Math.floor(timeUntilDeadline / (1000 * 60 * 60));
+                    const totalMinutes = Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60));
+                    const totalSeconds = Math.floor((timeUntilDeadline % (1000 * 60)) / 1000);
+
+                    message.push(`Job No: ${csJob.jobNo}, CS Name: ${csName}'s deadline is approaching in: ${totalHours}h ${totalMinutes}m ${totalSeconds}s`);
+                }
+            });
+
+            if (message.length > 0) {
+                setNotificationMessage2(message);
+                setShowNotification2(true);
+            }
+        };
+        checkDeadlines2();
+        const interval = setInterval(checkDeadlines2, 500000);
+        return () => clearInterval(interval);
+    }, [csJobs]);
+
+    const handleCloseNotification2 = () => {
+        setShowNotification2(false);
+    }
+
     return (
         <div>
             <div className="page-wrapper">
@@ -769,18 +821,17 @@ const Production = () => {
                                             isOpen={BulkAdd}
                                             toggle={toggleBulkAdd}
                                             centered
-                                            size="xl"
                                             className="border-0"
                                             modalClassName='modal fade zoomIn'
-                                            backdrop={'static'}
+                                            backdrop={false}
                                         >
                                             <ModalHeader className="p-3 bg-info-subtle" toggle={toggleBulkAdd}>
                                                 Upload Bulk
                                             </ModalHeader>
                                             <ModalBody className="modal-body">
-                                                <Row className="g-3">
+                                                <Row className="gap-3">
                                                     <Col>
-                                                        <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5">
+                                                        <div className="">
                                                             <Form.Control className="form-control" type="file" onChange={handleFileChange} />
                                                             <br />
                                                             <h4>Excel Data:</h4>
@@ -994,7 +1045,7 @@ const Production = () => {
                                                 Reprint
                                             </Button>
                                         </Form>
-                                        <Modal isOpen={open} className="custom-modal">
+                                        <Modal isOpen={open} className="">
                                             <ModalBody>
                                                 <CompletedPrinting />
                                             </ModalBody>
@@ -1159,6 +1210,20 @@ const Production = () => {
                                                 containerBg="rgba(231, 116, 116, 0.445)"
                                                 bgColor="red"
                                                 headerColor="#ff5b68"
+                                            />
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        {showNotification2 && (
+                                            <Notification2
+                                                headline="Deadline Alert!"
+                                                message={notificationMessage2}
+                                                onClose={handleCloseNotification2}
+                                                show={showNotification2}
+                                                containerBg="rgba(116, 143, 231, 0.445)"
+                                                bgColor="blue"
+                                                headerColor="#5b79ff"
                                             />
                                         )}
                                     </div>

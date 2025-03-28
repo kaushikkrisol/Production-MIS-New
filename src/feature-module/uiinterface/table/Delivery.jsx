@@ -8,6 +8,7 @@ import { all_routes } from "../../../Router/all_routes";
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 import './Delivery.css';
 import Sort from '../ui/Sort';
+import Notification from '../../Notification/Notification';
 
 const Delivery = () => {
     // const [BulkAdd, setBulkAdd] = useState(false);
@@ -48,6 +49,9 @@ const Delivery = () => {
     const [deliverPersonName, setDeliveryPersonName] = useState([]);
     const [deliverPersonNameSelect, setDeliveryPersonNameSelect] = useState('');
     const [newDeliveryPersonName, setNewDeliveryPersonName] = useState('');
+
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
 
     // const [userAccToLoc, setUserAccToLoc] = useState([]);
 
@@ -356,6 +360,48 @@ const Delivery = () => {
         setSortConfig({ key, direction });
     }
 
+    useEffect(() => {
+        const checkDeadlines = () => {
+            const now = new Date();
+            const message = [];
+            console.log('now: ', now);
+
+            data.forEach(job => {
+                const Deadline = new Date(job.deadline);
+                const csName = job.userName;
+                const timeUntilDeadline = Deadline - now;
+
+                console.log('design deadline: ', job);
+                console.log('design deadline: ', Deadline);
+
+                if (!job.isCompleted && timeUntilDeadline > 0 && timeUntilDeadline <= 8 * 60 * 60 * 1000) {
+                    const totalHours = Math.floor(timeUntilDeadline / (1000 * 60 * 60));
+                    const totalMinutes = Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60));
+                    const totalSeconds = Math.floor((timeUntilDeadline % (1000 * 60)) / 1000);
+
+                    message.push(`Job No: ${job.jobNo}, CS Name: ${csName}'s deadline is approaching in: ${totalHours}h ${totalMinutes}m ${totalSeconds}s`);
+                }
+            });
+
+            if (message.length > 0) {
+                setNotificationMessage(message);
+                setShowNotification(true);
+            }
+        };
+        checkDeadlines();
+        // const timeout = setTimeout(() => {
+        //     setNotificationMessage("Test notification");
+        //     setShowNotification(true);
+        // }, 2000);
+        // return () => clearTimeout(timeout);
+        const interval = setInterval(checkDeadlines, 500000);
+        return () => clearInterval(interval);
+    }, [data]);
+
+    const handleCloseNotification = () => {
+        setShowNotification(false);
+    }
+
     return (
         <div>
             <div className="page-wrapper">
@@ -436,7 +482,7 @@ const Delivery = () => {
                                                         <Form.Select
                                                             id='deliverPerson'
                                                             value={deliverPersonNameSelect}
-                                                            onChange={handleDeliverNameChange}
+                                                            onChange={(e) => handleDeliverNameChange(e.target.value)}
                                                             required
                                                         >
                                                         <option value="">Select Delivery Person</option>
@@ -654,6 +700,19 @@ const Delivery = () => {
                                             </tbody>
                                         </Table>
                                     </div>
+                                </div>
+                                <div>
+                                    {showNotification && (
+                                        <Notification
+                                            headline="Deadline Alert!"
+                                            message={notificationMessage}
+                                            onClose={handleCloseNotification}
+                                            show={showNotification}
+                                            containerBg="rgba(116, 143, 231, 0.445)"
+                                            bgColor="blue"
+                                            headerColor="#5b79ff"
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </div>

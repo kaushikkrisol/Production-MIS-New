@@ -9,6 +9,7 @@ import './Delivery.css';
 import { FaSyncAlt, FaSearch } from 'react-icons/fa';
 import Sort from '../ui/Sort';
 import './implementation.css';
+import Notification from '../../Notification/Notification';
 
 const Implementation = () => {
     // const [BulkAdd, setBulkAdd] = useState(false);
@@ -49,6 +50,9 @@ const Implementation = () => {
     const [locationId, setLocationId] = useState('');
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
+
+    const [showNotification, setShowNotification] = useState(false);
+    const [notificationMessage, setNotificationMessage] = useState('');
 
     // Check if users data exists and is not null
     useEffect(() => {
@@ -328,6 +332,48 @@ const Implementation = () => {
         setSortConfig({ key, direction });
     }
 
+    useEffect(() => {
+        const checkDeadlines = () => {
+            const now = new Date();
+            const message = [];
+            console.log('now: ', now);
+
+            data.forEach(job => {
+                const Deadline = new Date(job.deadline);
+                const csName = job.userName;
+                const timeUntilDeadline = Deadline - now;
+
+                console.log('design deadline: ', job);
+                console.log('design deadline: ', Deadline);
+
+                if (!job.isCompleted && timeUntilDeadline > 0 && timeUntilDeadline <= 8 * 60 * 60 * 1000) {
+                    const totalHours = Math.floor(timeUntilDeadline / (1000 * 60 * 60));
+                    const totalMinutes = Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60));
+                    const totalSeconds = Math.floor((timeUntilDeadline % (1000 * 60)) / 1000);
+
+                    message.push(`Job No: ${job.jobNo}, CS Name: ${csName}'s deadline is approaching in: ${totalHours}h ${totalMinutes}m ${totalSeconds}s`);
+                }
+            });
+
+            if (message.length > 0) {
+                setNotificationMessage(message);
+                setShowNotification(true);
+            }
+        };
+        checkDeadlines();
+        // const timeout = setTimeout(() => {
+        //     setNotificationMessage("Test notification");
+        //     setShowNotification(true);
+        // }, 2000);
+        // return () => clearTimeout(timeout);
+        const interval = setInterval(checkDeadlines, 500000);
+        return () => clearInterval(interval);
+    }, [data]);
+
+    const handleCloseNotification = () => {
+        setShowNotification(false);
+    }
+
     return (
         <div>
             <div className="page-wrapper">
@@ -493,6 +539,7 @@ const Implementation = () => {
                                                     <th><Sort sortKey="mounting" thead="Mounting" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="salonAddress" thead="Salon Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="deadline" thead="Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="implementation" thead="Implementation" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Width</th>
                                                     <th>Length</th>
                                                     <th>Total Sq Ft</th>
@@ -527,6 +574,7 @@ const Implementation = () => {
                                                             <td>{row.mounting}</td>
                                                             <td>{row.salonAddress}</td>
                                                             <td>{row.deadline}</td>
+                                                            <td>{row.implementation}</td>
                                                             <td>{row.width}</td>
                                                             <td>{row.height}</td>
                                                             <td>{row.totalSqFt}</td>
@@ -551,6 +599,19 @@ const Implementation = () => {
                                             </tbody>
                                         </Table>
                                     </div>
+                                </div>
+                                <div>
+                                    {showNotification && (
+                                        <Notification
+                                            headline="Deadline Alert!"
+                                            message={notificationMessage}
+                                            onClose={handleCloseNotification}
+                                            show={showNotification}
+                                            containerBg="rgba(116, 143, 231, 0.445)"
+                                            bgColor="blue"
+                                            headerColor="#5b79ff"
+                                        />
+                                    )}
                                 </div>
                             </div>
                         </div>

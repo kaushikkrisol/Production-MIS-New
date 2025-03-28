@@ -1818,7 +1818,7 @@ const NavTabs = () => {
                                             </ul>
                                         </div>
                                         <div
-                                            className="tab-pane fade show active text-muted"
+                                            className="tab-pane active text-muted"
                                             id="confirm-tab-pane"
                                             role="tabpanel"
                                             aria-labelledby="profile-tab-2"

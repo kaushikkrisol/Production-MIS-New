@@ -50,38 +50,46 @@
   border-radius: 4px;
   border: 1px solid #ddd;
 }
+
 .nav-tabs {
-  margin-bottom: 10px;
+  /* margin-bottom: 10px; */
   justify-content: center;
 }
+
 /* DataTables.css */
 .nav-tabs .nav-link.active {
   background-color: #95312F !important;
-  /* Set the background color for the active tab */
   color: white;
-  /* Optional: Change text color for better contrast */
 }
 
 .nav-tabs .nav-link {
   color: #000;
-  /* Optional: Set default text color for tabs */
+  padding: 10px 20px;
+  font-size: 1.1rem;
 }
 
 .external-nav {
   background-color: #c290906b;
   border-radius: 5px;
 }
+
 .file-choose {
   width: 88%;
   margin: 0 5em;
 }
+
 h4 {
   margin-left: 4em;
 }
-.modal-footer {
-  margin-left: 5em;
-}
 
+.modal-footer {
+  /* margin-left: 5em; */
+  margin: 0;
+  justify-content: flex-end;
+}
+.modal-body {
+   width: 100%;
+}
 .responsivetable {
   width: 88%;
   margin-left: 5em;
@@ -100,11 +108,6 @@ h4 {
   z-index: 10;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
-.custom-modal {
-  max-width: 90%;
-  width: 80%;
-  height: auto;
-}
-.custom-modal .modal-content {
-  padding: 20px;
+.modal {
+  z-index: 2050;
 }

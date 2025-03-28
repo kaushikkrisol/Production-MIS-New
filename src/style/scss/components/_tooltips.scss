@@ -29,9 +29,9 @@
   &.tooltip-warning {
     @include tooltip-color($warning);
   }
-  &.tooltip-info {
-    @include tooltip-color($info);
-  }
+  // &.tooltip-info {
+  //   @include tooltip-color($info);
+  // }
   &.tooltip-success {
     @include tooltip-color($success);
   }

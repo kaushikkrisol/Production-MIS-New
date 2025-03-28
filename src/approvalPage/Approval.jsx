@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { Table, Form, Row, Col, Button, Modal, Spinner, Alert } from "react-bootstrap";
+// import { Table, Form, Row, Col, Modal, Alert } from "react-bootstrap";
 import axios from "axios";
 import 'react-toastify/dist/ReactToastify.css'; 
 import { useLocation } from "react-router-dom";
 import config from "../config";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 
 const Approval = () => {
     const [approvalData, setApprovalData] = useState([]);
@@ -17,37 +18,33 @@ const Approval = () => {
     // Get the query string from the URL
     const location = useLocation();
     const queryParams = new URLSearchParams(location.search);
-    const approvalCode = queryParams.get("code"); // Extract the "code" query parameter
+    const approvalCode = queryParams.get("code");
 
-    // Fetch data when the component is mounted
+    const fetchApprovalData = async () => {
+        if (!approvalCode) {
+            setError("No approval code found in URL.");
+            setLoading(false);
+            return;
+        }
+
+        try {
+            const response = await axios.get(`${config.Approval.URL.getApprovalRequest}?code=${approvalCode}`);
+            setApprovalData(response.data);
+        } catch (error) {
+            setError("Failed to fetch approval data.");
+            console.error("Error fetching approval data:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     useEffect(() => {
-        const fetchApprovalData = async () => {
-            if (!approvalCode) {
-                setError("No approval code found in URL.");
-                setLoading(false);
-                return;
-            }
-
-            try {
-                // Pass the approvalCode to the API endpoint
-                const response = await axios.get(`${config.Approval.URL.getApprovalRequest}?code=${approvalCode}`);
-
-                console.log("approval api response:", response.data);
-                setApprovalData(response.data); // Assuming the response data is an array of approval objects
-            } catch (error) {
-                setError("Failed to fetch approval data.");
-                console.error("Error fetching approval data:", error);  
-            } finally {
-                setLoading(false); // Hide loading spinner when data is fetched
-            }
-        };
-
         fetchApprovalData();
-    }, [approvalCode]); // Dependency on approvalCode
+    }, []);
 
-    const handleCheckboxChange = (id) => {
+    const handleCheckboxChange = (designid) => {
         setSelectedRows((prev) => {
-            const newSelection = { ...prev, [id]: !prev[id] };
+            const newSelection = { ...prev, [designid]: !prev[designid] };
             return newSelection;
         });
     };
@@ -57,15 +54,17 @@ const Approval = () => {
         const newSelectedRows = {};
         approvalData.forEach(row => {
             if (!row.isCompleted) {
-                newSelectedRows[row.id] = isChecked;
+                row.lineItems.forEach(lineItem => {
+                    newSelectedRows[lineItem.designid] = isChecked;
+                })
             }
         });
         setSelectedRows(newSelectedRows);
     };
 
-    const handleShow = () => {
+    const handleShow = (lineItem) => {
         setShowModal(true);
-        setSelectedImage(true);
+        setSelectedImage(lineItem);
     };
 
     const handleClose = () => {
@@ -75,26 +74,36 @@ const Approval = () => {
 
 
     const handleApprove = async () => {
-        // Get selected rows for approval
-        const approvedItems = Object.keys(selectedRows).filter(id => selectedRows[id]);
+        const approvedItems = Object.keys(selectedRows).filter(designid => selectedRows[designid]);
         
         if (approvedItems.length === 0) {
             toast.error("Please select at least one item to approve.");
             return;
         }
 
+        const selectedLineItemIds = [];
+
+        approvalData.forEach(row => {
+            row.lineItems.forEach(lineItem => {
+                if (approvedItems.includes(lineItem.designid)) {
+                    selectedLineItemIds.push(lineItem.id);
+                }
+            });
+        });
+
         setLoading(true);
         try {
             // Send the approval request to the backend API
-            const response = await axios.post(`${config.Approval.URL.approveApprovalRequest}`, {
+            const response = await axios.post(`${config.Approval.URL.ApproveLineItems}`, {
                 approvalCode,
-                approvedItems
+                approvedItems,
+                id: selectedLineItemIds
             });
 
             // Handle success
             if (response.status === 200) {
                 toast.success("Approval sent successfully to the customer!");
-                // You can also refresh the data or update UI if necessary
+                await fetchApprovalData();
             }
         } catch (error) {
             setError("Failed to send approval.");
@@ -117,7 +126,7 @@ const Approval = () => {
                                     <Button
                                             style={{ float: "right", marginBottom: "12px" }}
                                             disabled={loading}
-                                            onClick={handleApprove} // Add this click handler for approval
+                                            onClick={handleApprove}
                                         >
                                             {loading ? <Spinner animation="border" size="sm" /> : "Approve"}
                                         </Button>
@@ -144,7 +153,8 @@ const Approval = () => {
                                                             <Form.Check
                                                                 type="checkbox"
                                                                 onChange={handleSelectAllChange}
-                                                                checked={approvalData.length > 0 && approvalData.every(row => selectedRows[row.id])}
+                                                                checked={approvalData.length > 0 && approvalData.every(row => 
+                                                                row.lineItems.every(lineItem => selectedRows[lineItem.designid]))}
                                                             />
                                                         </Col>
                                                         <Col>Approval Yes/No</Col>
@@ -158,29 +168,28 @@ const Approval = () => {
                                                     return row.lineItems.map((lineItem, index) => (
                                                         <tr key={`${row.id}-${index}`}>
                                                             <td>{lineItem.jobNo}</td>
-                                                            <td>{lineItem.visualCode}</td> {/* Visual Code from lineItems */}
-                                                            <td>{row.CSName}</td>
-                                                            <td>{row.imageUrl}</td>
-                                                            <td>{row.SqFt}</td>
+                                                            <td>{lineItem.visualCode}</td>
+                                                            <td>{lineItem.csName}</td>
+                                                            <td>{lineItem.media}</td>
+                                                            <td>{lineItem.totalSqFt}</td>
                                                             <td>
-                                                            {/* Displaying sample image in a small size */}
                                                             <img 
                                                                 style={{ width: "100px", height: "100px" }} 
                                                                 src={lineItem.imageUrl} // Image URL from lineItem
                                                                 alt={`${lineItem.jobNo} sample image`} 
-                                                                onClick={handleShow}
+                                                                onClick={() => handleShow(lineItem)}
                                                             />
                                                         </td>
                                                             <Modal key={row.id} show={showModal} onHide={handleClose} size="lg" centered>
                                                                 <Modal.Header closeButton>
-                                                                    <Modal.Title>Job No: {row.JobNo}</Modal.Title>
+                                                                    <Modal.Title>Job No: {selectedImage ? selectedImage.jobNo : ''}</Modal.Title>
                                                                 </Modal.Header>
                                                                 <Modal.Body>
                                                                     {selectedImage && (
                                                                         <img
                                                                             style={{ width: '100%', height: 'auto' }}
-                                                                            src={row.SampleImg}
-                                                                            alt={`${row.JobNo} full-size image`}
+                                                                            src={selectedImage.SampleImg}
+                                                                            alt={`${selectedImage.JobNo} full-size image`}
                                                                         />
                                                                     )}
                                                                 </Modal.Body>
@@ -200,12 +209,12 @@ const Approval = () => {
                                                                         <Form.Check
                                                                             key={row.id}
                                                                             type="checkbox"
-                                                                            checked={!!selectedRows[row.id]}
-                                                                            onChange={() => handleCheckboxChange(row.id)}
+                                                                            checked={!!selectedRows[lineItem.designid]}
+                                                                            onChange={() => handleCheckboxChange(lineItem.designid)}
                                                                             disabled={row.isCompleted}
                                                                         />
                                                                     </Col>
-                                                                    <Col>{selectedRows[row.id] ? "Yes" : "No"}</Col>
+                                                                    <Col>{selectedRows[lineItem.designid] ? "Yes" : "No"}</Col>
                                                                 </Row>
                                                             </td>
                                                         </tr>
@@ -220,6 +229,7 @@ const Approval = () => {
                                     </Table>
                                 </div>
                             </div>
+                            <div><ToastContainer /></div>
                         </div>
                     </div>
                 </div>

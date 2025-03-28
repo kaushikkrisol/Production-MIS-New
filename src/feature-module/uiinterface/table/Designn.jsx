@@ -14,6 +14,7 @@ import ApprovalPage from '../../components/approvalcomp/approvalPage';
 // import { Modal } from 'antd'; // Ensure this is the correct import
 import './Designn.css';
 import ImageUploadModal from '../ui/ImageUploadModal';
+import Notification2 from '../../Notification/Notification2';
 
 
 
@@ -24,6 +25,7 @@ const Designn = () => {
     const [data, setData] = useState([]);
     const [newJobNo, setNewJobNo] = useState('');
     const [newDropdown, setNewDropdown] = useState('');
+    const [csJobs, setcsJobs] = useState([]);
 
     const [jobNumbers, setJobNumbers] = useState([]);
     const [newClientName, setNewClientName] = useState('');
@@ -50,6 +52,9 @@ const Designn = () => {
 
     const [showNotification, setShowNotification] = useState(false);
     const [notificationMessage, setNotificationMessage] = useState('');
+ 
+    const [showNotification2, setShowNotification2] = useState(false);
+    const [notificationMessage2, setNotificationMessage2] = useState('');
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
     // const [imagePreviews, setImagePreviews] = useState(null);
@@ -236,6 +241,15 @@ const Designn = () => {
         }
     }
 
+    const fetchcsJobs = async () => {
+        try {
+            const response = await axios.post(config.JobSummary.URL.Getalljob);
+            setcsJobs(response.data);
+        } catch (error) {
+            console.error('Unable to fetch jobs', error);
+        }
+    }
+
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true);
@@ -251,6 +265,7 @@ const Designn = () => {
         };
         fetchData();
         GetAllJobsFromSql();
+        fetchcsJobs();
     }, [locationId]);
 
     
@@ -681,9 +696,7 @@ const Designn = () => {
 
     const fetchDesignData = (selectedDesignIds) => {
         if (selectedDesignIds.length === 0) {
-
-           
-            setLineItems([]); // Clear lineItems if no designs are selected
+            setLineItems([]);
             return;
         }
 
@@ -691,12 +704,15 @@ const Designn = () => {
 
         // Filter jobs based on selected design IDs
         const updatedLineItems = jobs
-            .filter(job => selectedDesignIds.includes(job.designid)) // Assuming designid is a property in jobs
+            .filter(job => selectedDesignIds.includes(job.designid))
             .map(item => ({
                 username: item.username,
+                id: item.id,
                 jobNo:item.jobNo,
                 visualCode: item.visualCode,
-                csName: item.csName,
+                csName: item.entrdby,
+                media: item.media,
+                totalSqFt: item.totalSqFt,
                 designid: item.designid,
                 imageUrl:item.imageUrl
             }));
@@ -838,47 +854,6 @@ const Designn = () => {
 
     console.log("Filtered data 1: ", filteredData1);
 
-    useEffect(() => {
-        const checkDeadlines = () => {
-            const now = new Date();
-            const message = [];
-            console.log('now: ', now);
-
-            jobs.forEach(job => {
-                const designerDeadline = new Date(job.designerDeadline);
-                const designerName = job.designerName;
-                const deadlineDuration = now - designerDeadline;
-
-                console.log('design deadline: ', job);
-                console.log('design deadline: ', designerDeadline);
-                if (!job.isCompleted && now > designerDeadline) {
-                    const totalHours = Math.floor(deadlineDuration / (1000 * 60 * 60));
-                    const days = Math.floor(totalHours / 24);
-                    const hours = totalHours % 24;
-
-                    message.push(`Job No: ${job.jobNo}, Designer Name: ${designerName} has missed its deadline! Time passed: ${days}d ${hours}h`);
-                }
-            });
-
-            if(message.length > 0) {
-                setNotificationMessage(message);
-                setShowNotification(true);
-            }
-        };
-        checkDeadlines();
-        // const timeout = setTimeout(() => {
-        //     setNotificationMessage("Test notification");
-        //     setShowNotification(true);
-        // }, 2000);
-        // return () => clearTimeout(timeout);
-        const interval = setInterval(checkDeadlines, 500000);
-        return () => clearInterval(interval);
-    }, [designData]);
-
-    const handleCloseNotification = () => {
-        setShowNotification(false);
-    }
-
     const sortedData = useMemo(() => {
         let sortableItems = [...filteredData1];
         if (sortConfig !== null) {
@@ -902,6 +877,83 @@ const Designn = () => {
         }
         setSortConfig({ key, direction });
     }
+
+    useEffect(() => {
+        const checkDeadlines = () => {
+            const now = new Date();
+            const message = [];
+            console.log('now: ', now);
+
+            jobs.forEach(job => {
+                const designerDeadline = new Date(job.designerDeadline);
+                const designerName = job.designerName;
+                const deadlineDuration = now - designerDeadline;
+
+                console.log('design deadline: ', job);
+                console.log('design deadline: ', designerDeadline);
+                if (!job.isCompleted && now > designerDeadline) {
+                    const totalHours = Math.floor(deadlineDuration / (1000 * 60 * 60));
+                    const days = Math.floor(totalHours / 24);
+                    const hours = totalHours % 24;
+
+                    message.push(`Job No: ${job.jobNo}, Designer Name: ${designerName} has missed its deadline! Time passed: ${days}d ${hours}h`);
+                }
+            });
+
+            if (message.length > 0) {
+                setNotificationMessage(message);
+                setShowNotification(true);
+            }
+        };
+        checkDeadlines();
+        const interval = setInterval(checkDeadlines, 500000);
+        return () => {
+            clearInterval(interval);
+        }
+    }, [designData]);
+    
+
+    useEffect(() => {
+        const checkDeadlines2 = () => {
+            const now = new Date();
+            const message = [];
+            console.log('now: ', now);
+
+            csJobs.forEach(csJob => {
+                const Deadline = new Date(csJob.deadline);
+                const csName = csJob.userName;
+                const timeUntilDeadline = Deadline - now;
+
+                console.log('design deadline: ', csJob);
+                console.log('design deadline: ', Deadline);
+
+                if (!csJob.isCompleted && timeUntilDeadline > 0 && timeUntilDeadline <= 8 * 60 * 60 * 1000) {
+                    const totalHours = Math.floor(timeUntilDeadline / (1000 * 60 * 60));
+                    const totalMinutes = Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60));
+                    const totalSeconds = Math.floor((timeUntilDeadline % (1000 * 60)) / 1000);
+
+                    message.push(`Job No: ${csJob.jobNo}, CS Name: ${csName}'s deadline is approaching in: ${totalHours}h ${totalMinutes}m ${totalSeconds}s`);
+                }
+            });
+
+            if (message.length > 0) {
+                setNotificationMessage2(message);
+                setShowNotification2(true);
+            }
+        };
+        checkDeadlines2();
+        const interval = setInterval(checkDeadlines2, 500000);
+        return () => clearInterval(interval);
+    }, [csJobs]);
+
+    const handleCloseNotification = () => {
+        setShowNotification(false);
+    }
+
+    const handleCloseNotification2 = () => {
+        setShowNotification2(false);
+    }
+
 
     return (
         <div>
@@ -1183,6 +1235,20 @@ const Designn = () => {
                                                 containerBg="rgba(231, 116, 116, 0.445)"
                                                 bgColor="red"
                                                 headerColor="#ff5b68"
+                                            />
+                                        )}
+                                    </div>
+
+                                    <div>
+                                        {showNotification2 && (
+                                            <Notification2
+                                                headline="Deadline Alert!"
+                                                message={notificationMessage2}
+                                                onClose={handleCloseNotification2}
+                                                show={showNotification2}
+                                                containerBg="rgba(116, 143, 231, 0.445)"
+                                                bgColor="blue"
+                                                headerColor="#5b79ff"
                                             />
                                         )}
                                     </div>

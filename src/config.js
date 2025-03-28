@@ -3,7 +3,6 @@
 
 let BaseURL = "https://localhost:7035";
 
-
 //  let BaseURL ='https://productionapi.comart.in';
 
 const config ={
@@ -45,7 +44,10 @@ const config ={
     Approval:{
         URL:{
             Sendmailforcustomer:BaseURL+'/api/Approval/Sendmailforcustomer',
-            getApprovalRequest:BaseURL+'/api/Approval/getApprovalRequest'
+            getApprovalRequest:BaseURL+'/api/Approval/getApprovalRequest',
+            ApproveLineItems: BaseURL + '/api/Approval/ApproveLineItems',
+
+
         }
     },
     Printing: {

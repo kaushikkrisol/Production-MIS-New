@@ -87,6 +87,33 @@ const MisReport = () => {
                 console.log(designEnteredDt, 'entered datae of design: ', response.data);
                 setDesignEnteredDt(response.data)
                 setDesignData(response.data);
+
+                const dataWithTotalTimes = response.data.map((row) => {
+                    if (row.startdate && row.enddate) {
+                        try {
+                            const startDate = moment(row.startdate, "DD/MM/YYYY HH:mm:ss");
+                            const endDate = moment(row.enddate, "DD/MM/YYYY HH:mm:ss");
+
+                            if (startDate.isValid() && endDate.isValid()) {
+                                const totalTime = moment.duration(endDate.diff(startDate));
+                                return {
+                                    ...row,
+                                    totalTime: `${totalTime.days()}d ${totalTime.hours()}h ${totalTime.minutes()}m`
+                                };
+                            }
+                        } catch (e) {
+                            console.error("Error calculating time for row: ", row, e);
+                        }
+                        
+                        
+                    }
+                    return {
+                        ...row,
+                        totalTime: "N/A"
+                    };
+                });
+                setDesignData(dataWithTotalTimes);
+                console.log("Total Times: ", dataWithTotalTimes);
             } else if (reporttype === 'Printing') {
                 response = await axios.post(config.Printing.URL.GetCompletedPrinting);
                 console.log(printingEnteredDt, 'entered datae of printing: ', response.data);
@@ -249,7 +276,7 @@ const MisReport = () => {
             data: designData,
             headers: ["Job No", "Designer Name",  "Client Name", "No Of Jobs", "Brief", "Location", 
                 "Query", "Month", "Week", "Received Date", "Due Date", "Upload Date",
-                "Width", "Height", "Start Job", "Stop Job"],
+                "Width", "Height", "Start Job", "Stop Job", "Total Duration"],
             renderRow: (row) => (
                 <tr key={row.id}>
                     <td>{row.jobNo}</td>
@@ -269,6 +296,7 @@ const MisReport = () => {
                     <td>{row.designHeight}</td>
                     <td>{row.startdate || '-'}</td>
                     <td>{row.enddate || '-'}</td>
+                    <td>{row.totalDuration || "N/A"}</td>
                 </tr>
             ),
         },

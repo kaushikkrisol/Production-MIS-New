@@ -4,6 +4,7 @@
   import { Modal, ModalBody, ModalHeader, Table as ExcelTable } from 'reactstrap';
   import { Table, Tab, Form, Nav, NavItem, Button, Row, NavLink, Card, Col, CardBody, Alert, Spinner, InputGroup } from 'react-bootstrap';
   import 'react-toastify/dist/ReactToastify.css'; 
+import Sort from "../ui/Sort";
 
   // import EditableCell from './EditableCell'; // Adjust path accordingly
   // import EditableRow from './EditableRow'; // Adjust path accordingly
@@ -11,9 +12,10 @@
   import * as XLSX from 'xlsx';
   import axios from "axios";
   import config from "../../../config";
-  import { FaSyncAlt, FaSearch } from 'react-icons/fa';
+  import { FaSyncAlt, FaSearch, FaFilter } from 'react-icons/fa';
   import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
+import FilterSidebar from "../ui/FilterComponent";
 // import Sort from "../ui/Sort";
   // import { responsiveArray } from "antd/es/_util/responsiveObserver";
   // import { el } from "date-fns/locale";
@@ -52,10 +54,10 @@ import { ToastContainer, toast } from 'react-toastify';
     const [userName, setUsername] = useState('');
     // const [subClient, setSubClient] = useState('');
 
-    console.log(userId, userName);
+    console.log(userId, userName, totalValues);
 
-    const totalWidth = totalValues ? totalValues.width : 0;
-    const totalHeight = totalValues ? totalValues.height : 0;
+    // const totalWidth = totalValues ? totalValues.width : 0;
+    // const totalHeight = totalValues ? totalValues.height : 0;
 
     const [customer, setcustomer] = useState([]);
     const [exJobNumber, setExJobNumber] = useState([]);
@@ -86,6 +88,65 @@ import { ToastContainer, toast } from 'react-toastify';
     const [jobsFromSql, setJobsFromSql] = useState([]);
 
     const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
+    const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+    const [filters, setFilters] = useState({
+      jobNo: '',
+      date: '',
+      client: '',
+      userName: '',
+      subClient: '',
+      productionLocation: '',
+      billingLocation: '',
+      visualCode: '',
+      nameSubCode: '',
+      city: '',
+      qty: '',
+      width: '',
+      height: '',
+      totalSqFt: '',
+      media: '',
+      lamination: '',
+      mounting: '',
+      implementation: '',
+      salonAddress: '',
+      machineName: '',
+      deadline: '',
+      designerName: '',
+      designerDeadline: '',
+      printerPrintingName: '',
+      printerDeadline: '',
+      remarks: '',
+    });
+
+    const filterConfig = [
+      { key: 'jobNo', placeholder: 'Job No', type: 'text' },
+      { key: 'date', placeholder: 'Date', type: 'date' },
+      { key: 'client', placeholder: 'Client', type: 'text' },
+      { key: 'userName', placeholder: 'User Name', type: 'text' },
+      { key: 'subClient', placeholder: 'Sub Client', type: 'text' },
+      { key: 'productionLocation', placeholder: 'Production Location', type: 'text' },
+      { key: 'billingLocation', placeholder: 'Billing Location', type: 'text' },
+      { key: 'visualCode', placeholder: 'Visual Code', type: 'text' },
+      { key: 'nameSubCode', placeholder: 'Name Sub Code', type: 'text' },
+      { key: 'city', placeholder: 'City', type: 'text' },
+      { key: 'qty', placeholder: 'Qty', type: 'text' },
+      { key: 'width', placeholder: 'Width', type: 'text' },
+      { key: 'height', placeholder: 'Height', type: 'text' },
+      { key: 'totalSqFt', placeholder: 'Total Sq.ft', type: 'text' },
+      { key: 'media', placeholder: 'Media', type: 'text' },
+      { key: 'lamination', placeholder: 'Lamination', type: 'text' },
+      { key: 'mounting', placeholder: 'Mounting', type: 'text' },
+      { key: 'implementation', placeholder: 'Implementation', type: 'text' },
+      { key: 'salonAddress', placeholder: 'Salon Address', type: 'text' },
+      { key: 'machineName', placeholder: 'Machine Name', type: 'text' },
+      { key: 'deadline', placeholder: 'Deadline', type: 'text' },
+      { key: 'designerName', placeholder: 'Designer Name', type: 'text' },
+      { key: 'designerDeadline', placeholder: 'Designer Deadline', type: 'text' },
+      { key: 'printerPrintingName', placeholder: 'Printer Name', type: 'text' },
+      { key: 'printerDeadline', placeholder: 'Printer Deadline', type: 'text' },
+      { key: 'remarks', placeholder: 'Remarks', type: 'text' },
+    ]
+
     console.log(setSortConfig)
 
     console.log(filteredJobNumbers, setSelectSearchTerm);
@@ -448,12 +509,23 @@ import { ToastContainer, toast } from 'react-toastify';
     const filteredData1 = Array.isArray(data) ? data.filter(row =>
       row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase())
     ) : [];
+    console.log(filteredData1);
+
+    
+
+    const filteredData = useMemo(() => {
+      return filteredData1.filter((row) => {
+        return Object.keys(filters).every((key) => {
+          return row[key]?.toString().toLowerCase().includes(filters[key].toLowerCase()) || filters[key] === '';
+        });
+      });
+    }, [filteredData1, filters]);
 
     const sortedData = useMemo(() => {
-      let sortableItems = [...filteredData1];
+      let sortableItems = [...filteredData];
       if (sortConfig !== null) {
         sortableItems.sort((a, b) => {
-          if(a[sortConfig.key] < b[sortConfig.key]) {
+          if (a[sortConfig.key] < b[sortConfig.key]) {
             return sortConfig.direction === 'ascending' ? -1 : 1;
           }
           if (a[sortConfig.key] > b[sortConfig.key]) {
@@ -463,15 +535,42 @@ import { ToastContainer, toast } from 'react-toastify';
         });
       }
       return sortableItems;
-    }, [filteredData1, sortConfig]);
+    }, [filteredData, sortConfig]);
 
-    // const requestSort = (key) => {
-    //   let direction = 'ascending';
-    //   if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
-    //     direction = 'descending';
-    //   }
-    //   setSortConfig({ key, direction });
-    // }
+    // const filteredData = useMemo(() => {
+    //   return sortedData.filter(row => {
+    //     return (
+    //       (row.jobNo && row.jobNo.toLowerCase().includes(filters.jobNo.toLowerCase())) &&
+    //       (row.date && row.date.includes(filters.date)) &&
+    //       (row.client && row.client.toLowerCase().includes(filters.client.toLowerCase())) &&
+    //       (row.userName && row.userName.toLowerCase().includes(filters.userName.toLowerCase())) &&
+    //       (row.subClient && row.subClient.toLowerCase().includes(filters.subClient.toLowerCase())) &&
+    //       (row.productionLocation && row.productionLocation.toLowerCase().includes(filters.productionLocation.toLowerCase())) &&
+    //       (row.billingLocation && row.billingLocation.toLowerCase().includes(filters.billingLocation.toLowerCase())) &&
+    //       (row.visualCode && row.visualCode.toLowerCase().includes(filters.visualCode.toLowerCase())) &&
+    //       (row.nameSubCode && row.nameSubCode.toLowerCase().includes(filters.nameSubCode.toLowerCase())) &&
+    //       (row.city && row.city.toLowerCase().includes(filters.city.toLowerCase())) &&
+    //       (row.qty && row.qty.toLowerCase().includes(filters.qty.toLowerCase())) &&
+    //       (row.width && row.width.toLowerCase().includes(filters.width.toLowerCase())) &&
+    //       (row.height && row.height.toLowerCase().includes(filters.height.toLowerCase())) &&
+    //       (row.totalSqFt && row.totalSqFt.toLowerCase().includes(filters.totalSqFt.toLowerCase())) &&
+    //       (row.media && row.media.toLowerCase().includes(filters.media.toLowerCase())) &&
+    //       (row.lamination && row.lamination.toLowerCase().includes(filters.lamination.toLowerCase())) &&
+    //       (row.mounting && row.mounting.toLowerCase().includes(filters.mounting.toLowerCase())) &&
+    //       (row.implementation && row.implementation.toLowerCase().includes(filters.implementation.toLowerCase())) &&
+    //       (row.salonAddress && row.salonAddress.toLowerCase().includes(filters.salonAddress.toLowerCase())) &&
+    //       (row.machineName && row.machineName.toLowerCase().includes(filters.machineName.toLowerCase())) &&
+    //       (row.deadline && row.deadline.toLowerCase().includes(filters.deadline.toLowerCase())) &&
+    //       (row.designerName && row.designerName.toLowerCase().includes(filters.designerName.toLowerCase())) &&
+    //       (row.designerDeadline && row.designerDeadline.toLowerCase().includes(filters.designerDeadline.toLowerCase())) &&
+    //       (row.printerPrintingName && row.printerPrintingName.toLowerCase().includes(filters.printerPrintingName.toLowerCase())) &&
+    //       (row.printerDeadline && row.printerDeadline.toLowerCase().includes(filters.printerDeadline.toLowerCase())) &&
+    //       (row.remarks && row.remarks.toLowerCase().includes(filters.remarks.toLowerCase()))
+
+    //     );
+    //   });
+    // }, [sortedData, filters]);
+    console.log(filteredData)
 
     const toggleBulkAdd = useCallback(() => {
       if (BulkAdd) {
@@ -484,7 +583,13 @@ import { ToastContainer, toast } from 'react-toastify';
       }
     }, [BulkAdd]);
 
-    
+    const requestSort = (key) => {
+      let direction = 'ascending';
+      if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+        direction = 'descending';
+      }
+      setSortConfig({ key, direction });
+    }
 
 
     const fetchcustomers = async () => {
@@ -988,23 +1093,31 @@ import { ToastContainer, toast } from 'react-toastify';
                           style={{ width: '400px' }} // Adjust width as necessary
                         />
                       </div> */}
-                      <div className="button-group" style={{ marginLeft: 'auto' }}>
-                        {/* <Button
-                          type="primary"
-                          style={{ backgroundColor: 'green', borderColor: 'green', marginRight: 8 }}
-                          onClick={handleAddRow}
-                        >
-                          Add
-                        </Button> */}
-                        <FaSyncAlt size={20} style={{ cursor: 'pointer', marginRight: '48px' }} onClick={() => window.location.reload()} />
+                      <div className="button-group" style={{ display: 'flex', justifyContent: 'space-between', marginLeft: 'auto', width: '100%' }}>
 
-                        <Button
-                          type="default"
-                          style={{ backgroundColor: 'orange', borderColor: 'orange' }}
-                          onClick={toggleBulkAdd}
-                        >
-                          Upload
+                        <Button variant="primary" style={{ marginBottom: "1em" }} onClick={() => setShowFilterSidebar(true)}>
+                          <FaFilter style={{ marginRight: '0.5em' }} />
+                          Open Filters
                         </Button>
+                        <FilterSidebar
+                          show={showFilterSidebar}
+                          handleClose={() => setShowFilterSidebar(false)}
+                          filters={filters}
+                          setFilters={setFilters}
+                          filterConfig={filterConfig}
+                        />
+
+                        <div style={{display: 'flex', alignItems: 'center'}}>
+                          <FaSyncAlt size={20} style={{ cursor: 'pointer', marginRight: '48px' }} onClick={() => window.location.reload()} />
+
+                          <Button
+                            type="default"
+                            style={{ backgroundColor: 'orange', borderColor: 'orange' }}
+                            onClick={toggleBulkAdd}
+                          >
+                            Upload
+                          </Button>
+                        </div>
                       </div>
                     </div>
                     <div className="table-responsive">
@@ -1014,15 +1127,15 @@ import { ToastContainer, toast } from 'react-toastify';
                         centered
                         className="border-0"
                         modalClassName='modal fade zoomIn'
-                        backdrop={'static'}
+                        backdrop={false}
                       >
                         <ModalHeader className="p-3 bg-info-subtle" toggle={toggleBulkAdd}>
                           Upload Bulk
                         </ModalHeader>
                       <ModalBody className="modal-body">
-                          <Row className="g-3">
+                          <Row className="gap-3">
                             <Col>
-                              <div className="mt-4 pt-2 fs-15 mx-4 mx-sm-5 external-nav">
+                              <div className="external-nav">
                                 <Tab.Container id="form-tabs" className={'tab-container'} activeKey={activeTab} onSelect={(key) => setActiveTab(key)} >
                                   <Nav variant="tabs" className="nav-tabs">
                                     <NavItem>
@@ -1286,83 +1399,46 @@ import { ToastContainer, toast } from 'react-toastify';
                         />
                       </InputGroup>
                     </Form.Group>
+
                     <div style={{ overflowX: 'auto' }} className="table-container">
                       <Table striped bordered hover>
                       <thead className="sticky-header">
-      <tr>
-        <th>Job No</th>
-        <th>Date</th>
-        <th>Client</th>
-        <th>CS Name</th>
-        <th>Sub Client</th>
-        <th>Production Location</th>
-        <th>Billing Location</th>
-        <th>Visual Code</th>
-        <th>Name Sub Code</th>
-        <th>City</th>
-        <th>Qty</th>
-        <th>Width</th>
-        <th>Length</th>
-        <th>Total Sq.ft</th>
-        <th>Media</th>
-        <th>Lamination</th>
-        <th>Mounting</th>
-        <th>Implementation</th>
-        <th>Salon Address</th>
-        <th>Machine Name</th>
-        <th>Job Deadline</th>
-        <th>Designer Name</th>
-        <th>Designer Deadline</th>
-        <th>Printer Name</th>
-        <th>Printer Deadline</th>
-        <th>Remarks/Instructions</th>
-      </tr>
-    </thead>
-    <tbody>
-      {sortedData.length > 0 ? (
-        sortedData.map((row) => (
-          <tr key={row.id}>
-            <td>{row.jobNo}</td>
-            <td>{row.date}</td>
-            <td>{row.client}</td>
-            <td>{row.userName}</td>
-            <td>{row.subClient}</td>
-            <td>{row.region}</td>
-            <td>{row.billingLocation}</td>
-            <td>{row.visualCode}</td>
-            <td>{row.nameSubCode}</td>
-            <td>{row.city}</td>
-            <td>{row.qty}</td>
-            <td>{row.width}</td>
-            <td>{row.height}</td>
-            <td>{row.totalSqFt}</td>
-            <td>{row.media}</td>
-            <td>{row.lamination}</td>
-            <td>{row.mounting}</td>
-            <td>{row.implementation}</td>
-            <td>{row.salonAddress}</td>
-            <td>{row.machineName}</td>
-            <td>{row.deadline}</td>
-            <td>{row.designerName}</td>
-            <td>{row.designerDeadline}</td>
-            <td>{row.printerPrintingName}</td>
-            <td>{row.printerDeadline}</td>
-            <td>{row.remarks}</td>
-          </tr>
-        ))
-      ) : (
-        <tr>
-          <td colSpan="10" className="text-center">No results found</td>
-        </tr>
-      )}
-      {/* Row for displaying total values */}
-      <tr>
-        <td colSpan="11" className="text-center"><strong>Total</strong></td>
-        <td><strong>{totalWidth}</strong></td>
-        <td><strong>{totalHeight}</strong></td>
-        <td colSpan="15"></td>
-      </tr>
-    </tbody>
+                          <tr>
+                            {filterConfig.map((column) => (
+                              <th key={column.key}>
+                                <Sort
+                                  sortKey={column.key}
+                                  thead={column.placeholder}
+                                  sortConfig={sortConfig}
+                                  requestSort={requestSort}
+                                />
+                              </th>
+                            ))}
+                            <th>Sent to Printing</th>
+                          </tr>
+                      </thead>
+                        <tbody>
+                          {sortedData.length > 0 ? (
+                            sortedData.map((row, index) => (
+                              <tr key={index}>
+                                {filterConfig.map((column) => (
+                                  <td key={column.key}>{row[column.key]}</td>
+                                ))}
+                                <td>
+                                  {row.approved === "Yes" ? (
+                                    <Button variant="success" disabled>Yes</Button>
+                                  ) : (
+                                    <Button variant="danger" disabled>No</Button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))
+                          ) : (
+                            <tr>
+                              <td colSpan={filterConfig.length}>No matching data found</td>
+                            </tr>
+                          )}
+                        </tbody>
                       </Table>
 
 
