@@ -50,6 +50,7 @@ export const all_routes = {
   myPriority: "/myPriority",
 
   misreport: "/MisReport",
+  printingreport: "/PrintingReport",
   jobtracker: "/JobTracker",
   approval: "/approval",
 

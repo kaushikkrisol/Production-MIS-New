@@ -32,7 +32,7 @@ const MisReport = () => {
     const [designEnteredDt, setDesignEnteredDt] = useState(null);
     const [printingEnteredDt, setPrintingEnteredDt] = useState(null);
     const [deliveryEnteredDt, setDeliveryEnteredDt] = useState(null);
-
+    
     console.log(setFromDate, setToDate, data, setEnteredDt);
 
     // Handle location change
@@ -67,7 +67,7 @@ const MisReport = () => {
             // await fetchData(newProduction);
             
         } catch (error) {
-            console.error("Error in handleGoReport:", error, fetchData);
+            console.error("Error in handleGoReport:", error);
         }
     };
 
@@ -80,7 +80,7 @@ const MisReport = () => {
             if (reporttype === 'CS') {
                 response = await axios.post(config.JobSummary.URL.Getalljob);
                 console.log(enteredDt, 'entered datae of cs: ', response.data);
-                setEnteredDt(response.data)
+                setEnteredDt(response.data);
                 setCsData(response.data);
             } else if (reporttype === 'Design') {
                 response = await axios.post(config.Design.URL.Getalldesign);
@@ -274,29 +274,29 @@ const MisReport = () => {
         },
         Design: {
             data: designData,
-            headers: ["Job No", "Designer Name",  "Client Name", "No Of Jobs", "Brief", "Location", 
-                "Query", "Month", "Week", "Received Date", "Due Date", "Upload Date",
-                "Width", "Height", "Start Job", "Stop Job", "Total Duration"],
+            headers: ["Job No", "Designer Name",  "Client Name", "No Of Artworker", "Brief", "Location", 
+                "Query", "Design Type", "Date", "CS Name", "Visual Code", "Name Sub Code",
+                "City", "Designer Deadline", "Artworker Deadline", "Start Time", "End Time"],
             renderRow: (row) => (
                 <tr key={row.id}>
                     <td>{row.jobNo}</td>
-                    <td>{row.enteredBy}</td>
-                    <td>{row.designClientName}</td>
-                    <td>{row.designNoOfJobs}</td>
+                    <td>{row.designerName}</td>
+                    <td>{row.designClientName || row.client}</td>
+                    <td>{row.noOfArtwork || row.noOfArtworker}</td>
                     <td>{row.designBrief}</td>
-                    <td>{row.designLocation}</td>
+                    <td>{row.location || row.designLocation}</td>
                 {/* <td>{row.designStatus}</td> */}
                     <td>{row.designQuery}</td>
-                    <td>{row.designMonth}</td>
-                    <td>{row.designWeek}</td>
-                    <td>{row.designReceivedDate}</td>
-                    <td>{row.designDueDate}</td>
-                    <td>{row.designUploadDate}</td>
-                    <td>{row.designWidth}</td>
-                    <td>{row.designHeight}</td>
+                    <td>{row.designType}</td>
+                    <td>{row.date}</td>
+                    <td>{row.Entrdby}</td>
+                    <td>{row.visualCode}</td>
+                    <td>{row.nameSubCode}</td>
+                    <td>{row.city || '-'}</td>
+                    <td>{row.designerDeadline}</td>
+                    <td>{row.artworkerDeadline}</td>
                     <td>{row.startdate || '-'}</td>
                     <td>{row.enddate || '-'}</td>
-                    <td>{row.totalDuration || "N/A"}</td>
                 </tr>
             ),
         },
@@ -398,17 +398,68 @@ const MisReport = () => {
     };
 
     const exportToExcel = () => {
-        const worksheet = XLSX.utils.json_to_sheet(data); // Convert data to a worksheet
-        const workbook = XLSX.utils.book_new(); // Create a new workbook
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1"); // Append the worksheet to the workbook
-        XLSX.writeFile(workbook, "Report.xlsx"); // Save as Excel file
+        const reportConfig = tableConfigs[newProduction];
+        if (!reportConfig || reportConfig.data.length === 0) {
+            alert("No data available for export.");
+            return;
+        }
+
+        // Function to transform headers to data keys
+        const headerToKey = (header) => {
+            return header
+                .split(' ') // Split by spaces for multi-word headers
+                .map((word, index) =>
+                    index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1) // Make first word lowercase, rest camel case
+                )
+                .join('');
+        };
+
+        // Transform the data to match the headers
+        const transformedData = reportConfig.data.map(item => {
+            const row = {};
+            reportConfig.headers.forEach(header => {
+                const key = headerToKey(header); // Dynamically generate the key based on the header
+                row[header] = item[key] !== undefined ? item[key] : ''; // Use empty string if the key is not found
+            });
+            return row;
+        });
+
+        const worksheet = XLSX.utils.json_to_sheet(transformedData);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
+        XLSX.writeFile(workbook, "Report.xlsx");
     };
 
-
-    // Function to export to CSV
     const exportToCsv = () => {
-        const worksheet = XLSX.utils.json_to_sheet(data); // Convert data to a worksheet
-        const csv = XLSX.utils.sheet_to_csv(worksheet); // Convert the worksheet to CSV
+        const reportConfig = tableConfigs[newProduction];
+        if (!reportConfig || reportConfig.data.length === 0) {
+            alert("No data available for export.");
+            return;
+        }
+
+        // Function to transform headers to data keys
+        const headerToKey = (header) => {
+            return header
+                .split(' ') // Split by spaces for multi-word headers
+                .map((word, index) =>
+                    index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1) // Make first word lowercase, rest camel case
+                )
+                .join('');
+        };
+
+        // Transform the data to match the headers
+        const transformedData = reportConfig.data.map(item => {
+            const row = {};
+            reportConfig.headers.forEach(header => {
+                const key = headerToKey(header); // Dynamically generate the key based on the header
+                row[header] = item[key] !== null && item[key] !== undefined ? item[key] : ''; // Use empty string if the key is not found
+            });
+            return row;
+        });
+
+        // Generate CSV from transformed data
+        const worksheet = XLSX.utils.json_to_sheet(transformedData);
+        const csv = XLSX.utils.sheet_to_csv(worksheet);
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
@@ -418,55 +469,56 @@ const MisReport = () => {
         document.body.removeChild(link);
     };
 
-    // Function to export to PDF
     const exportToPdf = () => {
-        console.log("Available report types:", Object.keys(tableConfigs));
-
         const reportConfig = tableConfigs[newProduction];
-
-        if (!reportConfig) {
-            alert(`No data found for the report type`);
+        if (!reportConfig || reportConfig.data.length === 0) {
+            alert("No data available for export.");
             return;
         }
 
-        const { data, headers } = reportConfig; // Now it's safe to destructure
+        // Function to transform headers to data keys
+        const headerToKey = (header) => {
+            return header
+                .split(' ') // Split by spaces for multi-word headers
+                .map((word, index) =>
+                    index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1) // Make first word lowercase, rest camel case
+                )
+                .join('');
+        };
 
-        if (!data || data.length === 0) {
-            alert("No data available to export.");
-            return;
-        }
+        // Transform the data to match the headers
+        const transformedData = reportConfig.data.map(item => {
+            const row = {};
+            reportConfig.headers.forEach(header => {
+                const key = headerToKey(header); // Dynamically generate the key based on the header
+                row[header] = item[key] !== undefined ? item[key] : ''; // Use empty string if the key is not found
+            });
+            return row;
+        });
 
-        const unit = "pt";
-        const size = "A2"; // A1, A2, A3, or A4
-        const orientation = "landscape"; // portrait or landscape
-
-        const doc = new jsPDF(orientation, unit, size);
+        const doc = new jsPDF("landscape", "pt", "A2");
         doc.setFontSize(8);
-
-        // Add title
         const title = `Report`;
         doc.text(title, 40, 30);
 
-        // Prepare rows for the table
-        const tableRows = data.map((row) => headers.map((header) => row[header.toLowerCase()] || "-"));
+        const tableRows = transformedData.map(row => reportConfig.headers.map(header => row[header] || "-"));
 
-        // Configure and add the table
         doc.autoTable({
             startY: 50,
-            head: [headers],
+            head: [reportConfig.headers],
             body: tableRows,
             styles: {
-                fontSize: 10, // Smaller font for better readability
-                overflow: "linebreak", // Handle text overflow
+                fontSize: 10,
+                overflow: "linebreak",
                 cellPadding: 5,
             },
             headStyles: {
-                fillColor: [0, 0, 0], // Blue header
-                textColor: [255, 255, 255], // White text
+                fillColor: [0, 0, 0],
+                textColor: [255, 255, 255],
                 fontSize: 8,
             },
             alternateRowStyles: {
-                fillColor: [240, 240, 240], // Light gray for alternating rows
+                fillColor: [240, 240, 240],
             },
             columnStyles: {
                 cellWidth: 'auto',
@@ -475,7 +527,6 @@ const MisReport = () => {
             margin: { top: 50 },
         });
 
-        // Save the PDF
         doc.save(`Report.pdf`);
     };
 
@@ -655,7 +706,6 @@ const MisReport = () => {
         <Container style={{ marginLeft: 'auto', marginRight: 'auto', padding: '0 10px', marginTop: '2em' }}>
             <div className="page-wrapper">
                 <div className="content container-fluid">
-                    {error && <Alert variant="danger">{error}</Alert>}
                     {loading && <Spinner animation="border" className="d-block mx-auto" />}
                     <div className="page-header">
                         <div className="row">

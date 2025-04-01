@@ -79,6 +79,7 @@ import ImplementationUpload from "../feature-module/uiinterface/table/Implementa
 import MyPriority from "../feature-module/pages/myPriority/MyPriority";
 
 import MisReport from "../feature-module/uiinterface/report/MisReport";
+import PrintingReport from "../feature-module/uiinterface/report/PrintingReport";
 import JobTracker from "../feature-module/uiinterface/summary/JobTrack";
 import Approval from "../.././src/approvalPage/Approval";
 
@@ -641,6 +642,13 @@ export const publicRoutes = [
     path: routes.misreport,
     name: "misreport",
     element: <MisReport />,
+    route: Route,
+  },
+  {
+    id: 53,
+    path: routes.printingreport,
+    name: "printingreport",
+    element: <PrintingReport />,
     route: Route,
   },
   {

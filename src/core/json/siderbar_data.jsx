@@ -1015,6 +1015,14 @@ export const SidebarData = [
       },
 
       {
+        label: "Printing Report",
+        submenu: false,
+        showSubRoute: false,
+        icon: <Icon.Columns />,
+        link: "/PrintingReport",
+      },
+
+      {
         label: "Job Tracker",
         submenu: false,
         showSubRoute: false,
