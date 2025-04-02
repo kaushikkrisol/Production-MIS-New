@@ -1117,7 +1117,7 @@ const Production = () => {
                                                         onChange={handleSelectAllChange}
                                                         checked={isSelectAllChecked}
                                                     /></th>
-                                                    <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="date" thead="Job Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Printer Name</th>
                                                     <th>Qty</th>
@@ -1125,19 +1125,19 @@ const Production = () => {
                                                     <th>Print L.</th>
                                                     <th>Print SQ.Ft.</th>
                                                     <th><Sort sortKey="media" thead="Media" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                    <th><Sort sortKey="implementation" thead="Implementation (Y/N)" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                    <th><Sort sortKey="deadline" thead="Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="implementation" thead="Implementation" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="deadline" thead="Job Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="lamination" thead="Lamination Media Type" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="mounting" thead="Mounting" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                    <th><Sort sortKey="salonAddress" thead="Salon Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="salonAddress" thead="Salon / Store Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Job Start Date</th>
                                                     <th>Job End Date</th>
                                                     <th><Sort sortKey="client" thead="Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="subClient" thead="Sub Client" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="userName" thead="Account Manager" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="visualCode" thead="Visual Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                    <th><Sort sortKey="nameSubCode" thead="Name Sub Code" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                    <th><Sort sortKey="printerPrintingName" thead="Printer Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="nameSubCode" thead="Product Details" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="printerPrintingName" thead="Printing Machine" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="printerDeadline" thead="Printer Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Remarks</th>
                                                     

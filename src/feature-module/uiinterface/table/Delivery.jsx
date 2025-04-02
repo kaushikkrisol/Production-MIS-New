@@ -482,7 +482,7 @@ const Delivery = () => {
                                                         <Form.Select
                                                             id='deliverPerson'
                                                             value={deliverPersonNameSelect}
-                                                            onChange={(e) => handleDeliverNameChange(e.target.value)}
+                                                            onChange={handleDeliverNameChange}
                                                             required
                                                         >
                                                         <option value="">Select Delivery Person</option>
@@ -582,7 +582,7 @@ const Delivery = () => {
                                                     <th><Sort sortKey="date" thead="Production Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="client" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                    <th><Sort sortKey="region" thead="Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="region" thead="Production Location" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     {/* <th>Sub Client</th>
                                                     <th>CS Name</th>
                                                     <th>Visual Code</th>

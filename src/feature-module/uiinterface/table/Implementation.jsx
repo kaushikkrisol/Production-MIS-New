@@ -179,7 +179,8 @@ const Implementation = () => {
     };
     console.log(resetForm);
 
-    const handleNameChange = (username, e) => {
+    const handleNameChange = (e) => {
+        const username = e.target.value;
         setName(username);
         // const selectedName = user.find(u => u.username === username);
         // console.log("Selected Name: ", selectedName);
@@ -464,7 +465,7 @@ const Implementation = () => {
                                                         <Form.Label style={{ width: '200px' }}>Assigned Name</Form.Label>
                                                         <Form.Select
                                                             value={name}
-                                                            onChange={(e) => handleNameChange(e.target.value)}
+                                                            onChange={handleNameChange}
                                                             required
                                                         >
                                                             <option value="">Select Name</option>
@@ -529,7 +530,7 @@ const Implementation = () => {
                                                         onChange={handleSelectAllChange}
                                                         checked={filteredData1.length > 0 && filteredData1.every(row => selectedRows[row.id])}
                                                     /></th>
-                                                    <th><Sort sortKey="date" thead="Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="date" thead="Job Date" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="jobNo" thead="Job ID" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="client" thead="Client Name" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="userName" thead="Account Manager" sortConfig={sortConfig} requestSort={requestSort} /></th>
@@ -537,8 +538,8 @@ const Implementation = () => {
                                                     <th>Quantity</th>
                                                     <th><Sort sortKey="media" thead="Media" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="mounting" thead="Mounting" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                    <th><Sort sortKey="salonAddress" thead="Salon Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                    <th><Sort sortKey="deadline" thead="Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="salonAddress" thead="Salon / Store Address" sortConfig={sortConfig} requestSort={requestSort} /></th>
+                                                    <th><Sort sortKey="deadline" thead="Job Deadline" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th><Sort sortKey="implementation" thead="Implementation" sortConfig={sortConfig} requestSort={requestSort} /></th>
                                                     <th>Width</th>
                                                     <th>Length</th>

@@ -180,7 +180,6 @@ const MisReport = () => {
                 setData([]);
             }
         } catch (err) {
-            setError("Error fetching data");
             console.error(err);
             setData([]);
         } finally {
@@ -238,10 +237,9 @@ const MisReport = () => {
         CS: {
             data: csData,
             headers: [
-                "Job No", "Date", "Client", "Sub Client", "User Name", "Region", "Visual Code", "Name Sub Code",
-                "City", "Qty", "Media", "Implementation", "Deadline", "Lamination", "Mounting",
-                "Salon Address", "Dispatch Address", "Remarks", "Actual Complete Time",
-                "On-Time/Delayed", "Width", "Height", "Total SqFt"
+                "Job No", "Job Date", "Client", "Sub Client", "User Name", "Production Location", "Visual Code", "Product Details",
+                "City", "Qty", "Media", "Implementation", "Job Deadline", "Lamination", "Mounting",
+                "Salon / Store Address", "Dispatch Address", "Remarks / Instructions", "Width", "Height", "Total Sq.Ft"
             ],
             renderRow: (row) => (
                 <tr key={row.id}>
@@ -264,8 +262,6 @@ const MisReport = () => {
                     <td>{row.salonAddress}</td>
                     <td>{row.dispatchAddress}</td>
                     <td>{row.remarks}</td>
-                    <td>{row.actCompleteTime}</td>
-                    <td>{row.onTimeDelayed}</td>
                     <td>{row.width}</td>
                     <td>{row.height}</td>
                     <td>{row.totalSqFt}</td>
@@ -274,8 +270,8 @@ const MisReport = () => {
         },
         Design: {
             data: designData,
-            headers: ["Job No", "Designer Name",  "Client Name", "No Of Artworker", "Brief", "Location", 
-                "Query", "Design Type", "Date", "CS Name", "Visual Code", "Name Sub Code",
+            headers: ["Job No", "Designer Name",  "Client Name", "No Of Artworker", "Brief", "Production Location", 
+                "Query", "Design Type", "Job Date", "CS Name", "Visual Code", "Product Details",
                 "City", "Designer Deadline", "Artworker Deadline", "Start Time", "End Time"],
             renderRow: (row) => (
                 <tr key={row.id}>
@@ -302,10 +298,9 @@ const MisReport = () => {
         },
         Printing: {
             data: printingData,
-            headers: ["Job No", "Date", "Printer Name", "Location", "Qty", "Print W.", "Print L.", "Print SQ.Ft.", "Media",
-                "Implementation (Y/N)", "Deadline", "Lamination Media Type", "Salon Address", "Lamination", "Mounting", "Salon Address",
-                "Job Start Date", "Job End Date", "Client", "Sub Client", "Account Manager", "Visual Code", "Name Sub Code",
-                "Printer Deadline", "Remarks"],
+            headers: ["Job No", "Job Date", "Printing Machine", "Production Location", "Qty", "Print W.", "Print L.", "Print SQ.Ft.", "Media",
+                "Implementation", "Job Deadline", "Salon / Store Address", "Lamination", "Mounting",
+                "Job Start Date", "Job End Date", "Client", "Sub Client", "Account Manager", "Visual Code", "Product Details", "Remarks"],
             renderRow: (row) => (
                 <tr key={row.id}>
                     <td>{row.jobNo}</td>
@@ -319,10 +314,11 @@ const MisReport = () => {
                     <td>{row.height}</td>
                     <td>{row.totalSqFt}</td>
                     <td>{row.media}</td>
-                    <td>{row.installation}</td>
+                    <td>{row.implementation}</td>
+                    <td>{row.deadline}</td>
+                    <td>{row.salonAddress}</td>
                     <td>{row.lamination}</td>
                     <td>{row.mounting}</td>
-                    <td>{row.salonAddress}</td>
                     <td>{row.startdate || '-'}</td>
                     <td>{row.enddate || '-'}</td>
                     <td>
@@ -334,7 +330,6 @@ const MisReport = () => {
                         {row.visualCode}
                     </td>
                     <td>{row.nameSubCode}</td>
-                    <td>{row.deadline}</td>
                     <td>{row.remarks}</td>                    
                     
                 </tr>
@@ -342,10 +337,10 @@ const MisReport = () => {
         },
         Delivery: {
             data: deliveryData,
-            headers: ["Job No", "Date", "Client Name", "Sub Client", "User Name", "Location", "Visual Code", "Name Sub Code",
-                "City", "Quantity", "Media", "Lamination", "Mounting", "Implementation", "Salon Address",
-                "Dispatch Address", "Deadline", "Remarks", "Actual Complete Time", "On Time Delayed", "Entered By", "Entered Date",
-                "Last Update By", "Last Updated By", "Width", "Height", "Total Sq Ft", "Delivery By", "Delivery Date", "Delivery To"],
+            headers: ["Job No", "Job Date", "Client Name", "Sub Client", "User Name", "Production Location", "Visual Code", "Product Details",
+                "City", "Quantity", "Media", "Lamination", "Mounting", "Implementation", "Salon / Store Address",
+                "Dispatch Address", "Job Deadline", "Remarks", "Entered By", "Entered Date",
+                "Last Update By", "Last Updated By", "Width", "Height", "Total Sq.Ft", "Delivery By", "Delivery Date", "Delivery To"],
             renderRow: (row) => (
                 <tr key={row.id}>
                     <td>{row.jobNo}</td>
@@ -376,8 +371,6 @@ const MisReport = () => {
                     <td>{row.dispatchAddress}</td>
                     <td>{row.deadline}</td>
                     <td>{row.remarks}</td>
-                    <td>{row.actCompleteTime}</td>
-                    <td>{row.onTimeDelayed}</td>
                     <td>{row.enteredby}</td>
                     <td>{row.entereddt}</td>
                     <td>{row.lstupateby}</td>

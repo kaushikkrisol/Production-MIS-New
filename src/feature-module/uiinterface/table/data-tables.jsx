@@ -118,33 +118,64 @@ import FilterSidebar from "../ui/FilterComponent";
       remarks: '',
     });
 
+    const headerMapping = {
+      "Job No": "Job No",
+      "Client": "CLIENT",
+      "Sub Client": "Sub Client",
+      "Job Date": "DATE ",
+      "Production Location": "Production Location",
+      "Billing Location": "Billing  Location",
+      "Visual Code": "VISUAL CODE",
+      "Product Details": "Name & Sub Code",
+      "City": "CITY",
+      "Qty": "QTY",
+      "Width": "Width",
+      "Height": "Height",
+      "Total Sq.Ft": "Total Sq.ft",
+      "Media": "Media",
+      "Installation": "Installation",
+      "Job Deadline": "Job Deadline",
+      "Designer Name": "Designer Name",
+      "Designer Id": "Designer Id",
+      "Designer Deadline": "Designer Deadline",
+      "Printing Machine": "Printer Name",
+      "Printer Deadline": "Printer Deadline",
+      "Print Ready File": "Print Ready Available",
+      "Lamination": "LAMINATION",
+      "Mounting": "MOUNTING",
+      "Implementation": "Implementation",
+      "Salon / Store Address": "SALON ADDRESS",
+      "Remarks / Instructions": "Remarks/Instructions",
+    };
+
     const filterConfig = [
       { key: 'jobNo', placeholder: 'Job No', type: 'text' },
-      { key: 'date', placeholder: 'Date', type: 'date' },
+      { key: 'date', placeholder: 'Job Date', type: 'date' },
       { key: 'client', placeholder: 'Client', type: 'text' },
       { key: 'userName', placeholder: 'User Name', type: 'text' },
       { key: 'subClient', placeholder: 'Sub Client', type: 'text' },
       { key: 'productionLocation', placeholder: 'Production Location', type: 'text' },
       { key: 'billingLocation', placeholder: 'Billing Location', type: 'text' },
       { key: 'visualCode', placeholder: 'Visual Code', type: 'text' },
-      { key: 'nameSubCode', placeholder: 'Name Sub Code', type: 'text' },
+      { key: 'nameSubCode', placeholder: 'Product Details', type: 'text' },
       { key: 'city', placeholder: 'City', type: 'text' },
+      { key: 'printReadyAvailable', placeholder: 'Print Ready File', type: 'text' },
       { key: 'qty', placeholder: 'Qty', type: 'text' },
       { key: 'width', placeholder: 'Width', type: 'text' },
       { key: 'height', placeholder: 'Height', type: 'text' },
-      { key: 'totalSqFt', placeholder: 'Total Sq.ft', type: 'text' },
+      { key: 'totalSqFt', placeholder: 'Total Sq.Ft', type: 'text' },
       { key: 'media', placeholder: 'Media', type: 'text' },
       { key: 'lamination', placeholder: 'Lamination', type: 'text' },
       { key: 'mounting', placeholder: 'Mounting', type: 'text' },
       { key: 'implementation', placeholder: 'Implementation', type: 'text' },
-      { key: 'salonAddress', placeholder: 'Salon Address', type: 'text' },
+      { key: 'salonAddress', placeholder: 'Salon / Store Address', type: 'text' },
       { key: 'machineName', placeholder: 'Machine Name', type: 'text' },
-      { key: 'deadline', placeholder: 'Deadline', type: 'text' },
+      { key: 'deadline', placeholder: 'Job Deadline', type: 'text' },
       { key: 'designerName', placeholder: 'Designer Name', type: 'text' },
       { key: 'designerDeadline', placeholder: 'Designer Deadline', type: 'text' },
-      { key: 'printerPrintingName', placeholder: 'Printer Name', type: 'text' },
+      { key: 'printerPrintingName', placeholder: 'Printing Machine', type: 'text' },
       { key: 'printerDeadline', placeholder: 'Printer Deadline', type: 'text' },
-      { key: 'remarks', placeholder: 'Remarks', type: 'text' },
+      { key: 'remarks', placeholder: 'Remarks / Instructions', type: 'text' },
     ]
 
     console.log(setSortConfig)
@@ -668,36 +699,22 @@ import FilterSidebar from "../ui/FilterComponent";
 
         const headers = jsonData[0];
         const dataRows = jsonData.slice(1);
-        const data = dataRows.map((row) => {
+
+        // Create a new array to hold the mapped data
+        const mappedData = dataRows.map((row) => {
           const obj = {};
           headers.forEach((header, i) => {
-            let cellValue = row[i];
-            const cell = worksheet[XLSX.utils.encode_cell({ r: dataRows.indexOf(row) + 1, c: i })];
-
-            if (cell && cell.t === 'n' && cell.z) {
-              const date = XLSX.SSF.parse_date_code(cell.v);
-              if (date) {
-                cellValue = new Date(Date.UTC(date.y, date.m - 1, date.d)).toISOString().split('T')[0];
-              }
-            }
-
-            obj[header] = cellValue;
+            const mappedHeader = headerMapping[header] || header; // Use the mapped header or the original if not found
+            obj[mappedHeader] = row[i]; // Assign the value to the mapped header
           });
-
           return obj;
         }).filter(row => {
           return Object.values(row).some(value => value !== '' && value !== null && value !== undefined);
         });
 
-        console.log("Filtered Data: ", data);
-      //  setClients(data.client)
-
-      // setSubclients(data.subClient)
+        console.log("Mapped Data: ", mappedData);
         setHeaders(headers);
-        
-        setData(data);
-  
-        
+        setData(mappedData);
       };
 
       reader.readAsBinaryString(file);
