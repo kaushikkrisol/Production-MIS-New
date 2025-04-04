@@ -235,193 +235,175 @@ const MisReport = () => {
 
     const tableConfigs = {
         CS: {
-            data: csData,
             headers: [
-                "Job No", "Job Date", "Client", "Sub Client", "User Name", "Production Location", "Visual Code", "Product Details",
-                "City", "Qty", "Media", "Implementation", "Job Deadline", "Lamination", "Mounting",
-                "Salon / Store Address", "Dispatch Address", "Remarks / Instructions", "Width", "Height", "Total Sq.Ft"
-            ],
-            renderRow: (row) => (
-                <tr key={row.id}>
-                    <td>{row.jobNo}</td>
-                    <td>{row.date}</td>
-                    <td>{row.client}</td>
-                    <td>{row.subClient}</td>
-                    <td>{row.userName}</td>
-                    <td>{row.region}</td>
-                    <td>{row.visualCode}</td>
-                    <td>{row.nameSubCode}</td>
-                    <td>{row.city}</td>
-                    <td>{row.qty}</td>
-                    <td>{row.media}</td>
-                    <td>{row.implementation}</td>
-                    <td>{row.deadline}</td>
-                    <td>{row.lamination}</td>
-                    <td>{row.mounting}</td>
-                    {/* <td>{row.implementation}</td> */}
-                    <td>{row.salonAddress}</td>
-                    <td>{row.dispatchAddress}</td>
-                    <td>{row.remarks}</td>
-                    <td>{row.width}</td>
-                    <td>{row.height}</td>
-                    <td>{row.totalSqFt}</td>
-                </tr>
-            ),
+                { label: "Job No", key: "jobNo" },
+                { label: "Job Date", key: "date" },
+                { label: "Client", key: "client" },
+                { label: "Sub Client", key: "subClient" },
+                { label: "User Name", key: "userName" },
+                { label: "Production Location", key: "region" },
+                { label: "Visual Code", key: "visualCode" },
+                { label: "Product Details", key: "nameSubCode" },
+                { label: "City", key: "city" },
+                { label: "Qty", key: "qty" },
+                { label: "Media", key: "media" },
+                { label: "Implementation", key: "implementation" },
+                { label: "Job Deadline", key: "deadline" },
+                { label: "Lamination", key: "lamination" },
+                { label: "Mounting", key: "mounting" },
+                { label: "Salon / Store Address", key: "salonAddress" },
+                { label: "Dispatch Address", key: "dispatchAddress" },
+                { label: "Remarks / Instructions", key: "remarks" },
+                { label: "Width", key: "width" },
+                { label: "Height", key: "height" },
+                { label: "Total Sq.Ft", key: "totalSqFt" }
+            ]
         },
         Design: {
-            data: designData,
-            headers: ["Job No", "Designer Name",  "Client Name", "No Of Artworker", "Brief", "Production Location", 
-                "Query", "Design Type", "Job Date", "CS Name", "Visual Code", "Product Details",
-                "City", "Designer Deadline", "Artworker Deadline", "Start Time", "End Time"],
-            renderRow: (row) => (
-                <tr key={row.id}>
-                    <td>{row.jobNo}</td>
-                    <td>{row.designerName}</td>
-                    <td>{row.designClientName || row.client}</td>
-                    <td>{row.noOfArtwork || row.noOfArtworker}</td>
-                    <td>{row.designBrief}</td>
-                    <td>{row.location || row.designLocation}</td>
-                {/* <td>{row.designStatus}</td> */}
-                    <td>{row.designQuery}</td>
-                    <td>{row.designType}</td>
-                    <td>{row.date}</td>
-                    <td>{row.Entrdby}</td>
-                    <td>{row.visualCode}</td>
-                    <td>{row.nameSubCode}</td>
-                    <td>{row.city || '-'}</td>
-                    <td>{row.designerDeadline}</td>
-                    <td>{row.artworkerDeadline}</td>
-                    <td>{row.startdate || '-'}</td>
-                    <td>{row.enddate || '-'}</td>
-                </tr>
-            ),
+            headers: [
+                { label: "Job No", key: "jobNo" },
+                { label: "Designer Name", key: "designerName" },
+                { label: "Client Name", key: "designClientName" },
+                { label: "No Of Artworker", key: "noOfArtworker" },
+                { label: "Brief", key: "designBrief" },
+                { label: "Production Location", key: "designLocation" },
+                { label: "Query", key: "designQuery" },
+                { label: "Design Type", key: "designType" },
+                { label: "Job Date", key: "date" },
+                { label: "CS Name", key: "Entrdby" },
+                { label: "Visual Code", key: "visualCode" },
+                { label: "Product Details", key: "nameSubCode" },
+                { label: "City", key: "city" },
+                { label: "Designer Deadline", key: "designerDeadline" },
+                { label: "Artworker Deadline", key: "artworkerDeadline" },
+                { label: "Start Time", key: "startdate" },
+                { label: "End Time", key: "enddate" }
+            ]
         },
         Printing: {
-            data: printingData,
-            headers: ["Job No", "Job Date", "Printing Machine", "Production Location", "Qty", "Print W.", "Print L.", "Print SQ.Ft.", "Media",
-                "Implementation", "Job Deadline", "Salon / Store Address", "Lamination", "Mounting",
-                "Job Start Date", "Job End Date", "Client", "Sub Client", "Account Manager", "Visual Code", "Product Details", "Remarks"],
-            renderRow: (row) => (
-                <tr key={row.id}>
-                    <td>{row.jobNo}</td>
-                    <td>
-                        {row.date}
-                    </td>
-                    <td>{row.printerName}</td>
-                    <td>{row.region}</td>
-                    <td>{row.qty}</td>
-                    <td>{row.width}</td>
-                    <td>{row.height}</td>
-                    <td>{row.totalSqFt}</td>
-                    <td>{row.media}</td>
-                    <td>{row.implementation}</td>
-                    <td>{row.deadline}</td>
-                    <td>{row.salonAddress}</td>
-                    <td>{row.lamination}</td>
-                    <td>{row.mounting}</td>
-                    <td>{row.startdate || '-'}</td>
-                    <td>{row.enddate || '-'}</td>
-                    <td>
-                        {row.client}
-                    </td>
-                    <td>{row.subClient}</td>
-                    <td>{row.userName}</td>
-                    <td>
-                        {row.visualCode}
-                    </td>
-                    <td>{row.nameSubCode}</td>
-                    <td>{row.remarks}</td>                    
-                    
-                </tr>
-            ),
+            headers: [
+                { label: "Job No", key: "jobNo" },
+                { label: "Job Date", key: "date" },
+                { label: "Printing Machine", key: "printerName" },
+                { label: "Production Location", key: "region" },
+                { label: "Qty", key: "qty" },
+                { label: "Print W.", key: "width" },
+                { label: "Print L.", key: "height" },
+                { label: "Print SQ.Ft.", key: "totalSqFt" },
+                { label: "Media", key: "media" },
+                { label: "Implementation", key: "implementation" },
+                { label: "Job Deadline", key: "deadline" },
+                { label: "Salon / Store Address", key: "salonAddress" },
+                { label: "Lamination", key: "lamination" },
+                { label: "Mounting", key: "mounting" },
+                { label: "Job Start Date", key: "startdate" },
+                { label: "Job End Date", key: "enddate" },
+                { label: "Client", key: "client" },
+                { label: "Sub Client", key: "subClient" },
+                { label: "Account Manager", key: "userName" },
+                { label: "Visual Code", key: "visualCode" },
+                { label: "Product Details", key: "nameSubCode" },
+                { label: "Remarks", key: "remarks" }
+            ]
         },
         Delivery: {
-            data: deliveryData,
-            headers: ["Job No", "Job Date", "Client Name", "Sub Client", "User Name", "Production Location", "Visual Code", "Product Details",
-                "City", "Quantity", "Media", "Lamination", "Mounting", "Implementation", "Salon / Store Address",
-                "Dispatch Address", "Job Deadline", "Remarks", "Entered By", "Entered Date",
-                "Last Update By", "Last Updated By", "Width", "Height", "Total Sq.Ft", "Delivery By", "Delivery Date", "Delivery To"],
-            renderRow: (row) => (
-                <tr key={row.id}>
-                    <td>{row.jobNo}</td>
-                    <td>
-                        {row.date}
-                    </td>
-                    <td>
-                        {row.client}
-                    </td>
-                    <td>{row.subClient}</td>
-                    <td>{row.userName}</td>
-                    <td>{row.region}</td>
-                    <td>
-                        {row.visualCode}
-                    </td>
-                    <td>{row.nameSubCode}</td>
-                    <td>
-                        {row.city}
-                    </td>
-                    <td>
-                        {row.qty}
-                    </td>
-                    <td>{row.media}</td>
-                    <td>{row.lamination}</td>
-                    <td>{row.mounting}</td>
-                    <td>{row.implementation}</td>
-                    <td>{row.salonAddress}</td>
-                    <td>{row.dispatchAddress}</td>
-                    <td>{row.deadline}</td>
-                    <td>{row.remarks}</td>
-                    <td>{row.enteredby}</td>
-                    <td>{row.entereddt}</td>
-                    <td>{row.lstupateby}</td>
-                    <td>{row.lstupdatedt}</td>
-                    <td>
-                        {row.width}
-                    </td>
-                    <td>
-                        {row.height}
-                    </td>
-                    <td>{row.totalSqFt}</td>
-                    <td>{row.deliveryBy || '-'}</td>
-                    <td>{row.deliveryDate || '-'}</td>
-                    <td>{row.deliveryTo || '-'}</td>
-                </tr>
-            ),
-        },
+            headers: [
+                { label: "Job No", key: "jobNo" },
+                { label: "Job Date", key: "date" },
+                { label: "Client Name", key: "client" },
+                { label: "Sub Client", key: "subClient" },
+                { label: "User Name", key: "userName" },
+                { label: "Production Location", key: "region" },
+                { label: "Visual Code", key: "visualCode" },
+                { label: "Product Details", key: "nameSubCode" },
+                { label: "City", key: "city" },
+                { label: "Quantity", key: "qty" },
+                { label: "Media", key: "media" },
+                { label: "Lamination", key: "lamination" },
+                { label: "Mounting", key: "mounting" },
+                { label: "Implementation", key: "implementation" },
+                { label: "Salon / Store Address", key: "salonAddress" },
+                { label: "Dispatch Address", key: "dispatchAddress" },
+                { label: "Job Deadline", key: "deadline" },
+                { label: "Remarks", key: "remarks" },
+                { label: "Entered By", key: "enteredby" },
+                { label: "Entered Date", key: "entereddt" },
+                { label: "Last Update By", key: "lstupateby" },
+                { label: "Last Updated By", key: "lstupdatedt" },
+                { label: "Width", key: "width" },
+                { label: "Height", key: "height" },
+                { label: "Total Sq.Ft", key: "totalSqFt" },
+                { label: "Delivery By", key: "deliveryBy" },
+                { label: "Delivery Date", key: "deliveryDate" },
+                { label: "Delivery To", key: "deliveryTo" }
+            ]
+        }
     };
 
     const exportToExcel = () => {
         const reportConfig = tableConfigs[newProduction];
-        if (!reportConfig || reportConfig.data.length === 0) {
+        if (!reportConfig || !reportConfig.data || reportConfig.data.length === 0) {
             alert("No data available for export.");
             return;
         }
 
-        // Function to transform headers to data keys
-        const headerToKey = (header) => {
-            return header
-                .split(' ') // Split by spaces for multi-word headers
-                .map((word, index) =>
-                    index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1) // Make first word lowercase, rest camel case
-                )
-                .join('');
-        };
+        const headers = reportConfig.headers.map(h =>
+            typeof h === "string" ? { label: h, key: h.replace(/\s+/g, '').toLowerCase() } : h
+        );
 
-        // Transform the data to match the headers
         const transformedData = reportConfig.data.map(item => {
             const row = {};
-            reportConfig.headers.forEach(header => {
-                const key = headerToKey(header); // Dynamically generate the key based on the header
-                row[header] = item[key] !== undefined ? item[key] : ''; // Use empty string if the key is not found
+            headers.forEach(({ label, key }) => {
+                row[label] = item[key] ?? '';
             });
             return row;
         });
 
-        const worksheet = XLSX.utils.json_to_sheet(transformedData);
+        const worksheet = XLSX.utils.json_to_sheet(transformedData, { origin: "A2" });
+        const headerRow = headers.map(h => h.label);
+        XLSX.utils.sheet_add_aoa(worksheet, [headerRow], { origin: "A1" });
+
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+            const cellAddress = XLSX.utils.encode_cell({ r: 0, c: C });
+            if (!worksheet[cellAddress]) continue;
+            worksheet[cellAddress].s = {
+                font: { bold: true },
+                alignment: { horizontal: "center", vertical: "center", wrapText: true },
+                fill: { fgColor: { rgb: "D9E1F2" } },
+                border: {
+                    top: { style: "thin", color: { rgb: "000000" } },
+                    bottom: { style: "thin", color: { rgb: "000000" } },
+                    left: { style: "thin", color: { rgb: "000000" } },
+                    right: { style: "thin", color: { rgb: "000000" } }
+                }
+            };
+        }
+
+        worksheet['!cols'] = headerRow.map(() => ({ wch: 20 }));
+
+        for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+            for (let C = range.s.c; C <= range.e.c; ++C) {
+                const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+                if (!worksheet[cellAddress]) continue;
+                worksheet[cellAddress].s = {
+                    alignment: { horizontal: "left", vertical: "center", wrapText: true },
+                    border: {
+                        top: { style: "thin", color: { rgb: "CCCCCC" } },
+                        bottom: { style: "thin", color: { rgb: "CCCCCC" } },
+                        left: { style: "thin", color: { rgb: "CCCCCC" } },
+                        right: { style: "thin", color: { rgb: "CCCCCC" } }
+                    }
+                };
+            }
+        }
+
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, "Report");
-        XLSX.writeFile(workbook, "Report.xlsx");
+        XLSX.writeFile(workbook, "Report.xlsx", { cellStyles: true });
     };
+    console.log(csData,designData,deliveryData,printingData)
+
 
     const exportToCsv = () => {
         const reportConfig = tableConfigs[newProduction];
@@ -431,24 +413,34 @@ const MisReport = () => {
         }
 
         // Function to transform headers to data keys
-        const headerToKey = (header) => {
-            return header
-                .split(' ') // Split by spaces for multi-word headers
-                .map((word, index) =>
-                    index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1) // Make first word lowercase, rest camel case
-                )
-                .join('');
-        };
+        // const headerToKey = (header) => {
+        //     return header
+        //         .split(' ') // Split by spaces for multi-word headers
+        //         .map((word, index) =>
+        //             index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1) // Make first word lowercase, rest camel case
+        //         )
+        //         .join('');
+        // };
 
         // Transform the data to match the headers
         const transformedData = reportConfig.data.map(item => {
             const row = {};
+
+            // Iterate through each header to match it to data keys
             reportConfig.headers.forEach(header => {
-                const key = headerToKey(header); // Dynamically generate the key based on the header
-                row[header] = item[key] !== null && item[key] !== undefined ? item[key] : ''; // Use empty string if the key is not found
+                const headerWords = header.toLowerCase().split(/\s+/); // split header into words
+
+                // Find the first key in item that includes any word from the header
+                const matchedKey = Object.keys(item).find(field =>
+                    headerWords.some(word => field.toLowerCase().includes(word))
+                );
+
+                row[header] = matchedKey ? item[matchedKey] : '';
             });
+
             return row;
         });
+
 
         // Generate CSV from transformed data
         const worksheet = XLSX.utils.json_to_sheet(transformedData);
@@ -470,24 +462,34 @@ const MisReport = () => {
         }
 
         // Function to transform headers to data keys
-        const headerToKey = (header) => {
-            return header
-                .split(' ') // Split by spaces for multi-word headers
-                .map((word, index) =>
-                    index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1) // Make first word lowercase, rest camel case
-                )
-                .join('');
-        };
+        // const headerToKey = (header) => {
+        //     return header
+        //         .split(' ') // Split by spaces for multi-word headers
+        //         .map((word, index) =>
+        //             index === 0 ? word.toLowerCase() : word.charAt(0).toUpperCase() + word.slice(1) // Make first word lowercase, rest camel case
+        //         )
+        //         .join('');
+        // };
 
         // Transform the data to match the headers
         const transformedData = reportConfig.data.map(item => {
             const row = {};
+
+            // Iterate through each header to match it to data keys
             reportConfig.headers.forEach(header => {
-                const key = headerToKey(header); // Dynamically generate the key based on the header
-                row[header] = item[key] !== undefined ? item[key] : ''; // Use empty string if the key is not found
+                const headerWords = header.toLowerCase().split(/\s+/); // split header into words
+
+                // Find the first key in item that includes any word from the header
+                const matchedKey = Object.keys(item).find(field =>
+                    headerWords.some(word => field.toLowerCase().includes(word))
+                );
+
+                row[header] = matchedKey ? item[matchedKey] : '';
             });
+
             return row;
         });
+
 
         const doc = new jsPDF("landscape", "pt", "A2");
         doc.setFontSize(8);
