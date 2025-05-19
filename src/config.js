@@ -1,12 +1,16 @@
 // https://production.comart.in
 
 
-//let BaseURL = "https://localhost:7035";
+    let BaseURL = "https://localhost:7035";
 
- let BaseURL ='https://productionapi.comart.in';
+    // let BaseURL ='https://productionapi.comart.in';
 
-const config ={
-    User: {
+    let BaseURL1="http://kerp.comart.in:3001";
+
+    // let BaseURL1="http://localhost:3001/api/get-orders"
+    // let BaseURL ='https://testproductionAPI.comart.in';
+
+const config ={    User: {
         URL: {
             Checkuser: BaseURL + '/User/Checkuser',
             GetAllUserrole: BaseURL + '/User/getalluserrole/getalluserrole',
@@ -14,9 +18,7 @@ const config ={
         }
     },
     JobSummary: {
-        
         URL: {
-
             Addjobdetails: BaseURL + '/api/JobSummary/Addjobdetails',
             Getalljob: BaseURL + '/api/JobSummary/Getalljob',
             TotalJobcount: BaseURL + '/api/JobSummary/TotalJobcount',
@@ -26,6 +28,8 @@ const config ={
             GetAllJobsFromSql: BaseURL + '/api/JobSummary/GetAllJobsFromSql',
             GetAllJobsAccToLocation: BaseURL + '/api/JobSummary/GetAllJobAccToLocation',
             GetCustomerNameAccToLocation: BaseURL + '/api/JobSummary/GetCustomerNameFromSql',
+            SetJobOnHold: BaseURL + '/api/JobSummary/SetJobOnHold',
+            UpdateProductionLocation: BaseURL + '/api/JobSummary/UpdateProductionLocation',
         }
     },
     Design: {
@@ -99,6 +103,24 @@ const config ={
             AddReport: BaseURL + '/api/Report',
             Getallreport: BaseURL + '/api/Report/Getallreport',
             GetProductReportWithJobNo: BaseURL + '/api/Report/GetProductReportWithJobNo',
+        }
+    },
+
+    Order:{
+        URL:{
+            GetOrder:BaseURL1+'/api/get-orders',
+            SaveOrder:BaseURL1+'/api/save-order',
+            UpdateOrder:BaseURL1+'/api/update-order'
+
+        }
+    },
+    Packing:{
+        URL:{
+            AddPackingData:BaseURL+'/api/Packing/AddPackingData',
+            StartPacking:BaseURL+'/api/Packing/StartPacking',
+            StopPacking:BaseURL+'/api/Packing/StopPacking',
+            GetAllPacking:BaseURL+'/api/Packing/GetAllPacking'
+
         }
     }
 }

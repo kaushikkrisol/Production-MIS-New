@@ -1,6 +1,7 @@
 import React from "react";
 
 import * as Icon from "react-feather";
+import { label } from "yet-another-react-lightbox";
 
 export const SidebarData = [
   // {
@@ -998,10 +999,12 @@ export const SidebarData = [
           { label: "CS", link: "/data-tables" },
           { label: "Design", link: "/designn" },
           { label: "Printing", link: "/production" },
+          {label:"Lamination/Mounting & Packing",link:"/printlaminpacking"},
           { label: "Delivery", link: "/delivery" },
           { label: "Implementation", link: "/implementation" },
-          { label: "Implementation Upload", link: "/implementationUpload" },
+          { label: "Implementation Download", link: "/implementationDownload" },
           { label: "My Design Priority", link: "/myPriority" },
+          
           // { label: "Ajgrid", link:"/Ajgrid"},
         ],
       },
@@ -1015,11 +1018,11 @@ export const SidebarData = [
       },
 
       {
-        label: "Printing Report",
+        label: "Billing Export",
         submenu: false,
         showSubRoute: false,
         icon: <Icon.Columns />,
-        link: "/PrintingReport",
+        link: "/BillingExport",
       },
 
       {
@@ -1028,6 +1031,14 @@ export const SidebarData = [
         showSubRoute: false,
         icon: <Icon.Columns />,
         link: "/jobtracker",
+      },
+
+      {
+        label: "Data Store Application",
+        submenu: false,
+        showSubRoute: false,
+        icon: <Icon.Columns />,
+        link: "/storedata",
       },
     ],
   },

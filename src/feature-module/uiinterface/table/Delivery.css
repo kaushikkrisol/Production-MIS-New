@@ -40,3 +40,34 @@ h6 {
     z-index: 10;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+
+.custom-ag-grid .ag-header {
+    background-color: #952e2e !important;
+  }
+  
+  .custom-ag-grid .ag-header-cell,
+  .custom-ag-grid .ag-header-group-cell {
+    background-color: #952e2e !important;
+    color: #ffffff !important;
+    font-weight: bold;
+    border-right: 1px solid #d8d8d8;
+    text-align: center;
+    font-size: 16px !important; /* ✅ Larger font size */
+    padding: 12px 8px !important; /* Optional: more padding for visual spacing */
+  }
+  
+  .custom-ag-grid .ag-header-cell-label {
+    justify-content: center !important;
+    font-size: 14px !important; /* ✅ Larger font size */
+  }
+  
+  /* Make filter icon white */
+  .custom-ag-grid .ag-header-cell .ag-header-icon {
+    fill: white !important;
+  }
+  
+  /* Optional: force color for font-based icons (for older ag-grid versions) */
+  .custom-ag-grid .ag-header-cell .ag-icon {
+    color: white !important;
+    filter: brightness(10);
+  }

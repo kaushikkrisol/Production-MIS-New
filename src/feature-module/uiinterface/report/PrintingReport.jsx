@@ -164,7 +164,7 @@ const PrintingReport = () => {
     return (
         <Container style={{ marginLeft: 'auto', marginRight: 'auto', padding: '0 10px', marginTop: '2em' }}>
             <div className="page-wrapper">
-                <div className="content container-fluid">
+                {/* <div className="content container-fluid">
                     {loading && <Spinner animation="border" className="d-block mx-auto" />}
                     <div className="page-header">
                         <div className="row">
@@ -177,7 +177,7 @@ const PrintingReport = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> */}
 
                 <div className="content container-fluid mt-4 mb-4">
                     {loading && <Spinner animation="border" className="d-block mx-auto" />}

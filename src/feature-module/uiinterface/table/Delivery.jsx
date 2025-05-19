@@ -11,7 +11,7 @@ import Sort from '../ui/Sort';
 import Notification from '../../Notification/Notification';
 
 const Delivery = () => {
-    // const [BulkAdd, setBulkAdd] = useState(false);
+    // const [BulkAdd, setBulkAdd] = useState(false);   
     // const [headers, setHeaders] = useState([]);
     const [data, setData] = useState([]);
     console.log(data);
@@ -280,6 +280,28 @@ const Delivery = () => {
         }
     }
 
+
+    const columnDefs = useMemo(() => [
+        { checkboxSelection: true, headerCheckboxSelection: true, width: 40 },
+        { headerName: 'Production Date', field: 'date' },
+        { headerName: 'Job ID', field: 'jobNo' },
+        { headerName: 'Client Name', field: 'client' },
+        { headerName: 'Production Location', field: 'region' },
+        { headerName: 'Delivery Person', field: 'deliveryTo' },
+        { headerName: 'Delivery Started', field: 'deliveryDate' },
+        { headerName: 'Delivery Completed', field: 'deliveryOutDate' },
+        { headerName: 'Delivery Mode', field: 'handTempoDelivery' },
+        { headerName: 'Address', field: 'salonAddress' },
+        { headerName: 'Implementation', field: 'implementation' },
+      ], []);
+
+
+  const defaultColDef = useMemo(() => ({
+    sortable: true,
+    resizable: true,
+    filter: true,
+  }), []);
+
     useEffect(() => {
         const getUserNames = async () => {
             try {
@@ -541,8 +563,6 @@ const Delivery = () => {
                                                             <option value="Comart to Deliver">Comart to Deliver</option>
                                                             <option value="Customer Pick-Up from Comart">Customer Pick-Up from Comart</option>
                                                             <option value="Comart Courier">Comart Courier</option>
-                                                            <option value="Job Delivery by the Implementer">Job Delivery by the Implementer</option>
-                                                            <option value="Job Delivery & Implementation by the Implementer">Job Delivery & Implementation by the Implementer</option>
                                                         </Form.Select>
                                                     </Form.Group>
                                                 </Col>
@@ -557,7 +577,7 @@ const Delivery = () => {
                                     </div>
 
                                     <Form.Group className="mb-3 mt-3">
-                                    <InputGroup>
+                                    {/* <InputGroup>
                                             <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
                                                 <FaSearch />
                                             </InputGroup.Text>
@@ -568,7 +588,7 @@ const Delivery = () => {
                                                 value={searchTerm}
                                                 onChange={(e) => setSearchTerm(e.target.value)}
                                             />
-                                    </InputGroup>
+                                    </InputGroup> */}
                                     </Form.Group>
                                     <div style={{ overflowX: 'auto' }} className='table-container'>
                                         <Table striped bordered hover>
@@ -637,7 +657,7 @@ const Delivery = () => {
                                                             </td>
                                                             {/* <td>{row.subClient}</td> */}
                                                             <td>{row.region}</td>
-                                                            {/* <td>{row.userName}</td>                                                            <td>
+                                                            {/* <td>{row.userName}</td> <td>
                                                                 {row.visualCode}
                                                             </td>
                                                             <td>{row.nameSubCode}</td>

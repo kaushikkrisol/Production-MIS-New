@@ -46,13 +46,16 @@ export const all_routes = {
   production: "/Production",
   delivery: "/Delivery",
   implementation: "/Implementation",
-  implementationUpload: "/ImplementationUpload",
+  implementationDownload: "/ImplementationDownload",
   myPriority: "/myPriority",
 
   misreport: "/MisReport",
-  printingreport: "/PrintingReport",
+  billingexport: "/Billingexport",
   jobtracker: "/JobTracker",
   approval: "/approval",
+  storedata:"/storedata",
+  printlaminpacking:"/printlaminpacking",
+
 
   Ajgrid:"/Ajgrid",
   basicinput: "/form-basic-inputs",

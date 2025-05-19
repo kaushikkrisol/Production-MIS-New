@@ -60,3 +60,82 @@ h6 {
 .modal-backdrop {
     display: none !important;
 }
+
+
+/* Highlight the pinned bottom row */
+.ag-theme-alpine .ag-row-pinned {
+    background-color: #f9f1e7 !important; /* light background */
+    font-weight: bold;
+    font-size: 14px;
+    color: #4a4a4a;
+    border-top: 2px solid #b53c3c; /* red bar on top */
+    border-bottom: 2px solid #b53c3c; /* optional: red bar on bottom */
+  }
+  
+  /* Optionally center-align the pinned row content */
+  .ag-theme-alpine .ag-row-pinned .ag-cell {
+    text-align: center;
+  }
+  .custom-ag-grid .ag-header {
+    background-color: #952e2e !important;
+  }
+  
+  .custom-ag-grid .ag-header-cell,
+  .custom-ag-grid .ag-header-group-cell {
+    background-color: #952e2e !important;
+    color: #ffffff !important;
+    font-weight: bold;
+    border-right: 1px solid #d8d8d8;
+    text-align: center;
+    font-size: 16px !important; /* ✅ Larger font size */
+    padding: 12px 8px !important; /* Optional: more padding for visual spacing */
+  }
+  
+  .custom-ag-grid .ag-header-cell-label {
+    justify-content: center !important;
+    font-size: 14px !important; /* ✅ Larger font size */
+  }
+  
+  /* Make filter icon white */
+  .custom-ag-grid .ag-header-cell .ag-header-icon {
+    fill: white !important;
+  }
+  
+  /* Optional: force color for font-based icons (for older ag-grid versions) */
+  .custom-ag-grid .ag-header-cell .ag-icon {
+    color: white !important;
+    filter: brightness(10);
+  }
+
+  /* ProductionAgGrid.css */
+
+.ag-theme-alpine.production-grid {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+  
+  /* Force cell content to stay single line and center vertically */
+  .ag-cell {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    white-space: nowrap; /* prevent wrapping */
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* Prevent row height from expanding due to multiline or padding */
+  .ag-row {
+    line-height: normal !important;
+    padding: 0 !important;
+  }
+  
+  /* Header styling for better readability */
+  .ag-header-cell {
+    font-weight: 600;
+    font-size: 13px;
+    background-color: #7b2c2c;
+    color: white;
+  }
+  
+  

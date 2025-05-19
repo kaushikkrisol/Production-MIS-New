@@ -75,13 +75,14 @@ import Production from "../feature-module/uiinterface/table/Production";
 import Designn from "../feature-module/uiinterface/table/Designn";
 import Delivery from "../feature-module/uiinterface/table/Delivery";
 import Implementation from "../feature-module/uiinterface/table/Implementation";
-import ImplementationUpload from "../feature-module/uiinterface/table/ImplementationUpload";
 import MyPriority from "../feature-module/pages/myPriority/MyPriority";
+import ImplementationDownload from "../feature-module/uiinterface/table/ImplementationUpload";
 
 import MisReport from "../feature-module/uiinterface/report/MisReport";
-import PrintingReport from "../feature-module/uiinterface/report/PrintingReport";
+import BillingExport from "../feature-module/uiinterface/report/PrintingReport";
 import JobTracker from "../feature-module/uiinterface/summary/JobTrack";
 import Approval from "../.././src/approvalPage/Approval";
+import StoreData from "../kanbanview";
 
 import FormBasicInputs from "../feature-module/uiinterface/forms/formelements/basic-inputs";
 import CheckboxRadios from "../feature-module/uiinterface/forms/formelements/checkbox-radios";
@@ -209,6 +210,7 @@ import Coupons from "../feature-module/coupons/coupons";
 import { all_routes } from "./all_routes";
 import BankSettingGrid from "../feature-module/settings/financialsettings/banksettinggrid";
 import PayrollList from "../feature-module/hrm/payroll-list";
+import Printlaminpacking from "../feature-module/uiinterface/table/Printlaminpacking";
 export const publicRoutes = [
   {
     id: 1,
@@ -274,6 +276,7 @@ export const publicRoutes = [
     element: <PrintBarcode />,
     route: Route,
   },
+ 
   {
     id: 10,
     path: routes.alerts,
@@ -625,9 +628,9 @@ export const publicRoutes = [
   },
   {
     id: 62,
-    path: routes.implementationUpload,
+    path: routes.implementationDownload,
     name: "implementationUpload",
-    element: <ImplementationUpload />,
+    element: <ImplementationDownload />,
     route: Route,
   },
   {
@@ -646,9 +649,9 @@ export const publicRoutes = [
   },
   {
     id: 53,
-    path: routes.printingreport,
-    name: "printingreport",
-    element: <PrintingReport />,
+    path: routes.billingexport,
+    name: "billingexport",
+    element: <BillingExport />,
     route: Route,
   },
   {
@@ -658,12 +661,28 @@ export const publicRoutes = [
     element: <JobTracker />,
     route: Route,
   },
+  
+
+  {
+    id: 52,
+    path: routes.storedata,
+    name: "storedata",
+    element: <StoreData />,
+    route: Route,
+  },
   {
     id: 52,
     path: routes.approval,
     name: "approval",
     element: <Approval />,
     route: Route,
+  },
+  {
+    id:53,
+    path:routes.printlaminpacking,
+    name:"printlaminpacking",
+    element:<Printlaminpacking/>,
+    route:Route,
   },
   {
     id: 46,
@@ -1678,4 +1697,5 @@ export const pagesRoute = [
     element: <Undermaintainence />,
     route: Route,
   },
+ 
 ];

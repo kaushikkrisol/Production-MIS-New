@@ -1,9 +1,12 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import DateRangePicker from "react-bootstrap-daterangepicker";
 import { Calendar } from "feather-icons-react/build/IconComponents";
 import axios from "axios";
 import config from "../../config";
+import useCampaignStore from "../../store/orderstore";
 import Notification from "../Notification/Notification";
+import { Button } from "react-bootstrap";
+import OrderPopup from "./orderPopup";
 
 const Dashboard = () => {
   // Function to get the last N days
@@ -17,6 +20,11 @@ const Dashboard = () => {
   const [productionData, setProductionData] = useState([]);
   const [delayData, setDelayData] = useState([]);
   const [lowStockData, setLowStockData] = useState([]);
+  const [jobsFromSql, setJobsFromSql] = useState([]);
+  const [locationid, setLocationid] = useState("");
+  const [jobNo,setJobNo]=useState('');
+  const [showOrderPopup, setShowOrderPopup] = useState(false);
+
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
   const [dateRange, setDateRange] = useState({
@@ -25,6 +33,108 @@ const Dashboard = () => {
   });
 
   console.log(productionData);
+  const { campaigns, fetchCampaigns } = useCampaignStore();
+
+  useEffect(() => {
+    const users = localStorage.getItem("users");
+  
+    if (users) {
+      try {
+        const userObj = JSON.parse(users);
+        const id = userObj?.message?.location_id;
+        if (id) setLocationid(id);
+      } catch (error) {
+        console.error("Error parsing JSON from localStorage:", error);
+      }
+    } else {
+      console.warn("No users data in localStorage");
+    }
+  
+    fetchCampaigns(); // this one doesn’t depend on locationid
+  }, []);
+  
+  useEffect(() => {
+    if (locationid) {
+      GetAllJobsFromSql(); // ✅ Only call this once locationid is available
+    }
+  }, [locationid]);
+  
+
+  // const yetToStartItems = useMemo(() => {
+  //   return campaigns.flatMap(c =>
+  //     c.items
+  //       .map(item => ({
+  //         ...item,
+  //         status: item.status || item.Status || "Yet to Start",
+  //         jobNo: c.jobNo || c.id || "N/A",
+  //         customerName: c.name || "N/A",
+  //         campaignId: c.id  // ✅ ADD THIS LINE
+  //       }))
+  //       .filter(item => item.status.toLowerCase() === "yet to start")
+  //   );
+  // }, [campaigns]);
+  
+
+  const yetToStartItems = useMemo(() => {
+    return campaigns.flatMap(c =>
+      c.items.map(item => ({
+        ...item,
+        status: item.status || item.Status || "Yet to Start",
+        jobNo: c.jobNo || c.id || "N/A",
+        customerName: c.name || "N/A",
+        campaignId: c.id
+      }))
+    );
+  }, [campaigns]);
+  
+  
+  
+  useEffect(() => {
+    if (campaigns.length && yetToStartItems.length > 0) {
+      console.log("campaigns",campaigns)
+      setShowOrderPopup(true);
+    }
+  }, [campaigns, yetToStartItems]);
+
+
+  const GetAllJobsFromSql = async () => {
+    const payload = { locationId: locationid };
+  
+    try {
+      const response = await axios.post(`${config.JobSummary.URL.GetAllJobsFromSql}`, payload);
+      setJobsFromSql(response.data);
+  
+      // Generate jobNo options
+      const jobNoOptionsFromSql = response.data.map(job => ({
+        value: job.comartjobno,
+        label: `${job.comartjobno} (${job.client})`,
+        clientName: job.client || '',
+        subClient: job.subClient || ''
+      }));
+  
+      // Optional: Combine with job numbers from campaign store
+      const jobNoOptionsFromCampaigns = campaigns.map(c => ({
+        value: c.jobNo || c.id || 'N/A',
+        label: `${c.jobNo || c.id || 'N/A'} (${c.name || 'Unknown'})`
+      }));
+  
+      const combinedJobNoOptions = [
+        ...jobNoOptionsFromSql,
+        ...jobNoOptionsFromCampaigns
+      ];
+  
+      // Remove duplicates
+      const uniqueJobNoOptions = Array.from(new Map(
+        combinedJobNoOptions.map(opt => [opt.value, opt])
+      ).values());
+  
+      setJobNo(uniqueJobNoOptions);  // ✅ Store clean options
+    } catch (error) {
+      console.error("Error for displaying jobno", error);
+    }
+  };
+  
+  
 
   const fetchData = useCallback(
     async (url, setData) => {
@@ -172,6 +282,7 @@ const Dashboard = () => {
             lowStockData
           )}
 
+
           <div>
             {showNotification && (
               <Notification
@@ -184,6 +295,19 @@ const Dashboard = () => {
                 headerColor="#5b79ff"
               />
             )}
+      {showOrderPopup && yetToStartItems.length > 0 && (
+        <OrderPopup
+          show={showOrderPopup}
+          items={yetToStartItems}
+          jobOptions={jobNo}
+          onClose={() => setShowOrderPopup(false)}
+          containerBg="rgba(220, 53, 69, 0.95)"
+          bgColor="#f8d7da"
+          headerColor="#b02a37"
+        />
+      )}
+
+
           </div>
         </div>
       </div>

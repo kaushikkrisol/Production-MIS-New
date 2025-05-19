@@ -191,22 +191,12 @@ const Implementation = () => {
 
     const uniqueNames = [...new Set(user.map((u) => u))];
 
-    const handleCheckboxChange = (id) => {
-        setSelectedRows(prev => {
-            const newSelectedRows = { ...prev, [id]: !prev[id] };
-            filteredData1.forEach(job => {
-                newSelectedRows[job.productionid] = true;
-            });
-
-            console.log('prev', prev);
-            console.log("Current selected rows state:", newSelectedRows);
-            return newSelectedRows;
-        });
-        console.log("After change:", { ...selectedRows, [id]: !selectedRows[id] });
-        console.log('Selected rows ', selectedRows);
-
-        console.log(`Production id: ${id}`);
-    };
+  const handleCheckboxChange = (id) => {
+    setSelectedRows(prev => ({
+        ...prev,
+        [id]: !prev[id]
+    }));
+};
 
     const handleSelectAllChange = (e) => {
         const isChecked = e.target.checked;
@@ -576,9 +566,9 @@ const Implementation = () => {
                                                             <td>{row.salonAddress}</td>
                                                             <td>{row.deadline}</td>
                                                             <td>{row.implementation}</td>
-                                                            <td>{row.width}</td>
-                                                            <td>{row.height}</td>
-                                                            <td>{row.totalSqFt}</td>
+                                                            <td>{parseFloat(row.width || 0).toFixed(2)}</td>
+                                                            <td>{parseFloat(row.height || 0).toFixed(2)}</td>
+                                                            <td>{parseFloat(row.totalSqFt || 0).toFixed(2)}</td>
                                                             <td>{'-'}</td>
                                                             <td>{row.assignName || '-'}</td>
                                                             <td>{row.implementationDate || '-'}</td>

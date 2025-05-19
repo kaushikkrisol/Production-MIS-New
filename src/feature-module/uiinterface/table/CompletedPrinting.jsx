@@ -14,8 +14,19 @@ const CompletedPrinting = () => {
     const [selectedExJobNumber, setSelectedExJobNumber] = useState('');
     const [filteredData, setFilteredData] = useState([]); // State for filtered data
     const [reason, setReason] = useState('');
+    const [detailedReason, setDetailedReason] = useState('');
     const [selectedRows, setSelectedRows] = useState({});
     const [error, setError] = useState('');
+    
+    const reasonOptions = [
+        {value:'Other Error', label:'Other Error'},
+        { value: 'Design Error(Operator)', label: 'Design Error(Operator)' },
+        { value: 'Printer Error(Operator)', label: 'Printer Error(Operator)' },
+        { value: 'Print machine Error', label: 'Print machine Error' },
+        { value: 'Print Damage During Transit', label: 'Print Damage During Transit' },
+        { value: 'Lamination Error', label: 'Lamination Error' },
+        { value: 'Installation Error', label: 'Installation Error' },
+    ];
 
     const [user, setUser] = useState('');
     // Check if users data exists and is not null
@@ -40,12 +51,6 @@ const CompletedPrinting = () => {
 
 
     const handleFetchCompletedPrinting = async () => {
-       
-
-
-
-       
-
             setLoading(true);
             try {
 
@@ -71,6 +76,16 @@ const CompletedPrinting = () => {
             } finally {
                 setLoading(false);
             }
+        }
+
+        const handlereason=(selectedOption)=>{
+                const value=selectedOption ? selectedOption.value:'';
+                setReason(value);
+                if(value){
+                    setError('')
+                }
+
+
         }
 
         useEffect(() => {
@@ -166,6 +181,7 @@ const CompletedPrinting = () => {
             });
 
             setReason('');
+            setDetailedReason('');
             setError('');
 
             if (response.status === 200) {
@@ -216,12 +232,10 @@ const CompletedPrinting = () => {
     };
 
 
-    const  handlereason  = (e) => {
+    const  handleDetailedreason  = (e) => {
         const value = e.target.value;
-        setReason(value);
-        if (value) {
-            setError('');
-        }
+        setDetailedReason(value);
+        if (value) setError('');
     }
     return (
 
@@ -241,12 +255,28 @@ const CompletedPrinting = () => {
                 </Col>
                 <Col><Button onClick={handleSearch} className='mt-4'>Search</Button></Col>
                 <Col><Button onClick={handleReprint} className='mt-4 ml-8'>Reprint</Button></Col>
-
-                <Row xs={1}>
-                <label className='mt-3'>Reason  for Reprint </label>
-                <input name='reason' value={reason} onChange={handlereason} className='reason-input' required />
-                {error && <div style={{color: 'red'}}>{error}</div>}
                 </Row>
+
+                <Row className="mb-3">
+                <Col>
+                    <Form.Label>Reason for Reprint</Form.Label>
+                    <Select
+                        options={reasonOptions}
+                        value={reasonOptions.find(option => option.value === reason) || null}
+                        onChange={selected => setReason(selected?.value || '')}
+                        placeholder="Select reason"
+                    />
+                </Col>
+                <Col>
+                    <Form.Label>Detailed Remark</Form.Label>
+                    <Form.Control
+                        type="text"
+                        placeholder="Enter detailed reason"
+                        value={detailedReason}
+                        onChange={handleDetailedreason}
+                    />
+                </Col>
+                {error && <div className="text-danger mt-2">{error}</div>}
             </Row>
 
             <div style={{ overflowX: 'auto', overflowY: 'auto', position: 'sticky' }}>
@@ -297,9 +327,15 @@ const CompletedPrinting = () => {
                                     <td>{row.jobNo}</td>
                                     <td>{'-'}</td>
                                     <td>{row.qty}</td>
-                                    <td>{row.width}</td>
-                                    <td>{row.height}</td>
-                                    <td>{row.totalSqFt}</td>
+                                    <td>
+    {row.width && !isNaN(parseFloat(row.width)) ? (Math.ceil(parseFloat(row.width) * 100) / 100).toFixed(2) : ''}
+  </td>
+  <td>
+    {row.height && !isNaN(parseFloat(row.height)) ? (Math.ceil(parseFloat(row.height) * 100) / 100).toFixed(2) : ''}
+  </td>
+  <td>
+    {row.totalSqFt && !isNaN(parseFloat(row.totalSqFt)) ? (Math.ceil(parseFloat(row.totalSqFt) * 100) / 100).toFixed(2) : ''}
+  </td>
                                     <td>{row.media}</td>
                                     <td>{row.implementation}</td>
                                     <td>{row.deadline}</td>

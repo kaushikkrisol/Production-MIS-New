@@ -1,0 +1,19 @@
+.order-popup {
+  width: 700px;
+  max-width: 90%;
+  z-index: 9999;
+}
+
+.order-popup.minimized {
+  height: auto;
+  overflow: hidden;
+}
+
+.order-popup-content {
+  transition: all 0.3s ease;
+}
+.rnd-resize-handle {
+  background: rgba(0, 0, 0, 0.2);
+  width: 10px;
+  height: 10px;
+}

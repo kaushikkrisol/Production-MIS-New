@@ -62,6 +62,7 @@ const Approval = () => {
         setSelectedRows(newSelectedRows);
     };
 
+
     const handleShow = (lineItem) => {
         setShowModal(true);
         setSelectedImage(lineItem);
@@ -90,6 +91,9 @@ const Approval = () => {
                 }
             });
         });
+
+        console.log("selectedLineItemIds", selectedLineItemIds);
+
 
         setLoading(true);
         try {
