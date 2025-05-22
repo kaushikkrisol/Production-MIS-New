@@ -161,20 +161,26 @@ const ImplementationDownload = () => {
         setSortConfig({ key, direction });
     };
 
- const handlePdfDownload = async (item) => {
+ const handleBackendPdfDownload = async (jobNo) => {
     try {
-        const blob = await pdf(
-            <PdfTemplate
-                item={item}
-                salonAddress={salonAddresses[item.id] || 'N/A'}
-            />
-        ).toBlob();
-        saveAs(blob, `${item.jobNo || 'report'}.pdf`);
-    } catch (err) {
-        console.error("PDF generation failed", err);
-        setError("Failed to generate PDF");
+        const response = await axios.get(`${config.downloadPDF.URL.GetPdf}${jobNo}`, {
+            responseType: 'blob', 
+        });
+
+        // Create a download link and trigger it
+        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `${jobNo}_implementation.pdf`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    } catch (error) {
+        console.error('Error downloading PDF from backend:', error);
+        setError('Failed to download PDF');
     }
 };
+
 
 
 const downloadAllImages = (item) => {
@@ -270,7 +276,7 @@ const downloadAllImages = (item) => {
                                                             <td>{item.signDate || 'N/A'}</td>
                                                             <td>{item.mediaFiles?.[0]?.imageType || '' }</td>
                                                             <td>
-                                                                      <Button variant="primary" onClick={() => handlePdfDownload(item)}>
+                                                                      <Button variant="primary" onClick={() => handleBackendPdfDownload(item.jobNo)}>
                                                                                         <FaDownload /> Download PDF
                                                                                     </Button>
 

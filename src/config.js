@@ -1,16 +1,21 @@
 // https://production.comart.in
 
-
-    let BaseURL = "https://localhost:7035";
+// 
+   let BaseURL = "https://localhost:7035";
 
     // let BaseURL ='https://productionapi.comart.in';
 
+
     let BaseURL1="http://kerp.comart.in:3001";
 
-    // let BaseURL1="http://localhost:3001/api/get-orders"
+
+    let BaseURL2="http://kerp.comart.in:3008";
+
+    // let BaseURL1="http://localhost:3001/api/get-orders"s
     // let BaseURL ='https://testproductionAPI.comart.in';
 
-const config ={    User: {
+const config ={    
+    User: {
         URL: {
             Checkuser: BaseURL + '/User/Checkuser',
             GetAllUserrole: BaseURL + '/User/getalluserrole/getalluserrole',
@@ -112,6 +117,12 @@ const config ={    User: {
             SaveOrder:BaseURL1+'/api/save-order',
             UpdateOrder:BaseURL1+'/api/update-order'
 
+        }
+    },
+
+    downloadPDF:{
+        URL:{
+            GetPdf:BaseURL2+'/api/pdf/job/'
         }
     },
     Packing:{

@@ -1626,22 +1626,22 @@ const DataTables = () => {
                   <div style={{ overflowX: 'auto' }} className="table-container">
                   <div className="ag-theme-alpine custom-ag-grid" style={{ height: '600px', width: '100%' }}>
                  <AgGridReact
-  ref={gridRef}
-  rowData={sortedData}
-  columnDefs={columnDefs}
-  defaultColDef={defaultColDef}
-  pagination={true}
-  paginationPageSize={50}
-  domLayout="normal"
-  rowSelection="multiple"
-  getRowHeight={() => 60}
-  headerHeight={50}
-  singleClickEdit={true}
-  suppressRowClickSelection={true} // ✅ Prevent automatic selection
-onCellValueChanged={(params) => {
-  if (params.colDef.field === 'productionLocation') {
-    const jobNo = params.data.jobNo;
-    const newLocation = params.newValue;
+              ref={gridRef}
+              rowData={sortedData}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              pagination={true}
+              paginationPageSize={50}
+              domLayout="normal"
+              rowSelection="multiple"
+              getRowHeight={() => 60}
+              headerHeight={50}
+              singleClickEdit={true}
+              suppressRowClickSelection={true} // ✅ Prevent automatic selection
+            onCellValueChanged={(params) => {
+              if (params.colDef.field === 'productionLocation') {
+                const jobNo = params.data.jobNo;
+                const newLocation = params.newValue;
 
     axios.post(`${config.JobSummary.URL.UpdateProductionLocation}`, {
       jobNo,
