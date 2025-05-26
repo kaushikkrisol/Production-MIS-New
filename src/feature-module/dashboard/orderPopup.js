@@ -10,6 +10,7 @@ import config from "../../config";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import useCampaignStore from "../../store/orderstore";
+import { toast } from "react-toastify";
 
 const headerMapping = {
   "Job No": "jobNo",
@@ -54,38 +55,96 @@ const OrderPopup = ({
   const [localItems, setLocalItems] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
 
+  const [latestJobNo, setLatestJobNo] = useState('');
+const [loading, setLoading] = useState(false);
+const currentDate = new Date().toISOString().split('T')[0];
+
+
   const { updateItemStatus, fetchCampaigns } = useCampaignStore();
   const todayDate = new Date().toISOString().split("T")[0];
 
+
+const userObj = JSON.parse(localStorage.getItem('users'));
+const userId = userObj?.message?.user_id;
+const userName = userObj?.message?.username;
+const emailid = userObj?.message?.email_id;
+
+
+
   useEffect(() => {
-    const mappedItems = items.map((item) => {
-      const Retailer= item["Retailer"] || "";
+  const mappedItems = items
+    .filter(item => item.status !== "Order Accepted" && item.Status !== "Order Accepted") // ✅ Exclude accepted orders
+    .map((item) => {
+      const Retailer = item["Retailer"] || "";
       const elementType = item["Assest Element Type"] || "";
       const elementName = item["Assest Element Name"] || "";
       const width = parseFloat(item["Print size (Width mm)"] || item.width || 0);
       const height = parseFloat(item["Print size (Height mm)"] || item.height || 0);
-  
       const totalSqFt = width && height ? ((width * height) / 92903.04).toFixed(2) : "";
-      const visualCode = [Retailer,elementType, elementName].filter(Boolean).join(" / ");
-  
+      const visualCode = [Retailer, elementType, elementName].filter(Boolean).join(" / ");
+
       return {
         ...item,
         visualCode: visualCode || item.visualCode || "",
         nameSubCode: elementType || item.nameSubCode || "",
-        city:item["Location"] || item.city || "",
-        qty:item["QTY"] || item.qty || "",
+        city: item["Location"] || item.city || "",
+        qty: item["QTY"] || item.qty || "",
         width,
         height,
         totalSqFt,
         media: item["Media"] || item.media || "",
         salonAddress: item["Location"] || item.salonAddress || "",
-
-
-
       };
     });
-    setLocalItems(mappedItems);
-  }, [items]);
+
+  setLocalItems(mappedItems);
+}, [items]);
+
+
+
+  const addJobDetails = async () => {
+  if (!userId) {
+    toast.error("User not logged in");
+    return;
+  }
+
+  const payload = displayedItems.map(item => ({
+  ...item,
+  ISnewjob: '0',
+  "Job No": selectedJob?.value,
+  "CLIENT": selectedJob?.clientName,
+  "Sub Client": selectedJob?.subClient,
+  "Production Location": item.Region || "",
+  "Billing  Location": item.billingLocation || "",
+  "Print Ready Available": item.printReadyAvailable || "",
+  "emailid":"",
+  "UserId": userId,
+  userName,
+  username: userName,
+  emailid,
+  entereddt: currentDate,
+  "campaignid":item.campaignId,
+  "itemid":item.id,
+}));
+
+
+  console.log("payload for addjobdetails",payload)
+
+  try {
+    setLoading(true);
+    const response = await axios.post(config.JobSummary.URL.Addjobdetails, payload);
+    const jobNoCreated = response.data?.jobno || response.data?.jobNo || '';
+    setLatestJobNo(jobNoCreated);
+
+    toast.success(`Job created successfully. Job No: ${jobNoCreated}`);
+  } catch (error) {
+    console.error("Error adding job details:", error);
+    toast.error("Failed to create job.");
+  } finally {
+    setLoading(false);
+  }
+};
+
   
 
   const displayedItems = useMemo(() => {
@@ -132,26 +191,32 @@ const OrderPopup = ({
 
   const toggleMinimize = () => setIsMinimized(prev => !prev);
 
-  const moveAllItemsToStage = async (itemsToMove, stage) => {
-    const updatedLocalItems = [];
-    for (const item of itemsToMove) {
-      const { campaignId, id: itemId } = item;
-      if (!campaignId || !itemId) continue;
+const moveAllItemsToStage = async (itemsToMove, stage) => {
+  const updatedLocalItems = [];
 
-      try {
-        await axios.put(`${config.Order.URL.UpdateOrder}/${campaignId}/item/${itemId}`, {
-          status: stage,
-          Status: stage
-        });
-        updateItemStatus({ from: item.status, to: stage, campaignId, itemId });
-        updatedLocalItems.push({ ...item, status: stage });
-      } catch (error) {
-        console.error(`Failed to update item ${itemId}`, error);
-      }
+  for (const item of itemsToMove) {
+    const { campaignId, id: itemId } = item;
+    if (!campaignId || !itemId) continue;
+
+    try {
+      await axios.patch(`${config.Order.URL.UpdateOrder}/${campaignId}/item/${itemId}`, {
+        status: stage,
+        Status: stage
+      });
+      updateItemStatus({ from: item.status, to: stage, campaignId, itemId });
+      updatedLocalItems.push({ ...item, status: stage });
+    } catch (error) {
+      console.error(`Failed to update item ${itemId}`, error);
     }
-    setLocalItems(updatedLocalItems);
-    await fetchCampaigns();
-  };
+  }
+
+  setLocalItems(updatedLocalItems);
+  await fetchCampaigns();
+
+  if (stage === "Order Accepted" && typeof onAcceptAllOrders === "function") {
+    onAcceptAllOrders(updatedLocalItems);
+  }
+};
 
   const handleAcceptOrder = async (item) => {
     const elementType = item["Assest Element Type"] || "";
@@ -172,17 +237,22 @@ const OrderPopup = ({
       totalSqFt: (((item["Print size (Width mm)"] || 0) * (item["Print size (Height mm)"] || 0)) / 92903.04).toFixed(2),
       Region: item["Region"] || item.Region,
       salonAddress: item["Location"] || item.salonAddress,
-      city: item["Location"] || item.city
+      city: item["Location"] || item.city,
+      campaignid:item["id"] || item.id,
     };
   
     try {
       const response = await axios.post(`${config.Order.URL.GetOrder}`, payload);
       console.log("✅ Order accepted for", item.id);
       console.log("ORDER DATA RECEIVED:", response.data);
+
     } catch (error) {
       console.error("Error accepting order", error);
     }
   };
+
+
+  
   
 
   if (!show) return null;
@@ -265,12 +335,16 @@ const OrderPopup = ({
               {displayedItems.length > 0 ? (
                 <>
                   <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
-                    <Button variant="success" size="sm" onClick={() => moveAllItemsToStage(displayedItems, 'Order Accepted')}>Accept All Orders</Button>
-                    <Button variant="secondary" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Printed")}>Move All to Printing</Button>
+                    <Button variant="success" size="sm" onClick={() =>{
+                       moveAllItemsToStage(displayedItems, 'Order Accepted'),
+                       addJobDetails()
+
+                    }}>Accept All Orders</Button>
+                    {/* <Button variant="secondary" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Printed")}>Move All to Printing</Button>
                     <Button variant="warning" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Delivered")}>Move All to Delivered</Button>
                     <Button variant="success" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Implemented")}>Move All to Implementation</Button>
-                    <Button variant="info" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Proof of Execution")}>Proof of Execution</Button>
-                    <Button variant="dark" size="sm" onClick={handleUploadImageToOrder}>Upload Image</Button>
+                    <Button variant="info" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Proof of Execution")}>Proof of Execution</Button> */}
+                    {/* <Button variant="dark" size="sm" onClick={handleUploadImageToOrder}>Upload Image</Button> */}
 
                   </div>
 
@@ -290,10 +364,10 @@ const OrderPopup = ({
                                 {["Region", "billingLocation"].includes(key) ? (
                                   <Select
                                     options={[
-                                      { value: "NORTH", label: "North" },
-                                      { value: "SOUTH", label: "South" },
-                                      { value: "EAST", label: "East" },
-                                      { value: "WEST", label: "West" }
+                                      { value: "North", label: "North" },
+                                      { value: "South", label: "South" },
+                                      { value: "East", label: "East" },
+                                      { value: "West", label: "West" }
                                     ]}
                                     value={item[key] ? { value: item[key], label: item[key] } : null}
                                     onChange={(selected) => {
@@ -368,7 +442,8 @@ OrderPopup.propTypes = {
   show: PropTypes.bool.isRequired,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
   jobOptions: PropTypes.array,
-  onClose: PropTypes.func.isRequired
+  onClose: PropTypes.func.isRequired,
+  onAcceptAllOrders: PropTypes.func 
 };
 
 export default OrderPopup;

@@ -886,15 +886,32 @@
 
             const columnDefs = useMemo(() => [
                 { headerName: '', checkboxSelection: true, headerCheckboxSelection: true, width: 50, filter: false },
-                {
-                    headerName: 'Job Date',
-                    field: 'date',
-                    minWidth: 130,
-                    valueGetter: params => {
-                    const dateVal = params.data.date || params.data.entereddt;
-                    return dateVal ? moment(dateVal).format("DD/MMM/YYYY") : '-';
-                    }
-                },
+             {
+  headerName: 'Job Date',
+  minWidth: 130,
+  valueGetter: params => {
+    const { date, entereddt, lstupdatedt } = params.data;
+    
+    const finalDate = date || entereddt || lstupdatedt;
+
+    // Try multiple formats — especially if lstupdatedt looks like "16/05/2025 02:39:49"
+    const parsedDate = moment(finalDate, [
+      moment.ISO_8601,
+      "YYYY-MM-DD",
+      "DD/MM/YYYY HH:mm:ss",
+      "YYYY-MM-DDTHH:mm:ss.SSSZ"
+    ], true); // strict parsing
+
+    return parsedDate.isValid()
+      ? parsedDate.format("DD/MMM/YYYY")
+      : '-';
+  },
+  comparator: (valueA, valueB) => {
+    const parseDate = str => moment(str, "DD/MMM/YYYY").valueOf();
+    return parseDate(valueA) - parseDate(valueB);
+}
+             },
+
                 
                 { headerName: 'Job ID', field: 'jobNo', minWidth: 140 },
                 { headerName: 'Printer Name', field: 'printerPrintingName', minWidth: 180 },

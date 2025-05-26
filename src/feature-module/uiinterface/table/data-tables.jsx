@@ -106,6 +106,8 @@ const DataTables = () => {
 
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+
+  const [acceptorders,setAcceptedorders]=useState([]);
   const [filters, setFilters] = useState({
     jobNo: '',
     date: '',
@@ -304,6 +306,25 @@ const DataTables = () => {
     sortable: true,
     filter: true
   }), []);
+
+
+  const handleAcceptOrder = (orderItems) => {
+  console.log("Accepted Order Items:", orderItems);
+
+  // You can now push them into AG Grid or save to Mongo
+  // Example: POST to Addjobdetails API
+
+  axios.post(config.JobSummary.URL.Addjobdetails, orderItems)
+    .then(res => {
+      toast.success("Accepted orders added as jobs");
+      GetAllJobAccToLocation(); // Refresh grid
+    })
+    .catch(err => {
+      toast.error("Failed to add job details");
+      console.error(err);
+    });
+};
+
 
 
 
@@ -1661,6 +1682,7 @@ const DataTables = () => {
                 items={data.filter(d => d.approved === "Yes")}
                 onClose={() => setIsPopupVisible(false)}
                 jobOptions={uniqueJobNoOptions}
+                onAcceptAllOrders={handleAcceptOrder}
               />
 
 
@@ -1686,12 +1708,14 @@ const DataTables = () => {
                       </div> */}
                   </div>
 
-                            {/* <OrderPopup
-            show={isPopupVisible}
-            items={orderItems}
-            onClose={() => setIsPopupVisible(false)}
-            jobOptions={uniqueJobNoOptions}
-          /> */}
+                    <OrderPopup
+                show={isPopupVisible}
+                items={data.filter(d => d.approved === "Yes")}
+                onClose={() => setIsPopupVisible(false)}
+                jobOptions={uniqueJobNoOptions}
+                onAcceptAllOrders={handleAcceptOrder} // ✅ here
+              />
+
 
                 </div>
               </div>
