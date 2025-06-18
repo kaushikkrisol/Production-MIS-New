@@ -56,6 +56,7 @@ const DataTables = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [totalValues, setTotalValues] = useState({ width: 0, height: 0 });
+  const [rolename,setRolename]=useState('');
   const gridRef = useRef();
 
 
@@ -106,6 +107,7 @@ const DataTables = () => {
 
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [deleteComment,setDeleteComment]=useState('');
 
   const [acceptorders,setAcceptedorders]=useState([]);
   const [filters, setFilters] = useState({
@@ -199,48 +201,70 @@ const DataTables = () => {
  
 
 
-  const customColumnDefs = filterConfig.map(column => {
-  if (column.key === "productionLocation") {
+
+  const editableFields = [
+  "billinglocation",
+  "qty",
+  "width",
+  "height",
+  "totalsqft",
+  "media",
+  "lamination",
+  "productionlocation"
+];
+
+const dropdownFields = ["productionlocation", "billinglocation"];
+const dropdownValues = ["North", "South", "East", "West"];
+
+const customColumnDefs = filterConfig.map(column => {
+  const fieldKey = column.key.toLowerCase();
+  const isEditable = rolename === "Branch Manager" && editableFields.includes(fieldKey);
+
+  // Dropdown editor for location fields
+  if (dropdownFields.includes(fieldKey)) {
     return {
       headerName: column.placeholder,
-       field: "productionLocation", 
-      editable: true,
+      field: column.key,
+      editable: isEditable,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: {
-        values: ["North", "South", "East", "West"], // You can fetch these dynamically too
+        values: dropdownValues
       },
       minWidth: 160,
       resizable: true,
       sortable: true,
-      filter: true,
+      filter: true
     };
   }
 
+  // Default column
   return {
     headerName: column.placeholder,
     field: column.key,
+    editable: isEditable,
     sortable: true,
     filter: true,
     minWidth: 160,
     resizable: true,
-    cellRenderer: (params) => {
+    cellRenderer: !isEditable ? (params) => {
       const value = params.value;
 
-      if (["width", "height", "totalSqFt"].includes(column.key)) {
+      if (["width", "height", "totalsqft"].includes(fieldKey)) {
         const num = parseFloat(value);
         return isNaN(num) ? '' : num.toFixed(2);
       }
 
-      if (column.key === "date") {
+      if (fieldKey === "date") {
         if (value) return value;
-        const enteredDate = params.data.entereddt;
+        const enteredDate = params.data?.entereddt;
         return enteredDate ? new Date(enteredDate).toLocaleDateString('en-GB') : '';
       }
 
       return value;
-    }
+    } : undefined
   };
 });
+
 
 
   console.log(setSortConfig)
@@ -367,6 +391,9 @@ const DataTables = () => {
         const userObj = JSON.parse(users);
         const userId = userObj?.message?.user_id;
         const userName = userObj?.message?.username;
+        const Role=userObj?.message?.rolE_NAME;
+
+        setRolename(Role)
 
         // Log the retrieved values to the console
         console.log('Fetched User ID:', userId);
@@ -506,6 +533,39 @@ const DataTables = () => {
     }
   }, [selectSearchTerm, uniqueJobNumbers]);
 
+      const handleDeleteSelectedJobs = async () => {
+      const selectedNodes = gridRef.current.api.getSelectedNodes();
+      const selectedData = selectedNodes.map(node => node.data);
+
+      if (selectedData.length === 0) {
+        toast.error("Please select at least one job to delete.");
+        return;
+      }
+      if(!deleteComment.trim()){
+        toast.error("Please enter a comment for deletion.");
+        return;
+      }
+
+      const jobNos = selectedData.map(job => job.id);
+      console.log("Selected job number is ", jobNos);
+
+      try {
+        await axios.post(config.JobSummary.URL.DeleteSelectedJobs, 
+          {
+            jobNos: jobNos,
+            DeleteComment:deleteComment
+          }
+        );
+        toast.success("Selected jobs deleted successfully.");
+
+        GetAllJobAccToLocation()
+      } catch (error) {
+        console.error("Error deleting jobs:", error);
+        toast.error("Failed to delete jobs.");
+      }
+    };
+
+
   // const handleSelectJobNoChange = (e) => {
   //   const selectedJobNo = e.target.value;
   //   console.log("e is ", e)
@@ -616,35 +676,33 @@ const DataTables = () => {
   //   }
   // };
 
-  const GetAllJobAccToLocation = async () => {
+const GetAllJobAccToLocation = async () => {
+  const users = localStorage.getItem('users');
+  const userObj = JSON.parse(users);
 
+  const userNamedata = userObj?.message?.username;
+  const locationdata = userObj?.message?.location_id;
+  const roleName = userObj?.message?.rolE_NAME;
 
-    const users = localStorage.getItem('users');
+  const payload = {
+    locationId: locationdata,
+    username: userNamedata,
+    ...(roleName === "Admindelete" && { rolename: roleName }) // ✅ Only include if role is Admindelete
+  };
 
-    const userObj = JSON.parse(users);
+  console.log("Payload to GetAllJobAccToLocation:", payload);
 
-    const userNamedata = userObj?.message?.username;
-    const locationdata = userObj?.message?.location_id
-    const payload = {
-      locationId: locationdata,
-      username: userNamedata,
-    }
-
-    console.log("locationid and username is ", payload)
-    try {
-
-      const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
-      console.log('response of jobs acc to location: ', response.data);
-      // setLocationJob(response.data);
-
-      setData(response.data.items);
-
-    } catch (error) {
-      console.error('Error fetching jobs according to location', error);
-    } finally {
-      setLoading(false);
-    }
+  try {
+    const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
+    console.log('response of jobs acc to location: ', response.data);
+    setData(response.data.items);
+  } catch (error) {
+    console.error('Error fetching jobs according to location', error);
+  } finally {
+    setLoading(false);
   }
+};
+
 
 
   const GetAllJobsFromSql = async () => {
@@ -802,7 +860,7 @@ const DataTables = () => {
 
     } catch (error) {
       console.error("Error fetching customer data:", error.response ? error.response.data : error.message);
-      setError("Error fetching job data");
+      // setError("Error fetching job data");
     } finally {
       setLoading(false);
     }
@@ -1312,12 +1370,47 @@ const DataTables = () => {
                           style={{ width: '400px' }} // Adjust width as necessary
                         />
                       </div> */}
-                    <div className="button-group" style={{ display: 'flex', justifyContent: 'space-between', marginLeft: 'auto', width: '100%' }}>
+                  <div
+  className="button-group"
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',              // Adds space between input and button
+    marginBottom: '1em',
+    
 
-                      <Button variant="primary" style={{ marginBottom: "1em" }} onClick={() => setShowFilterSidebar(true)}>
-                        <FaFilter style={{ marginRight: '0.5em' }} />
-                        Open Filters
-                      </Button>
+    width: 'fit-content'
+  }}
+>
+  {rolename === "Admindelete" && (
+    <>
+      <input
+        type="text"
+        placeholder="Enter deletion comment"
+        value={deleteComment}
+        onChange={(e) => setDeleteComment(e.target.value)}
+        style={{
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid #ccc',
+          minWidth: '220px'
+        }}
+      />
+      <Button
+        variant="danger"
+        onClick={() => handleDeleteSelectedJobs(deleteComment)}
+        style={{
+          padding: '8px 16px'
+        }}
+      >
+        Delete Selected Jobs
+      </Button>
+    </>
+  )}
+
+
+
+
 
                     <Button
                       variant="warning"
@@ -1327,6 +1420,19 @@ const DataTables = () => {
                     >
                       Job On Hold
                     </Button>
+
+
+{/*                     
+                    <Button
+                      variant="warning"
+                      onClick={handleJobOnHold}
+                      style={{ marginBottom: "1em", marginLeft: '10px' }}
+                     
+                    >
+                      Edit Job
+                    </Button> */}
+
+                    
                       <FilterSidebar
                         show={showFilterSidebar}
                         handleClose={() => setShowFilterSidebar(false)}
@@ -1646,36 +1752,62 @@ const DataTables = () => {
 
                   <div style={{ overflowX: 'auto' }} className="table-container">
                   <div className="ag-theme-alpine custom-ag-grid" style={{ height: '600px', width: '100%' }}>
-                 <AgGridReact
-              ref={gridRef}
-              rowData={sortedData}
-              columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
-              pagination={true}
-              paginationPageSize={50}
-              domLayout="normal"
-              rowSelection="multiple"
-              getRowHeight={() => 60}
-              headerHeight={50}
-              singleClickEdit={true}
-              suppressRowClickSelection={true} // ✅ Prevent automatic selection
-            onCellValueChanged={(params) => {
-              if (params.colDef.field === 'productionLocation') {
-                const jobNo = params.data.jobNo;
-                const newLocation = params.newValue;
+                    <div className="ag-theme-alpine custom-ag-grid" style={{ height: '600px', width: '100%' }}>
+                      <AgGridReact
+                        ref={gridRef}
+                        singleClickEdit={true}
+                        suppressClickEdit={false}
+                        rowData={sortedData}
+                        columnDefs={columnDefs}
+                        defaultColDef={defaultColDef}
+                        pagination={true}
+                        paginationPageSize={50}
+                        domLayout="normal"
+                        rowSelection="multiple"
+                        getRowHeight={() => 60}
+                        headerHeight={50}
+                        suppressRowClickSelection={true}
+                        onCellValueChanged={(params) => {
+                          const field = params.colDef?.field?.toLowerCase();
+                          const csid = params.data?.id;
+                          const value = params.newValue;
 
-    axios.post(`${config.JobSummary.URL.UpdateProductionLocation}`, {
-      jobNo,
-      productionLocation: newLocation
-    }).then(() => {
-      toast.success("Production Location updated");
-    }).catch((error) => {
-      toast.error("Failed to update Production Location");
-      console.error("API error:", error);
-    });
-  }
-}}
-/>
+                          const editableFields = [
+                            "billinglocation",
+                            "productionlocation",
+                            "qty",
+                            "width",
+                            "height",
+                            "totalsqft",
+                            "media",
+                            "lamination"
+                          ];
+
+                          if (!field || !csid || value == null) return;
+
+                          if (rolename === "Branch Manager" && editableFields.includes(field)) {
+                            axios
+                              .post(config.JobSummary.URL.UpdateJobField, {
+                                csid,
+                                field,
+                                value
+                              })
+                              .then(() => {
+                                toast.success(`${field} updated successfully`);
+                                // Optional: refresh grid if needed
+                                // GetAllJobAccToLocation();
+                              })
+                              .catch((err) => {
+                                console.error(err);
+                                toast.error(`Failed to update ${field}`);
+                              });
+                          }
+                        }}
+                      />
+
+
+
+
                 </div>
                 <OrderPopup
                 show={isPopupVisible}
@@ -1715,8 +1847,7 @@ const DataTables = () => {
                 jobOptions={uniqueJobNoOptions}
                 onAcceptAllOrders={handleAcceptOrder} // ✅ here
               />
-
-
+              </div>
                 </div>
               </div>
             </div>

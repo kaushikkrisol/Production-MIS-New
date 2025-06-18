@@ -469,7 +469,7 @@
             const startData = selectedData.map(job => ({
                 ...job,
                 startdate: new Date().toISOString(),
-                lastUpdated: new Date().toISOString(),
+                Lstupdatedt: new Date().toISOString(),
                 entereddt: new Date().toISOString(),
                 username: user,
             }));

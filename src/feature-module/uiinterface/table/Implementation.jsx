@@ -235,6 +235,8 @@ const Implementation = () => {
           ref={gridRef}
           rowData={locationAccData.filter(row => row.jobNo?.toLowerCase().includes(searchTerm.toLowerCase()))}
           columnDefs={columnDefs}
+          immutableData={true}
+          getRowId={params => params.data.id}
           defaultColDef={defaultColDef}
           pagination={true}
           paginationPageSize={25}

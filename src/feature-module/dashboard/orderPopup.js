@@ -125,6 +125,7 @@ const emailid = userObj?.message?.email_id;
   entereddt: currentDate,
   "campaignid":item.campaignId,
   "itemid":item.id,
+  "updatedVisualImage":item.updatedVisualImage || "",
 }));
 
 

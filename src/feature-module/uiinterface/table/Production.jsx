@@ -886,7 +886,7 @@
 
             const columnDefs = useMemo(() => [
                 { headerName: '', checkboxSelection: true, headerCheckboxSelection: true, width: 50, filter: false },
-             {
+         {
   headerName: 'Job Date',
   minWidth: 130,
   valueGetter: params => {
@@ -894,13 +894,12 @@
     
     const finalDate = date || entereddt || lstupdatedt;
 
-    // Try multiple formats — especially if lstupdatedt looks like "16/05/2025 02:39:49"
     const parsedDate = moment(finalDate, [
-      moment.ISO_8601,
-      "YYYY-MM-DD",
+      "DD/MMM/YYYY",
+      "YYYY-MM-DDTHH:mm:ss.SSSZ",
       "DD/MM/YYYY HH:mm:ss",
-      "YYYY-MM-DDTHH:mm:ss.SSSZ"
-    ], true); // strict parsing
+      moment.ISO_8601
+    ]);
 
     return parsedDate.isValid()
       ? parsedDate.format("DD/MMM/YYYY")
@@ -910,7 +909,7 @@
     const parseDate = str => moment(str, "DD/MMM/YYYY").valueOf();
     return parseDate(valueA) - parseDate(valueB);
 }
-             },
+},
 
                 
                 { headerName: 'Job ID', field: 'jobNo', minWidth: 140 },

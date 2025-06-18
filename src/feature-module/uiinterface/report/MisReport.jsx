@@ -22,6 +22,8 @@
         const [newProduction, setNewProduction] = useState('');
         const productions = ["CS", "Design", "Printing", "Delivery", "Reprint"];
         const locations = ["North", "South", "East", "West"];
+        const [dateRangeDisplay, setDateRangeDisplay] = useState('');
+
         const [data, setData] = useState([]);
         const [csData, setCsData] = useState([]);
         const [designData, setDesignData] = useState([]);
@@ -224,9 +226,14 @@
         // }
 
         const handleDateRangeChange = (event, picker) => {
-            setFromDate(moment(picker.startDate).format('DD-MM-YYYY'));
-            setToDate(moment(picker.endDate).format('DD-MM-YYYY'));
-        };
+                const from = moment(picker.startDate).format('DD-MM-YYYY');
+                const to = moment(picker.endDate).format('DD-MM-YYYY');
+
+                setFromDate(from);
+                setToDate(to);
+                setDateRangeDisplay(`${from} - ${to}`);
+                };
+
 
         // Date Range Picker settings
         const initialSettings = {
@@ -499,6 +506,8 @@
 
                 return row;
             });
+
+            
 
 
             // Generate CSV from transformed data
@@ -835,10 +844,13 @@
                                             <Form.Label style={{ width: '200px' }}>Select date</Form.Label>
                                             <DateRangePicker initialSettings={initialSettings}
                                                 onApply={handleDateRangeChange}>
-                                                <input
-                                                    className="form-control input-range"
-                                                    type="text"
-                                                />
+                                               <input
+  className="form-control input-range"
+  type="text"
+  value={dateRangeDisplay}
+  readOnly
+/>
+
                                             </DateRangePicker>
                                         </div>
                                         <Calendar className="feather-14" style={{ top: '45px' }} />

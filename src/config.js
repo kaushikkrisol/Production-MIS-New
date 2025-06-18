@@ -1,12 +1,14 @@
 // https://production.comart.in
 
-// 
-//    let BaseURL = "https://localhost:7035";
+
+    // let BaseURL = "https://localhost:7035";
 
      let BaseURL ='https://productionapi.comart.in';
 
 
-    let BaseURL1="https://kerp.comart.in:3001";
+    //let BaseURL1="https://kerp.comart.in:3001";
+
+    let BaseURL1="http://localhost:3000";
 
 
     let BaseURL2="http://kerp.comart.in:3008";
@@ -31,6 +33,7 @@ const config ={
            AddreprintData : BaseURL +'/api/JobSummary/AddreprintData',
             GetJobsWithoutExcelUpload: BaseURL + '/api/JobSummary/GetJobsWithoutExcelUpload',
             GetAllJobsFromSql: BaseURL + '/api/JobSummary/GetAllJobsFromSql',
+            DeleteSelectedJobs:BaseURL+'/api/JobSummary/DeleteSelectedJobsById',
             GetAllJobsAccToLocation: BaseURL + '/api/JobSummary/GetAllJobAccToLocation',
             GetCustomerNameAccToLocation: BaseURL + '/api/JobSummary/GetCustomerNameFromSql',
             SetJobOnHold: BaseURL + '/api/JobSummary/SetJobOnHold',
