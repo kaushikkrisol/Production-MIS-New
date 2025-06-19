@@ -18,6 +18,7 @@
     import { AgGridReact } from 'ag-grid-react';
     import 'ag-grid-community/styles/ag-grid.css';
     import 'ag-grid-community/styles/ag-theme-alpine.css';
+import { set } from 'date-fns';
 
 
 
@@ -55,6 +56,7 @@
         const [user, setUser] = useState('');
         const [locationId, setLocationId] = useState('');
         const [userId, setUserId] = useState('');
+        const [rolename, setRoleName] = useState('');
 
         const [showNotification, setShowNotification] = useState(false);
         const [notificationMessage, setNotificationMessage] = useState('');
@@ -78,6 +80,8 @@
                 const username = usersObject.message && usersObject.message.username;
                 setUser(username);
 
+                const rolename=usersObject.message && usersObject.message.rolE_NAME;
+                setRoleName(rolename)
 
                 const locationid = usersObject.message && usersObject.message.location_id;
                 const stringlocationid = String(locationid);
@@ -250,7 +254,7 @@
 
                 const payload = {
                     userId: userId,
-                    username: user
+                    username: user,
                 }
 
                 const response = await axios.post(config.Design.URL.GetDesignByUserId, payload, {
@@ -272,6 +276,8 @@
             const payload = {
                 locationId: locationId,
                 username: user,
+                rolename:rolename
+
             }
             try {
                 const response = await axios.post(config.Design.URL.GetAllDesignAccToLocation, payload);
