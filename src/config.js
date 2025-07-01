@@ -1,6 +1,7 @@
 // https://production.comart.in
+
+
     let BaseURL = "https://localhost:7035";
-<<<<<<< HEAD
 // 
     //   let BaseURL ='https://productionapi.comart.in';
 
@@ -11,14 +12,6 @@
 
 
     let BaseURL2="https://kerp.comart.in:3008";
-=======
-
-    //  let BaseURL ='https://productionapi.comart.in';
-    //let BaseURL1="https://kerp.comart.in:3001";
-
-    let BaseURL1="http://localhost:3000";
-    let BaseURL2="http://kerp.comart.in:3008";
->>>>>>> 2ad35bb6fd8df0cb7348eb341a4bf506d2d212f2
 
     // let BaseURL1="http://localhost:3001/api/get-orders"s
     // let BaseURL ='https://testproductionAPI.comart.in';
