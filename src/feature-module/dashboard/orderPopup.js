@@ -5,7 +5,7 @@ import PropTypes from "prop-types";
 import { FaBoxOpen } from "react-icons/fa";
 import Select from "react-select";
 import { Button } from "react-bootstrap";
-import { Rnd } from "react-rnd";
+//import { Rnd } from "react-rnd";
 import "./orderPopup.css";
 import axios from "axios";
 import config from "../../config";

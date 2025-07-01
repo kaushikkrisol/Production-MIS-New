@@ -139,15 +139,14 @@ const CompletedPrinting = () => {
                     client: row.client,
                     subClient: row.subClient,
                     date: row.date,
-                    
+
                     region: row.region, // Location
                     visualCode: row.visualCode, // Visual Code
                     nameSubCode: row.nameSubCode, // Name Sub Code
                     city: row.city, // City
                     qty: row.qty, // Quantity
                     media: row.media,
-                    userName:row.userName,
-                  
+                    userName:row.userName,                  
                     installation: row.installation,
                     deadline: row.deadline,
                     lamination: row.lamination, // Lamination
@@ -196,6 +195,7 @@ const CompletedPrinting = () => {
     } 
 
     }
+    
     const filteredData1 = Array.isArray(data) ? data.filter(row =>
         row.jobNo
     ) : [];

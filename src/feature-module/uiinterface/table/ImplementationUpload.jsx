@@ -6,7 +6,7 @@ import { Alert, Spinner, Table, Button, Form, InputGroup } from 'react-bootstrap
 import axios from "axios";
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
 import { pdf } from '@react-pdf/renderer';
-import { saveAs } from 'file-saver';
+// import { saveAs } from 'file-saver';
 import config from "../../../config";
 import { FaDownload, FaSearch } from 'react-icons/fa';
 // import PdfTemplate from "../../pages/implementationUploadPdf/PdfTemplate";
