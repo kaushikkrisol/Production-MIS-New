@@ -82,7 +82,8 @@ const Dashboard = () => {
         status: item.status || item.Status || "Yet to Start",
         jobNo: c.jobNo || c.id || "N/A",
         customerName: c.name || "N/A",
-        campaignId: c.id
+        campaignId: c.id,
+        campaignName: c.campaignName || "N/A" // Add campaignName here
       }))
     );
   }, [campaigns]);
@@ -302,6 +303,7 @@ const Dashboard = () => {
           jobOptions={jobNo}
           onClose={() => setShowOrderPopup(false)}
           containerBg="rgba(220, 53, 69, 0.95)"
+          campaignName={campaigns[0]?.campaignName || ""}
           bgColor="#f8d7da"
           headerColor="#b02a37"
         />

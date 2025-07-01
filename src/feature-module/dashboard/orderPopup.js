@@ -1,4 +1,6 @@
 import React, { useState, useMemo, useEffect } from "react";
+
+
 import PropTypes from "prop-types";
 import { FaBoxOpen } from "react-icons/fa";
 import Select from "react-select";
@@ -15,9 +17,10 @@ import { toast } from "react-toastify";
 const headerMapping = {
   "Job No": "jobNo",
   "Client": "client",
+  "Campaign Name": "campaignName",
   "Sub Client": "category",
   "Job Date": "createdAt",
-  "Production Location": "Region",
+  "Production Location": "productionLocation",
   "Billing Location": "billingLocation",
   "Visual Code": "visualCode",
   "Product Details": "nameSubCode",
@@ -70,81 +73,103 @@ const userName = userObj?.message?.username;
 const emailid = userObj?.message?.email_id;
 
 
-
+const IST_TIMEZONE = 'Asia/Kolkata';
   useEffect(() => {
-  const mappedItems = items
-    .filter(item => item.status !== "Order Accepted" && item.Status !== "Order Accepted") // ✅ Exclude accepted orders
-    .map((item) => {
-      const Retailer = item["Retailer"] || "";
-      const elementType = item["Assest Element Type"] || "";
-      const elementName = item["Assest Element Name"] || "";
-      const width = parseFloat(item["Print size (Width mm)"] || item.width || 0);
-      const height = parseFloat(item["Print size (Height mm)"] || item.height || 0);
-      const totalSqFt = width && height ? ((width * height) / 92903.04).toFixed(2) : "";
-      const visualCode = [Retailer, elementType, elementName].filter(Boolean).join(" / ");
+    const mappedItems = items
+      .filter(item => item.status !== "Order Accepted" && item.Status !== "Order Accepted") // ✅ Exclude accepted orders
+      .map((item) => {
+        const Retailer = item["Retailer"] || "";
+        const elementType = item["Assest Element Type"] || "";
+        const elementName = item["Assest Element Name"] || "";
+        const widthMm = parseFloat(item["Print size (Width mm)"] || item.width || 0);
+        const heightMm = parseFloat(item["Print size (Height mm)"] || item.height || 0);
+        // Convert mm to inches
+        const widthInch = widthMm ? (widthMm / 25.4).toFixed(2) : "";
+        const heightInch = heightMm ? (heightMm / 25.4).toFixed(2) : "";
+        // Calculate sq ft: (width_inch * height_inch) / 144
+        const totalSqFt = (widthInch && heightInch) ? ((widthInch * heightInch) / 144).toFixed(2) : "";
+        const visualCode = [Retailer, elementType, elementName].filter(Boolean).join(" / ");
 
-      return {
+        return {
         ...item,
         visualCode: visualCode || item.visualCode || "",
         nameSubCode: elementType || item.nameSubCode || "",
         city: item["Location"] || item.city || "",
         qty: item["QTY"] || item.qty || "",
-        width,
-        height,
+        width: item["Width"] || widthInch,
+        height: item["Height"] || heightInch,
         totalSqFt,
         media: item["Media"] || item.media || "",
         salonAddress: item["Location"] || item.salonAddress || "",
       };
     });
 
-  setLocalItems(mappedItems);
-}, [items]);
+    setLocalItems(mappedItems);
+  }, [items]);
 
 
 
-  const addJobDetails = async () => {
+const addJobDetails = async () => {
   if (!userId) {
     toast.error("User not logged in");
     return;
   }
 
+  if (!selectedJob?.value) {
+    toast.error("Please select a Job Number.");
+    return;
+  }
+
   const payload = displayedItems.map(item => ({
-  ...item,
-  ISnewjob: '0',
-  "Job No": selectedJob?.value,
-  "CLIENT": selectedJob?.clientName,
-  "Sub Client": selectedJob?.subClient,
-  "Production Location": item.Region || "",
-  "Billing  Location": item.billingLocation || "",
-  "Print Ready Available": item.printReadyAvailable || "",
-  "emailid":"",
-  "UserId": userId,
-  userName,
-  username: userName,
-  emailid,
-  entereddt: currentDate,
-  "campaignid":item.campaignId,
-  "itemid":item.id,
-  "updatedVisualImage":item.updatedVisualImage || "",
-}));
+    ...item,
+    ISnewjob: '0',
+    "Job No": selectedJob?.value,
+    "Campaign Name": item?.campaignName || "",
+    "CLIENT": selectedJob?.clientName || item.client || "",
+    "Sub Client": selectedJob?.subClient || item.category || "",
+    "Production Location": item.productionLocation || selectedJob?.productionLocation || "",
+    "Billing  Location": item.billingLocation || "",
+    "Print Ready Available": item.printReadyAvailable || "",
+    "Implementation": item.implementation || "",
+    "LAMINATION": item.lamination || "",
+    "MOUNTING": item.mounting || "",
+    "emailid": emailid,
+    "UserId": userId,
+    "userName": userName,
+    "username": userName,
+    "entereddt": currentDate,
+    "VISUAL CODE": item.visualCode || "",
+    "nameSubCode": item.nameSubCode || "",
+    "CITY": item.city || "",
+    "qty": item.qty || "",
+    "Width": item.width || "",
+    "Height": item.height || "",
+    "Total Sq.ft": item.totalSqFt || "",
+    "Media": item.media || "",
+    "SALON ADDRESS": item.salonAddress || "",
+    "campaignid": item.campaignId || "",
+    "Designer Deadline": item.designerDeadline || "",
+    
+    "itemid": item.id || "",
+    "updatedVisualImage": item.updatedVisualImage || ""
+  }));
 
-
-  console.log("payload for addjobdetails",payload)
+  console.log("🚀 addJobDetails payload", payload);
 
   try {
     setLoading(true);
     const response = await axios.post(config.JobSummary.URL.Addjobdetails, payload);
     const jobNoCreated = response.data?.jobno || response.data?.jobNo || '';
     setLatestJobNo(jobNoCreated);
-
     toast.success(`Job created successfully. Job No: ${jobNoCreated}`);
   } catch (error) {
-    console.error("Error adding job details:", error);
+    console.error("❌ Error adding job details:", error);
     toast.error("Failed to create job.");
   } finally {
     setLoading(false);
   }
 };
+
 
   
 
@@ -224,6 +249,11 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
     const elementName = item["Assest Element Name"] || "";
     const visualCode = [elementType, elementName].filter(Boolean).join(" - ");
   
+    // Convert mm to inches (1 inch = 25.4 mm)
+    const widthInInches = (parseFloat(item["Print size (Width mm)"] || item.width || 0) / 25.4).toFixed(2);
+    const heightInInches = (parseFloat(item["Print size (Height mm)"] || item.height || 0) / 25.4).toFixed(2);
+
+
     const payload = {
       ...item,
       jobNo: selectedJob?.value,
@@ -233,13 +263,14 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
       nameSubCode: elementType || item.nameSubCode,
       media: item["Media"] || item.media,
       qty: item["QTY"] || item.qty,
-      width: item["Print size (Width mm)"] || item.width,
-      height: item["Print size (Height mm)"] || item.height,
-      totalSqFt: (((item["Print size (Width mm)"] || 0) * (item["Print size (Height mm)"] || 0)) / 92903.04).toFixed(2),
+      width: widthInInches,
+      height: heightInInches,
+      // Total Sq.Ft = width (inches) * height (inches) / 144
+      totalSqFt: ((widthInInches * heightInInches) / 144).toFixed(2),
       Region: item["Region"] || item.Region,
       salonAddress: item["Location"] || item.salonAddress,
       city: item["Location"] || item.city,
-      campaignid:item["id"] || item.id,
+      campaignid: item["id"] || item.id,
     };
   
     try {
@@ -341,12 +372,6 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
                        addJobDetails()
 
                     }}>Accept All Orders</Button>
-                    {/* <Button variant="secondary" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Printed")}>Move All to Printing</Button>
-                    <Button variant="warning" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Delivered")}>Move All to Delivered</Button>
-                    <Button variant="success" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Implemented")}>Move All to Implementation</Button>
-                    <Button variant="info" size="sm" onClick={() => moveAllItemsToStage(displayedItems, "Proof of Execution")}>Proof of Execution</Button> */}
-                    {/* <Button variant="dark" size="sm" onClick={handleUploadImageToOrder}>Upload Image</Button> */}
-
                   </div>
 
                   <div className="table-responsive" style={{ maxHeight:"700px", overflowY: "auto" }}>
@@ -354,7 +379,7 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
                       <thead className="table-dark">
                         <tr>
                           {Object.keys(headerMapping).map((header, idx) => <th key={idx}>{header}</th>)}
-                          <th>Actions</th>
+                          {/* <th>Actions</th> */}
                         </tr>
                       </thead>
                       <tbody>
@@ -362,7 +387,7 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
                     <tr key={index}>
                           {Object.values(headerMapping).map((key, i) => (
                               <td key={i}>
-                                {["Region", "billingLocation"].includes(key) ? (
+                                {["productionLocation", "billingLocation"].includes(key) ? (
                                   <Select
                                     options={[
                                       { value: "North", label: "North" },
@@ -395,26 +420,30 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
                                     isClearable
                                     isSearchable={false}
                                   />
-                                ) : ["designerDeadline", "printerDeadline"].includes(key) ? (
-                                  <DatePicker
-                                    selected={item[key] ? new Date(item[key]) : null}
-                                    onChange={(date) => {
-                                      const updated = [...localItems];
-                                      updated[index][key] = date?.toISOString().split("T")[0] || "";
-                                      setLocalItems(updated);
-                                    }}
-                                    dateFormat="yyyy-MM-dd"
-                                    className="form-control form-control-sm"
-                                    placeholderText="Select date"
-                                  />
-                                ) : (
+                                ) : ["designerDeadline", "printerDeadline", "createdAt"].includes(key) ? (
+  <DatePicker
+    selected={item[key] ? new Date(item[key]) : new Date()} // default to current date
+    onChange={(date) => {
+      const updated = [...localItems];
+      updated[index][key] = date.toISOString();
+      setLocalItems(updated);
+    }}
+    showTimeSelect
+    timeFormat="HH:mm"
+    timeIntervals={15}
+    dateFormat="yyyy-MM-dd HH:mm"
+    className="form-control form-control-sm"
+    placeholderText="Select date & time"
+  />
+) 
+                                                                      : (
                                   typeof item[key] === "number" ? item[key].toFixed(2) : item[key] || ""
                                 )}
                               </td>
                             ))}
 
 
-                      <td>
+                      {/* <td>  
                         <Button
                           variant="primary"
                           size="sm"
@@ -422,7 +451,7 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
                         >
                           Accept
                         </Button>
-                      </td>
+                      </td> */}
                     </tr>
                   ))}
                 </tbody>

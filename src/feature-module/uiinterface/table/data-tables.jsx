@@ -463,6 +463,20 @@ const customColumnDefs = filterConfig.map(column => {
   //   fetchUserData();
   // }, [userId]);
 
+
+  const handleExportCSV = () => {
+  if (gridRef.current && gridRef.current.api) {
+    gridRef.current.api.exportDataAsCsv({
+      fileName: `JobData_${new Date().toISOString().slice(0, 10)}.csv`,
+      columnKeys: columnDefs.map(col => col.field).filter(Boolean), // Only fields with names
+      allColumns: true,
+    });
+  } else {
+    toast.error("Grid is not ready.");
+  }
+};
+
+
   const getLoggedInUserId = () => {
     const users = localStorage.getItem('users');
 
@@ -1408,9 +1422,13 @@ const GetAllJobAccToLocation = async () => {
     </>
   )}
 
-
-
-
+                    <Button
+                variant="success"
+                onClick={() => handleExportCSV()}
+                style={{ marginBottom: "1em" }}
+              >
+                Download CSV
+              </Button>
 
                     <Button
                       variant="warning"

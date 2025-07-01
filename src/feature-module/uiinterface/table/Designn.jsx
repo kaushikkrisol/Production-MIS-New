@@ -281,6 +281,8 @@ import { set } from 'date-fns';
             }
             try {
                 const response = await axios.post(config.Design.URL.GetAllDesignAccToLocation, payload);
+                // setJobs(response.data);
+                setDesignData(response.data);
                 console.log('Design data acc to location: ', response.data);
             } catch (error) {
                 console.error("Error fetching design jobs according to location", error);
