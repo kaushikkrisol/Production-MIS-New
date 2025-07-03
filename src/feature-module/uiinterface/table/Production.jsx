@@ -160,26 +160,38 @@
                 }
             }, []);
 
-            const exportToExcel = () => {
-                const worksheet = XLSX.utils.json_to_sheet(sortedData);
-                const workbook = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(workbook, worksheet, "Printing Jobs");
-            
-                // Optional: Style columns
-                const max_widths = sortedData.reduce((acc, row) => {
-                    Object.keys(row).forEach((key, index) => {
-                        const len = row[key]?.toString().length || 10;
-                        if (!acc[index] || len > acc[index].wch) {
-                            acc[index] = { wch: len + 2 }; // +2 for padding
-                        }
-                    });
-                    return acc;
-                }, []);
-            
-                worksheet["!cols"] = max_widths;
-            
-                XLSX.writeFile(workbook, "PrintingJobs.xlsx");
-            };
+       const exportToExcel = () => {
+    if (!gridRef.current) return;
+
+    const visibleRows = [];
+    gridRef.current.api.forEachNodeAfterFilterAndSort(node => {
+        visibleRows.push(node.data);
+    });
+
+    if (visibleRows.length === 0) {
+        alert("No data to export.");
+        return;
+    }
+
+    const worksheet = XLSX.utils.json_to_sheet(visibleRows);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Filtered Printing Jobs");
+
+    // Optional: Adjust column widths
+    const max_widths = visibleRows.reduce((acc, row) => {   
+        Object.keys(row).forEach((key, index) => {
+            const len = row[key]?.toString().length || 10;
+            if (!acc[index] || len > acc[index].wch) {
+                acc[index] = { wch: len + 2 }; // +2 for padding
+            }
+        });
+        return acc;
+    }, []);
+    worksheet["!cols"] = max_widths;
+
+    XLSX.writeFile(workbook, "FilteredPrintingJobs.xlsx");
+};
+
             
 
 

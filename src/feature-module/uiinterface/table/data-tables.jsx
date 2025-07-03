@@ -139,6 +139,18 @@ const DataTables = () => {
     remarks: '',
   });
 
+
+
+  const flagFields = [
+  "isPrinitngdone", // Note: spelling typo preserved to match your data
+  "isDeliveryDone",
+  "isImplementationDone",
+  "isPackingDone",
+  "isDesignDone",
+  "isImplementationUploadDone"
+];
+
+
   const headerMapping = {
     "Job No": "Job No",
     "Client": "CLIENT",
@@ -1784,6 +1796,34 @@ const GetAllJobAccToLocation = async () => {
                         rowSelection="multiple"
                         getRowHeight={() => 60}
                         headerHeight={50}
+                        rowClassRules={{
+    "row-printing": params => params.data?.isPrinitngdone === "1",
+    "row-delivery": params =>
+      params.data?.isDeliveryDone === "1" && params.data?.isPrinitngdone !== "1",
+    "row-implementation": params =>
+      params.data?.isImplementationDone === "1" &&
+      params.data?.isPrinitngdone !== "1" &&
+      params.data?.isDeliveryDone !== "1",
+    "row-packing": params =>
+      params.data?.isPackingDone === "1" &&
+      params.data?.isPrinitngdone !== "1" &&
+      params.data?.isDeliveryDone !== "1" &&
+      params.data?.isImplementationDone !== "1",
+    "row-design": params =>
+      params.data?.isDesignDone === "1" &&
+      params.data?.isPrinitngdone !== "1" &&
+      params.data?.isDeliveryDone !== "1" &&
+      params.data?.isImplementationDone !== "1" &&
+      params.data?.isPackingDone !== "1",
+    "row-implupload": params =>
+      params.data?.isImplementationUploadDone === "1" &&
+      params.data?.isPrinitngdone !== "1" &&
+      params.data?.isDeliveryDone !== "1" &&
+      params.data?.isImplementationDone !== "1" &&
+      params.data?.isPackingDone !== "1" &&
+      params.data?.isDesignDone !== "1"
+  }}
+
                         suppressRowClickSelection={true}
                         onCellValueChanged={(params) => {
                           const field = params.colDef?.field?.toLowerCase();
@@ -1823,6 +1863,9 @@ const GetAllJobAccToLocation = async () => {
                         }}
                       />
 
+     
+
+
 
 
 
@@ -1834,6 +1877,7 @@ const GetAllJobAccToLocation = async () => {
                 jobOptions={uniqueJobNoOptions}
                 onAcceptAllOrders={handleAcceptOrder}
               />
+
 
 
 
@@ -1866,6 +1910,16 @@ const GetAllJobAccToLocation = async () => {
                 onAcceptAllOrders={handleAcceptOrder} // ✅ here
               />
               </div>
+
+              <div className="status-legend-bar">
+  <span className="legend-box printing">✅ Printing Done</span>
+  <span className="legend-box delivery">🚚 Delivery Done</span>
+  <span className="legend-box implementation">🛠️ Implementation Done</span>
+  <span className="legend-box packing">📦 Packing Done</span>
+  <span className="legend-box design">🎨 Design Done</span>
+  <span className="legend-box implupload">⬆️ Impl Upload Done</span>
+</div>
+
                 </div>
               </div>
             </div>

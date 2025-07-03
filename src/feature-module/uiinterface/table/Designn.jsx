@@ -211,6 +211,7 @@
 
         const [selectedExJobNumber, setSelectedExJobNumber] = useState('');
         const [exJobNumber, setExJobNumber] = useState([]);
+        const [userRole, setUserRole] = useState('');
 
         const locations = ["North", "South", "East", "West", "All"];
         const status = ["Done", "Hold"];
@@ -235,6 +236,9 @@
 
                 const username = usersObject.message && usersObject.message.username;
                 setUserName(username);
+
+                 const rolename = usersObject.message?.rolename && usersObject.message.rolename;
+                  if (rolename) setUserRole(rolename);
 
             } else {
                 console.log('No user data found in localStorage.');
@@ -272,17 +276,19 @@
             const payload = {
                 locationId: locationId,
                 username: user,
+                rolename:userRole,
             }
             try {
                 const response = await axios.post(config.Design.URL.GetAllDesignAccToLocation, payload);
                 // setJobs(response.data);
-                setDesignData(response.data);
+                // setDesignData(response.data);
                 console.log('Design data acc to location: ', response.data);
             } catch (error) {
                 console.error("Error fetching design jobs according to location", error);
             }
         }
         useEffect(() => {
+                if (!locationId) return;
             fetchDesignJobsAccToLocation();
         }, [locationId, user]);
 
