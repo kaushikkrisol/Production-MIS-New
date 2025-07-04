@@ -22,9 +22,8 @@ import { FaSyncAlt, FaSearch, FaFilter } from 'react-icons/fa';
 import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
 import FilterSidebar from "../ui/FilterComponent";
-import './DataTables.css';
 
-// import Sort from "..import './DataTables.css';/ui/Sort";
+// import Sort from "../ui/Sort";
 // import { responsiveArray } from "antd/es/_util/responsiveObserver";
 // import { el } from "date-fns/locale";
 
@@ -57,7 +56,6 @@ const DataTables = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [totalValues, setTotalValues] = useState({ width: 0, height: 0 });
-  const [rolename,setRolename]=useState('');
   const gridRef = useRef();
 
 
@@ -108,7 +106,6 @@ const DataTables = () => {
 
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
-  const [deleteComment,setDeleteComment]=useState('');
 
   const [acceptorders,setAcceptedorders]=useState([]);
   const [filters, setFilters] = useState({
@@ -139,18 +136,6 @@ const DataTables = () => {
     printerDeadline: '',
     remarks: '',
   });
-
-
-
-  const flagFields = [
-  "isPrinitngdone", // Note: spelling typo preserved to match your data
-  "isDeliveryDone",
-  "isImplementationDone",
-  "isPackingDone",
-  "isDesignDone",
-  "isImplementationUploadDone"
-];
-
 
   const headerMapping = {
     "Job No": "Job No",
@@ -186,12 +171,10 @@ const DataTables = () => {
     { key: 'jobNo', placeholder: 'Job No', type: 'text' },
     { key: 'date', placeholder: 'Job Date', type: 'date' },
     { key: 'client', placeholder: 'Client', type: 'text' },
-    { key: 'status', placeholder: 'status', type: 'text' },
     { key: 'userName', placeholder: 'User Name', type: 'text' },
     { key: 'subClient', placeholder: 'Sub Client', type: 'text' },
     { key: 'productionLocation', placeholder: 'Production Location', type: 'text' },
     { key: 'billingLocation', placeholder: 'Billing Location', type: 'text' },
-
     { key: 'visualCode', placeholder: 'Visual Code', type: 'text' },
     { key: 'nameSubCode', placeholder: 'Product Details', type: 'text' },
     { key: 'city', placeholder: 'City', type: 'text' },
@@ -199,7 +182,6 @@ const DataTables = () => {
     { key: 'qty', placeholder: 'Qty', type: 'text' },
     { key: 'width', placeholder: 'Width', type: 'text' },
     { key: 'height', placeholder: 'Height', type: 'text' },
-   
     { key: 'totalSqFt', placeholder: 'Total Sq.Ft', type: 'text' },
     { key: 'media', placeholder: 'Media', type: 'text' },
     { key: 'lamination', placeholder: 'Lamination', type: 'text' },
@@ -217,123 +199,48 @@ const DataTables = () => {
  
 
 
-
-  const editableFields = [
-  "billinglocation",
-  "qty",
-  "width",
-  "height",
-  "totalsqft",
-  "media",
-  "lamination",
-  "productionlocation"
-];
-
-const dropdownFields = ["productionlocation", "billinglocation"];
-const dropdownValues = ["North", "South", "East", "West"];
-
-const StatusCellRenderer = ({ data }) => {
-  console.log("data is ", data);
-  if (!data) {
-    return <span className="status-label error">Data Missing</span>;
-  }
-
-  let label = "Pending";
-  let className = "status-label pending";
-
-  if (data.isPrinitngdone === "1") {
-    label = "Printing Done";
-    className = "status-label printing";
-  } else if (data.isDeliveryDone === "1") {
-    label = "Delivery Done";
-    className = "status-label delivery";
-  } else if (data.isImplementationDone === "1") {
-    label = "Implementation Done";
-    className = "status-label implementation";
-  } else if (data.isPackingDone === "1") {
-    label = "Packing Done";
-    className = "status-label packing";
-  } else if (data.isDesignDone === "1") {
-    label = "Design Done";
-    className = "status-label design";
-  } else if (data.isImplementationUploadDone === "1") {
-    label = "Impl Upload Done";
-    className = "status-label implupload";
-  }
-
-  return <span className={className}>{label}</span>;
-};
-
-const customColumnDefs = filterConfig.map(column => {
-  const fieldKey = column.key.toLowerCase();
-  const isEditable = rolename === "Branch Manager" && editableFields.includes(fieldKey);
-
-  // Status column: Inject special renderer
-  if (fieldKey === "status") {
-    return {
-      headerName: column.placeholder || "Status",
-      field: column.key,
-      minWidth: 180,
-      cellRenderer: (params) => {
-        if (!params.data) {
-          return <span className="status-label error">No Data</span>;
-        }
-        return StatusCellRenderer(params);
-      },
-      filter: 'agTextColumnFilter', // Specify filter type for the status column
-      filterParams: {
-        debounceMs: 200, // Optional: Add debounce for better performance
-        caseSensitive: false, // Optional: Make the filter case-insensitive
-      },
-    };
-  }
-
-  // Dropdown editor for location fields
-  if (dropdownFields.includes(fieldKey)) {
+  const customColumnDefs = filterConfig.map(column => {
+  if (column.key === "productionLocation") {
     return {
       headerName: column.placeholder,
-      field: column.key,
-      editable: isEditable,
+       field: "productionLocation", 
+      editable: true,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: {
-        values: dropdownValues
+        values: ["North", "South", "East", "West"], // You can fetch these dynamically too
       },
       minWidth: 160,
       resizable: true,
       sortable: true,
-      filter: true
+      filter: true,
     };
   }
-  
 
-  // Default column
   return {
     headerName: column.placeholder,
     field: column.key,
-    editable: isEditable,
     sortable: true,
     filter: true,
     minWidth: 160,
     resizable: true,
-    cellRenderer: !isEditable ? (params) => {
+    cellRenderer: (params) => {
       const value = params.value;
 
-      if (["width", "height", "totalsqft"].includes(fieldKey)) {
+      if (["width", "height", "totalSqFt"].includes(column.key)) {
         const num = parseFloat(value);
         return isNaN(num) ? '' : num.toFixed(2);
       }
 
-      if (fieldKey === "date") {
+      if (column.key === "date") {
         if (value) return value;
-        const enteredDate = params.data?.entereddt;
+        const enteredDate = params.data.entereddt;
         return enteredDate ? new Date(enteredDate).toLocaleDateString('en-GB') : '';
       }
 
       return value;
-    } : undefined
+    }
   };
 });
-
 
 
   console.log(setSortConfig)
@@ -460,9 +367,6 @@ const customColumnDefs = filterConfig.map(column => {
         const userObj = JSON.parse(users);
         const userId = userObj?.message?.user_id;
         const userName = userObj?.message?.username;
-        const Role=userObj?.message?.rolE_NAME;
-
-        setRolename(Role)
 
         // Log the retrieved values to the console
         console.log('Fetched User ID:', userId);
@@ -531,20 +435,6 @@ const customColumnDefs = filterConfig.map(column => {
 
   //   fetchUserData();
   // }, [userId]);
-
-
-  const handleExportCSV = () => {
-  if (gridRef.current && gridRef.current.api) {
-    gridRef.current.api.exportDataAsCsv({
-      fileName: `JobData_${new Date().toISOString().slice(0, 10)}.csv`,
-      columnKeys: columnDefs.map(col => col.field).filter(Boolean), // Only fields with names
-      allColumns: true,
-    });
-  } else {
-    toast.error("Grid is not ready.");
-  }
-};
-
 
   const getLoggedInUserId = () => {
     const users = localStorage.getItem('users');
@@ -615,39 +505,6 @@ const customColumnDefs = filterConfig.map(column => {
       setFilteredJobNumbers(filtered);
     }
   }, [selectSearchTerm, uniqueJobNumbers]);
-
-      const handleDeleteSelectedJobs = async () => {
-      const selectedNodes = gridRef.current.api.getSelectedNodes();
-      const selectedData = selectedNodes.map(node => node.data);
-
-      if (selectedData.length === 0) {
-        toast.error("Please select at least one job to delete.");
-        return;
-      }
-      if(!deleteComment.trim()){
-        toast.error("Please enter a comment for deletion.");
-        return;
-      }
-
-      const jobNos = selectedData.map(job => job.id);
-      console.log("Selected job number is ", jobNos);
-
-      try {
-        await axios.post(config.JobSummary.URL.DeleteSelectedJobs, 
-          {
-            jobNos: jobNos,
-            DeleteComment:deleteComment
-          }
-        );
-        toast.success("Selected jobs deleted successfully.");
-
-        GetAllJobAccToLocation()
-      } catch (error) {
-        console.error("Error deleting jobs:", error);
-        toast.error("Failed to delete jobs.");
-      }
-    };
-
 
   // const handleSelectJobNoChange = (e) => {
   //   const selectedJobNo = e.target.value;
@@ -759,33 +616,35 @@ const customColumnDefs = filterConfig.map(column => {
   //   }
   // };
 
-const GetAllJobAccToLocation = async () => {
-  const users = localStorage.getItem('users');
-  const userObj = JSON.parse(users);
+  const GetAllJobAccToLocation = async () => {
 
-  const userNamedata = userObj?.message?.username;
-  const locationdata = userObj?.message?.location_id;
-  const roleName = userObj?.message?.rolE_NAME;
 
-  const payload = {
-    locationId: locationdata,
-    username: userNamedata,
-    ...(roleName === "Admindelete" && { rolename: roleName }) // ✅ Only include if role is Admindelete
-  };
+    const users = localStorage.getItem('users');
 
-  console.log("Payload to GetAllJobAccToLocation:", payload);
+    const userObj = JSON.parse(users);
 
-  try {
-    const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
-    console.log('response of jobs acc to location: ', response.data);
-    setData(response.data.items);
-  } catch (error) {
-    console.error('Error fetching jobs according to location', error);
-  } finally {
-    setLoading(false);
+    const userNamedata = userObj?.message?.username;
+    const locationdata = userObj?.message?.location_id
+    const payload = {
+      locationId: locationdata,
+      username: userNamedata,
+    }
+
+    console.log("locationid and username is ", payload)
+    try {
+
+      const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
+      console.log('response of jobs acc to location: ', response.data);
+      // setLocationJob(response.data);
+
+      setData(response.data.items);
+
+    } catch (error) {
+      console.error('Error fetching jobs according to location', error);
+    } finally {
+      setLoading(false);
+    }
   }
-};
-
 
 
   const GetAllJobsFromSql = async () => {
@@ -943,7 +802,7 @@ const GetAllJobAccToLocation = async () => {
 
     } catch (error) {
       console.error("Error fetching customer data:", error.response ? error.response.data : error.message);
-      // setError("Error fetching job data");
+      setError("Error fetching job data");
     } finally {
       setLoading(false);
     }
@@ -1453,51 +1312,12 @@ const GetAllJobAccToLocation = async () => {
                           style={{ width: '400px' }} // Adjust width as necessary
                         />
                       </div> */}
-                  <div
-  className="button-group"
-  style={{
-    display: 'flex',
-    alignItems: 'center',
-    gap: '12px',              // Adds space between input and button
-    marginBottom: '1em',
-    
+                    <div className="button-group" style={{ display: 'flex', justifyContent: 'space-between', marginLeft: 'auto', width: '100%' }}>
 
-    width: 'fit-content'
-  }}
->
-  {rolename === "Admindelete" && (
-    <>
-      <input
-        type="text"
-        placeholder="Enter deletion comment"
-        value={deleteComment}
-        onChange={(e) => setDeleteComment(e.target.value)}
-        style={{
-          padding: '8px',
-          borderRadius: '4px',
-          border: '1px solid #ccc',
-          minWidth: '220px'
-        }}
-      />
-      <Button
-        variant="danger"
-        onClick={() => handleDeleteSelectedJobs(deleteComment)}
-        style={{
-          padding: '8px 16px'
-        }}
-      >
-        Delete Selected Jobs
-      </Button>
-    </>
-  )}
-
-                    <Button
-                variant="success"
-                onClick={() => handleExportCSV()}
-                style={{ marginBottom: "1em" }}
-              >
-                Download CSV
-              </Button>
+                      <Button variant="primary" style={{ marginBottom: "1em" }} onClick={() => setShowFilterSidebar(true)}>
+                        <FaFilter style={{ marginRight: '0.5em' }} />
+                        Open Filters
+                      </Button>
 
                     <Button
                       variant="warning"
@@ -1507,19 +1327,6 @@ const GetAllJobAccToLocation = async () => {
                     >
                       Job On Hold
                     </Button>
-
-
-{/*                     
-                    <Button
-                      variant="warning"
-                      onClick={handleJobOnHold}
-                      style={{ marginBottom: "1em", marginLeft: '10px' }}
-                     
-                    >
-                      Edit Job
-                    </Button> */}
-
-                    
                       <FilterSidebar
                         show={showFilterSidebar}
                         handleClose={() => setShowFilterSidebar(false)}
@@ -1839,114 +1646,76 @@ const GetAllJobAccToLocation = async () => {
 
                   <div style={{ overflowX: 'auto' }} className="table-container">
                   <div className="ag-theme-alpine custom-ag-grid" style={{ height: '600px', width: '100%' }}>
-                    <div className="ag-theme-alpine custom-ag-grid" style={{ height: '600px', width: '100%' }}>
-                      <AgGridReact
-                        ref={gridRef}
-                        singleClickEdit={true}
-                        suppressClickEdit={false}
-                        rowData={sortedData}
-                        columnDefs={columnDefs}
-                        defaultColDef={defaultColDef}
-                        pagination={true}
-                        paginationPageSize={50}
-                        domLayout="normal"
-                        rowSelection="multiple"
-                        getRowHeight={() => 60}
-                        headerHeight={50}
-                        rowClassRules={{
-  "row-printing": params => params.data?.isPrinitngdone === "1",
-  "row-delivery": params =>
-    params.data?.isDeliveryDone === "1" && params.data?.isPrinitngdone !== "1",
-  "row-implementation": params =>
-    params.data?.isImplementationDone === "1" &&
-    params.data?.isPrinitngdone !== "1" &&
-    params.data?.isDeliveryDone !== "1",
-  "row-packing": params =>
-    params.data?.isPackingDone === "1" &&
-    params.data?.isPrinitngdone !== "1" &&
-    params.data?.isDeliveryDone !== "1" &&
-    params.data?.isImplementationDone !== "1",
-  "row-design": params =>
-    params.data?.isDesignDone === "1" &&
-    params.data?.isPrinitngdone !== "1" &&
-    params.data?.isDeliveryDone !== "1" &&
-    params.data?.isImplementationDone !== "1" &&
-    params.data?.isPackingDone !== "1",
+                 <AgGridReact
+              ref={gridRef}
+              rowData={sortedData}
+              columnDefs={columnDefs}
+              defaultColDef={defaultColDef}
+              pagination={true}
+              paginationPageSize={50}
+              domLayout="normal"
+              rowSelection="multiple"
+              getRowHeight={() => 60}
+              headerHeight={50}
+              singleClickEdit={true}
+                                  rowClassRules={{
+  "row-packing": params => params.data?.isPackingDone === "1",
   "row-implupload": params =>
     params.data?.isImplementationUploadDone === "1" &&
-    params.data?.isPrinitngdone !== "1" &&
-    params.data?.isDeliveryDone !== "1" &&
+    params.data?.isPackingDone !== "1",
+  "row-implementation": params =>
+    params.data?.isImplementationDone === "1" &&
+    params.data?.isImplementationUploadDone !== "1" &&
+    params.data?.isPackingDone !== "1",
+  "row-design": params =>
+    params.data?.isDesignDone === "1" &&
     params.data?.isImplementationDone !== "1" &&
-    params.data?.isPackingDone !== "1" &&
-    params.data?.isDesignDone !== "1"
+    params.data?.isImplementationUploadDone !== "1" &&
+    params.data?.isPackingDone !== "1",
+  "row-delivery": params =>
+    params.data?.isDeliveryDone === "1" &&
+    params.data?.isDesignDone !== "1" &&
+    params.data?.isImplementationDone !== "1" &&
+    params.data?.isImplementationUploadDone !== "1" &&
+    params.data?.isPackingDone !== "1",
+  "row-printing": params =>
+    params.data?.isPrinitngdone === "1" &&
+    params.data?.isDeliveryDone !== "1" &&
+    params.data?.isDesignDone !== "1" &&
+    params.data?.isImplementationDone !== "1" &&
+    params.data?.isImplementationUploadDone !== "1" &&
+    params.data?.isPackingDone !== "1"
 }}
-getRowClass={(params) => {
-  if (params.data?.isPrinitngdone === "1") return "row-printing";
-  if (params.data?.isDeliveryDone === "1") return "row-delivery";
-  if (params.data?.isImplementationDone === "1") return "row-implementation";
-  if (params.data?.isPackingDone === "1") return "row-packing";
-  if (params.data?.isDesignDone === "1") return "row-design";
-  if (params.data?.isImplementationUploadDone === "1") return "row-implupload";
-  return "";
+          suppressRowClickSelection={true} // ✅ Prevent automatic selection
+            onCellValueChanged={(params) => {
+              if (params.colDef.field === 'productionLocation') {
+                const jobNo = params.data.jobNo;
+                const newLocation = params.newValue;
+                const billingLocation = params.data.billingLocation; // Assuming you want to keep the existing billing location
+
+    axios.post(`${config.JobSummary.URL.UpdateProductionLocation}`, {
+      jobNo,
+      productionLocation: newLocation,
+      billingLocation:billingLocation,
+      
+
+    }).then(() => {
+      toast.success("Production Location updated");
+    }).catch((error) => {
+      toast.error("Failed to update Production Location");
+      console.error("API error:", error);
+    });
+  }
 }}
-
-
-
-                        suppressRowClickSelection={true}
-                        onCellValueChanged={(params) => {
-                          const field = params.colDef?.field?.toLowerCase();
-                          const csid = params.data?.id;
-                          const value = params.newValue;
-
-                          const editableFields = [
-                            "billinglocation",
-                            "productionlocation",
-                            "qty",
-                            "width",
-                            "height",
-                            "totalsqft",
-                            "media",
-                            "lamination"
-                          ];
-
-                          if (!field || !csid || value == null) return;
-
-                          if (rolename === "Branch Manager" && editableFields.includes(field)) {
-                            axios
-                              .post(config.JobSummary.URL.UpdateJobField, {
-                                csid,
-                                field,
-                                value
-                              })
-                              .then(() => {
-                                toast.success(`${field} updated successfully`);
-                                // Optional: refresh grid if needed
-                                // GetAllJobAccToLocation();
-                              })
-                              .catch((err) => {
-                                console.error(err);
-                                toast.error(`Failed to update ${field}`);
-                              });
-                          }
-                        }}
-                      />
-
-     
-
-
-
-
-
+/>
                 </div>
-                <OrderPopup
+                  <OrderPopup
                 show={isPopupVisible}
                 items={data.filter(d => d.approved === "Yes")}
                 onClose={() => setIsPopupVisible(false)}
                 jobOptions={uniqueJobNoOptions}
                 onAcceptAllOrders={handleAcceptOrder}
               />
-
-
 
 
                     {/* <div>
@@ -1977,8 +1746,11 @@ getRowClass={(params) => {
                 jobOptions={uniqueJobNoOptions}
                 onAcceptAllOrders={handleAcceptOrder} // ✅ here
               />
-              </div>
 
+
+                </div>
+              </div>
+              
               <div className="status-legend-bar">
   <span className="legend-box printing">✅ Printing Done</span>
   <span className="legend-box delivery">🚚 Delivery Done</span>
@@ -1987,9 +1759,6 @@ getRowClass={(params) => {
   <span className="legend-box design">🎨 Design Done</span>
   <span className="legend-box implupload">⬆️ Impl Upload Done</span>
 </div>
-
-                </div>
-              </div>
             </div>
           </div>
         </div>

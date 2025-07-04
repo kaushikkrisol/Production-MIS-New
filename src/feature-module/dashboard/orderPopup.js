@@ -31,7 +31,7 @@ const headerMapping = {
   "Total Sq.Ft": "totalSqFt",
   "Media": "media",
   "Installation": "installation",
-  // "Job Deadline": "deadline",
+  "Job Deadline": "jobdeadline",
   "Designer Name": "designerName",
   "Designer ID": "designerId",
   "Designer Deadline": "designerDeadline",
@@ -49,7 +49,9 @@ const OrderPopup = ({
   show,
   items,
   jobOptions,
+  printerOptions,
   onClose,
+  onAcceptAllOrders = () => {} ,
   containerBg = "rgba(255,255,255,0.95)",
   bgColor = "#f8f9fa",
   headerColor = "#343a40"
@@ -149,6 +151,7 @@ const addJobDetails = async () => {
     "SALON ADDRESS": item.salonAddress || "",
     "campaignid": item.campaignId || "",
     "Designer Deadline": item.designerDeadline || "",
+    "Job Deadline": item.jobdeadline || "",
     
     "itemid": item.id || "",
     "updatedVisualImage": item.updatedVisualImage || ""
@@ -374,90 +377,105 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
                     }}>Accept All Orders</Button>
                   </div>
 
-                  <div className="table-responsive" style={{ maxHeight:"700px", overflowY: "auto" }}>
-                    <table className="table table-bordered table-sm table-striped">
-                      <thead className="table-dark">
-                        <tr>
-                          {Object.keys(headerMapping).map((header, idx) => <th key={idx}>{header}</th>)}
-                          {/* <th>Actions</th> */}
-                        </tr>
-                      </thead>
-                      <tbody>
-                  {displayedItems.map((item, index) => (
-                    <tr key={index}>
-                          {Object.values(headerMapping).map((key, i) => (
-                              <td key={i}>
-                                {["productionLocation", "billingLocation"].includes(key) ? (
-                                  <Select
-                                    options={[
-                                      { value: "North", label: "North" },
-                                      { value: "South", label: "South" },
-                                      { value: "East", label: "East" },
-                                      { value: "West", label: "West" }
-                                    ]}
-                                    value={item[key] ? { value: item[key], label: item[key] } : null}
-                                    onChange={(selected) => {
-                                      const updated = [...localItems];
-                                      updated[index][key] = selected?.value || "";
-                                      setLocalItems(updated);
-                                    }}
-                                    menuPortalTarget={document.body}
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }), control: base => ({ ...base, minHeight: "28px", fontSize: "12px" }) }}
-                                    isClearable
-                                    isSearchable={false}
-                                  />
-                                ) : ["lamination", "mounting", "implementation", "printReadyAvailable"].includes(key) ? (
-                                  <Select
-                                    options={[{ value: "Yes", label: "Yes" }, { value: "No", label: "No" }]}
-                                    value={item[key] ? { value: item[key], label: item[key] } : null}
-                                    onChange={(selected) => {
-                                      const updated = [...localItems];
-                                      updated[index][key] = selected?.value || "";
-                                      setLocalItems(updated);
-                                    }}
-                                    menuPortalTarget={document.body}
-                                    styles={{ menuPortal: base => ({ ...base, zIndex: 9999 }), control: base => ({ ...base, minHeight: "28px", fontSize: "12px" }) }}
-                                    isClearable
-                                    isSearchable={false}
-                                  />
-                                ) : ["designerDeadline", "printerDeadline", "createdAt"].includes(key) ? (
-  <DatePicker
-    selected={item[key] ? new Date(item[key]) : new Date()} // default to current date
-    onChange={(date) => {
-      const updated = [...localItems];
-      updated[index][key] = date.toISOString();
-      setLocalItems(updated);
-    }}
-    showTimeSelect
-    timeFormat="HH:mm"
-    timeIntervals={15}
-    dateFormat="yyyy-MM-dd HH:mm"
-    className="form-control form-control-sm"
-    placeholderText="Select date & time"
-  />
-) 
-                                                                      : (
-                                  typeof item[key] === "number" ? item[key].toFixed(2) : item[key] || ""
-                                )}
-                              </td>
-                            ))}
+                 <div className="table-responsive" style={{ maxHeight: "700px", overflowY: "auto" }}>
+  <table className="table table-bordered table-sm table-striped">
+    <thead className="table-dark" style={{ color: 'white' }}>
+      <tr>
+        {Object.keys(headerMapping).map((header, idx) => (
+          <th key={idx}>{header}</th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {displayedItems.map((item, index) => (
+        <tr key={index}>
+          {Object.values(headerMapping).map((key, i) => (
+            <td key={i}>
+              {["productionLocation", "billingLocation"].includes(key) ? (
+                <Select
+                  options={[
+                    { value: "North", label: "North" },
+                    { value: "South", label: "South" },
+                    { value: "East", label: "East" },
+                    { value: "West", label: "West" }
+                  ]}
+                  value={item[key] ? { value: item[key], label: item[key] } : null}
+                  onChange={(selected) => {
+                    const updated = [...localItems];
+                    updated[index][key] = selected?.value || "";
+                    setLocalItems(updated);
+                  }}
+                  menuPortalTarget={document.body}
+                  styles={{
+                    menuPortal: base => ({ ...base, zIndex: 9999 }),
+                    control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
+                  }}
+                  isClearable
+                  isSearchable={false}
+                />
+              ) : key === "printerPrintingName" ? (
+                <Select
+                  options={printerOptions || []}
+                  value={item[key] ? { value: item[key], label: item[key] } : null}
+                  onChange={(selected) => {
+                    const updated = [...localItems];
+                    updated[index][key] = selected?.value || "";
+                    setLocalItems(updated);
+                  }}
+                  menuPortalTarget={document.body}
+                  styles={{
+                    menuPortal: base => ({ ...base, zIndex: 9999 }),
+                    control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
+                  }}
+                  isClearable
+                  isSearchable
+                />
+              ) : ["lamination", "mounting", "implementation", "printReadyAvailable"].includes(key) ? (
+                <Select
+                  options={[
+                    { value: "Yes", label: "Yes" },
+                    { value: "No", label: "No" }
+                  ]}
+                  value={item[key] ? { value: item[key], label: item[key] } : null}
+                  onChange={(selected) => {
+                    const updated = [...localItems];
+                    updated[index][key] = selected?.value || "";
+                    setLocalItems(updated);
+                  }}
+                  menuPortalTarget={document.body}
+                  styles={{
+                    menuPortal: base => ({ ...base, zIndex: 9999 }),
+                    control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
+                  }}
+                  isClearable
+                  isSearchable={false}
+                />
+              ) : ["designerDeadline","jobdeadline", "printerDeadline", "createdAt"].includes(key) ? (
+                <DatePicker
+                  selected={item[key] ? new Date(item[key]) : new Date()}
+                  onChange={(date) => {
+                    const updated = [...localItems];
+                    updated[index][key] = date.toISOString();
+                    setLocalItems(updated);
+                  }}
+                  showTimeSelect
+                  timeFormat="HH:mm"
+                  timeIntervals={15}
+                  dateFormat="yyyy-MM-dd HH:mm"
+                  className="form-control form-control-sm"
+                  placeholderText="Select date & time"
+                />
+              ) : (
+                typeof item[key] === "number" ? item[key].toFixed(2) : item[key] || ""
+              )}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
 
-
-                      {/* <td>  
-                        <Button
-                          variant="primary"
-                          size="sm"
-                          onClick={() => handleAcceptOrder(item)}
-                        >
-                          Accept
-                        </Button>
-                      </td> */}
-                    </tr>
-                  ))}
-                </tbody>
-
-                    </table>
-                  </div>
                 </>
               ) : <p className="text-muted">No items available.</p>}
             </div>
@@ -472,6 +490,7 @@ OrderPopup.propTypes = {
   show: PropTypes.bool.isRequired,
   items: PropTypes.arrayOf(PropTypes.object).isRequired,
   jobOptions: PropTypes.array,
+  printerOptions: PropTypes.array,
   onClose: PropTypes.func.isRequired,
   onAcceptAllOrders: PropTypes.func 
 };

@@ -184,83 +184,59 @@ h4 {
   font-size: 0.85rem;
 }
 
-.legend-box.printing {
-  background-color: #28a745;
+/* AG Grid row highlight */
+.ag-row.row-printing {
+  background-color: #007bff !important;
+  color: #fff !important;
 }
-.legend-box.delivery {
+
+.ag-row.row-delivery {
+  background-color: #28a745 !important;
+  color: #fff !important;
+}
+
+.ag-row.row-implementation {
+  background-color: #fd7e14 !important;
+  color: #000 !important;
+}
+
+.ag-row.row-packing {
+  background-color: #6f42c1 !important;
+  color: #fff !important;
+}
+
+.ag-row.row-design {
+  background-color: #17a2b8 !important;
+  color: #fff !important;
+}
+
+.ag-row.row-implupload {
+  background-color: #20c997 !important;
+  color: #fff !important;
+}
+
+/* Legend box – exact same colors */
+.legend-box.printing {
   background-color: #007bff;
 }
+
+.legend-box.delivery {
+  background-color: #28a745;
+}
+
 .legend-box.implementation {
   background-color: #fd7e14;
+  color: #000;
 }
+
 .legend-box.packing {
-  background-color: #6610f2;
+  background-color: #6f42c1;
 }
+
 .legend-box.design {
   background-color: #17a2b8;
 }
+
 .legend-box.implupload {
-  background-color: #6c757d;
+  background-color: #20c997;
 }
-/* DataTables.css */
-
-.row-printing {
-  background-color: #e6f7ff !important;
-}
-
-.row-delivery {
-  background-color: #e6ffe6 !important;
-}
-
-.row-implementation {
-  background-color: #fff3cd !important;
-}
-
-.row-packing {
-  background-color: #f0e6ff !important;
-}
-
-.row-design {
-  background-color: #fff0f6 !important;
-}
-
-.row-implupload {
-  background-color: #e0f7fa !important;
-}
-
-.ag-row.row-printing {
-  background-color: #e6f7ff !important;
-}
-.ag-row.row-delivery {
-  background-color: #e6ffe6 !important;
-}
-.ag-row.row-implementation {
-  background-color: #fff3cd !important;
-}
-.ag-row.row-packing {
-  background-color: #f0e6ff !important;
-}
-.ag-row.row-design {
-  background-color: #fff0f6 !important;
-}
-.ag-row.row-implupload {
-  background-color: #e0f7fa !important;
-}
-
-.status-label {
-  display: inline-block;
-  padding: 6px 10px;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 12px;
-  color: #fff;
-  white-space: nowrap;
-}
-
-.status-label.printing { background-color: #007bff; }
-.status-label.delivery { background-color: #28a745; }
-.status-label.implementation { background-color: #ffc107; color: #000; }
-.status-label.packing { background-color: #6f42c1; }
-.status-label.design { background-color: #17a2b8; }
-.status-label.implupload { background-color: #20c997; }
-.status-label.pending { background-color: #6c757d; }

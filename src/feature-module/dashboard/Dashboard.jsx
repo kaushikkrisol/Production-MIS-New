@@ -22,11 +22,13 @@ const Dashboard = () => {
   const [lowStockData, setLowStockData] = useState([]);
   const [jobsFromSql, setJobsFromSql] = useState([]);
   const [locationid, setLocationid] = useState("");
+  const [location_id, setLocation_id] = useState("");
   const [jobNo,setJobNo]=useState('');
   const [showOrderPopup, setShowOrderPopup] = useState(false);
 
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState('');
+   const [printerOptions, setPrinterOptions] = useState([]);
   const [dateRange, setDateRange] = useState({
     startDate: getLastNDays(7)[0], // Ensure getLastNDays is defined before use
     endDate: new Date(),
@@ -37,12 +39,18 @@ const Dashboard = () => {
 
   useEffect(() => {
     const users = localStorage.getItem("users");
+
+    
   
     if (users) {
       try {
         const userObj = JSON.parse(users);
         const id = userObj?.message?.location_id;
-        if (id) setLocationid(id);
+        if (id)
+        {
+          setLocationid(id);
+        setLocation_id(id);
+        }
       } catch (error) {
         console.error("Error parsing JSON from localStorage:", error);
       }
@@ -55,7 +63,9 @@ const Dashboard = () => {
   
   useEffect(() => {
     if (locationid) {
-      GetAllJobsFromSql(); // ✅ Only call this once locationid is available
+       GetAllJobsFromSql(); // ✅ Only call this once locationid is available
+      fetchPrinterNames(locationid);
+      // ✅ Only call this once locationid is available
     }
   }, [locationid]);
   
@@ -134,6 +144,15 @@ const Dashboard = () => {
       console.error("Error for displaying jobno", error);
     }
   };
+
+
+  const fetchPrinterNames = async () => {
+  const res = await axios.post(config.Printing.URL.Getallprinting, { location_id });
+  const names = res.data.map(d => d.printerName).flat().filter(Boolean);
+  const uniqueNames = Array.from(new Set(names)); // remove duplicates
+  setPrinterOptions(uniqueNames.map(p => ({ value: p, label: p })));
+  };
+
   
   
 
@@ -301,6 +320,7 @@ const Dashboard = () => {
           show={showOrderPopup}
           items={yetToStartItems}
           jobOptions={jobNo}
+          printerOptions={printerOptions}
           onClose={() => setShowOrderPopup(false)}
           containerBg="rgba(220, 53, 69, 0.95)"
           campaignName={campaigns[0]?.campaignName || ""}
