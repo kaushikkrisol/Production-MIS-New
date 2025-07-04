@@ -46,6 +46,9 @@
 
             const [userId, setUserId] = useState(null);
             const [username, setUsername] = useState('');
+            const [rolenamedata, setrolenamedata] = useState('');
+
+            
             
             console.log(userId, username);
 
@@ -144,6 +147,8 @@
                 const userId = userObj?.message?.user_id;
                 location_id = userObj?.message?.location_id;
                 const userName = userObj?.message?.username;
+                 const rolename = userObj?.message?.rolE_NAME;
+
 
                 // Log the retrieved values to the console
                 console.log('Fetched User ID:', userId);
@@ -158,6 +163,10 @@
                 if (userName) {
                     setUsername(userName);
                 }
+                 if (rolename) {
+                    setrolenamedata(rolename);
+                }
+
             }, []);
 
        const exportToExcel = () => {
@@ -1285,11 +1294,13 @@
                                             </Row>
                                             <hr />
                                             <div>
+                                           {rolenamedata === "Branch Manager" && (
                                                 <Form inline style={{marginBottom: '2em'}} onSubmit={(e) => e.preventDefault()}>
                                                     <Button color="danger" onClick={toggle}>
                                                         Reprint
                                                     </Button>
                                                 </Form>
+                                            )}
                                                 <Modal isOpen={open} className="">
                                                     <ModalBody>
                                                         <CompletedPrinting />

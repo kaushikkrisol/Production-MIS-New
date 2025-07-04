@@ -144,12 +144,12 @@ const Delivery = () => {
     { field: 'date', headerName: 'Production Date', filter: true },
     { field: 'client', headerName: 'Client Name', filter: true },
     { field: 'region', headerName: 'Production Location', filter: true },
-    { field: 'deliveryTo', headerName: 'Delivery Person' },
-    { field: 'deliveryDate', headerName: 'Delivery Started' },
-    { field: 'deliveryOutDate', headerName: 'Delivery Completed' },
-    { field: 'handTempoDelivery', headerName: 'Delivery Mode' },
-    { field: 'salonAddress', headerName: 'Address' },
-    { field: 'implementation', headerName: 'Implementation' }
+    // { field: 'deliveryTo', headerName: 'Delivery Person' },
+    // { field: 'deliveryDate', headerName: 'Delivery Started' },
+    // { field: 'deliveryOutDate', headerName: 'Delivery Completed' },
+    // { field: 'handTempoDelivery', headerName: 'Delivery Mode' },
+    { field: 'salonAddress', headerName: 'SalonAddress' },
+    // { field: 'implementation', headerName: 'Implementation' }
   ], []);
 
   const defaultColDef = useMemo(() => ({

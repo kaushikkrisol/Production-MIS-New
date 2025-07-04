@@ -22,8 +22,9 @@ import { FaSyncAlt, FaSearch, FaFilter } from 'react-icons/fa';
 import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
 import FilterSidebar from "../ui/FilterComponent";
+import './DataTables.css';
 
-// import Sort from "../ui/Sort";
+// import Sort from "..import './DataTables.css';/ui/Sort";
 // import { responsiveArray } from "antd/es/_util/responsiveObserver";
 // import { el } from "date-fns/locale";
 
@@ -185,10 +186,12 @@ const DataTables = () => {
     { key: 'jobNo', placeholder: 'Job No', type: 'text' },
     { key: 'date', placeholder: 'Job Date', type: 'date' },
     { key: 'client', placeholder: 'Client', type: 'text' },
+    { key: 'status', placeholder: 'status', type: 'text' },
     { key: 'userName', placeholder: 'User Name', type: 'text' },
     { key: 'subClient', placeholder: 'Sub Client', type: 'text' },
     { key: 'productionLocation', placeholder: 'Production Location', type: 'text' },
     { key: 'billingLocation', placeholder: 'Billing Location', type: 'text' },
+
     { key: 'visualCode', placeholder: 'Visual Code', type: 'text' },
     { key: 'nameSubCode', placeholder: 'Product Details', type: 'text' },
     { key: 'city', placeholder: 'City', type: 'text' },
@@ -196,6 +199,7 @@ const DataTables = () => {
     { key: 'qty', placeholder: 'Qty', type: 'text' },
     { key: 'width', placeholder: 'Width', type: 'text' },
     { key: 'height', placeholder: 'Height', type: 'text' },
+   
     { key: 'totalSqFt', placeholder: 'Total Sq.Ft', type: 'text' },
     { key: 'media', placeholder: 'Media', type: 'text' },
     { key: 'lamination', placeholder: 'Lamination', type: 'text' },
@@ -228,9 +232,61 @@ const DataTables = () => {
 const dropdownFields = ["productionlocation", "billinglocation"];
 const dropdownValues = ["North", "South", "East", "West"];
 
+const StatusCellRenderer = ({ data }) => {
+  console.log("data is ", data);
+  if (!data) {
+    return <span className="status-label error">Data Missing</span>;
+  }
+
+  let label = "Pending";
+  let className = "status-label pending";
+
+  if (data.isPrinitngdone === "1") {
+    label = "Printing Done";
+    className = "status-label printing";
+  } else if (data.isDeliveryDone === "1") {
+    label = "Delivery Done";
+    className = "status-label delivery";
+  } else if (data.isImplementationDone === "1") {
+    label = "Implementation Done";
+    className = "status-label implementation";
+  } else if (data.isPackingDone === "1") {
+    label = "Packing Done";
+    className = "status-label packing";
+  } else if (data.isDesignDone === "1") {
+    label = "Design Done";
+    className = "status-label design";
+  } else if (data.isImplementationUploadDone === "1") {
+    label = "Impl Upload Done";
+    className = "status-label implupload";
+  }
+
+  return <span className={className}>{label}</span>;
+};
+
 const customColumnDefs = filterConfig.map(column => {
   const fieldKey = column.key.toLowerCase();
   const isEditable = rolename === "Branch Manager" && editableFields.includes(fieldKey);
+
+  // Status column: Inject special renderer
+  if (fieldKey === "status") {
+    return {
+      headerName: column.placeholder || "Status",
+      field: column.key,
+      minWidth: 180,
+      cellRenderer: (params) => {
+        if (!params.data) {
+          return <span className="status-label error">No Data</span>;
+        }
+        return StatusCellRenderer(params);
+      },
+      filter: 'agTextColumnFilter', // Specify filter type for the status column
+      filterParams: {
+        debounceMs: 200, // Optional: Add debounce for better performance
+        caseSensitive: false, // Optional: Make the filter case-insensitive
+      },
+    };
+  }
 
   // Dropdown editor for location fields
   if (dropdownFields.includes(fieldKey)) {
@@ -248,6 +304,7 @@ const customColumnDefs = filterConfig.map(column => {
       filter: true
     };
   }
+  
 
   // Default column
   return {
@@ -1797,32 +1854,43 @@ const GetAllJobAccToLocation = async () => {
                         getRowHeight={() => 60}
                         headerHeight={50}
                         rowClassRules={{
-    "row-printing": params => params.data?.isPrinitngdone === "1",
-    "row-delivery": params =>
-      params.data?.isDeliveryDone === "1" && params.data?.isPrinitngdone !== "1",
-    "row-implementation": params =>
-      params.data?.isImplementationDone === "1" &&
-      params.data?.isPrinitngdone !== "1" &&
-      params.data?.isDeliveryDone !== "1",
-    "row-packing": params =>
-      params.data?.isPackingDone === "1" &&
-      params.data?.isPrinitngdone !== "1" &&
-      params.data?.isDeliveryDone !== "1" &&
-      params.data?.isImplementationDone !== "1",
-    "row-design": params =>
-      params.data?.isDesignDone === "1" &&
-      params.data?.isPrinitngdone !== "1" &&
-      params.data?.isDeliveryDone !== "1" &&
-      params.data?.isImplementationDone !== "1" &&
-      params.data?.isPackingDone !== "1",
-    "row-implupload": params =>
-      params.data?.isImplementationUploadDone === "1" &&
-      params.data?.isPrinitngdone !== "1" &&
-      params.data?.isDeliveryDone !== "1" &&
-      params.data?.isImplementationDone !== "1" &&
-      params.data?.isPackingDone !== "1" &&
-      params.data?.isDesignDone !== "1"
-  }}
+  "row-printing": params => params.data?.isPrinitngdone === "1",
+  "row-delivery": params =>
+    params.data?.isDeliveryDone === "1" && params.data?.isPrinitngdone !== "1",
+  "row-implementation": params =>
+    params.data?.isImplementationDone === "1" &&
+    params.data?.isPrinitngdone !== "1" &&
+    params.data?.isDeliveryDone !== "1",
+  "row-packing": params =>
+    params.data?.isPackingDone === "1" &&
+    params.data?.isPrinitngdone !== "1" &&
+    params.data?.isDeliveryDone !== "1" &&
+    params.data?.isImplementationDone !== "1",
+  "row-design": params =>
+    params.data?.isDesignDone === "1" &&
+    params.data?.isPrinitngdone !== "1" &&
+    params.data?.isDeliveryDone !== "1" &&
+    params.data?.isImplementationDone !== "1" &&
+    params.data?.isPackingDone !== "1",
+  "row-implupload": params =>
+    params.data?.isImplementationUploadDone === "1" &&
+    params.data?.isPrinitngdone !== "1" &&
+    params.data?.isDeliveryDone !== "1" &&
+    params.data?.isImplementationDone !== "1" &&
+    params.data?.isPackingDone !== "1" &&
+    params.data?.isDesignDone !== "1"
+}}
+getRowClass={(params) => {
+  if (params.data?.isPrinitngdone === "1") return "row-printing";
+  if (params.data?.isDeliveryDone === "1") return "row-delivery";
+  if (params.data?.isImplementationDone === "1") return "row-implementation";
+  if (params.data?.isPackingDone === "1") return "row-packing";
+  if (params.data?.isDesignDone === "1") return "row-design";
+  if (params.data?.isImplementationUploadDone === "1") return "row-implupload";
+  return "";
+}}
+
+
 
                         suppressRowClickSelection={true}
                         onCellValueChanged={(params) => {
