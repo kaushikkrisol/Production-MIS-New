@@ -5,7 +5,7 @@
     import { Link } from "react-router-dom";
     import { all_routes } from "../../../Router/all_routes";
     import axios from 'axios';
-    import { Container, Form, Row, Col, Alert, Spinner, Button, Table } from 'react-bootstrap';
+    import { Card, CardBody, Container, Form, Row, Col, Alert, Spinner, Button, Table } from 'react-bootstrap';
     import moment from 'moment';
     import config from '../../../config';
     import './MisReport.css';
@@ -15,6 +15,8 @@
     import Select from 'react-select';
     import { label } from 'yet-another-react-lightbox';
 
+
+
     const MisReport = () => {
         const [error, setError] = useState(null);
         const [loading, setLoading] = useState(false);
@@ -23,7 +25,7 @@
         const productions = ["CS", "Design", "Printing", "Delivery", "Reprint"];
         const locations = ["North", "South", "East", "West"];
         const [dateRangeDisplay, setDateRangeDisplay] = useState('');
-
+        const [hasFetched, setHasFetched] = useState(false);
         const [data, setData] = useState([]);
         const [csData, setCsData] = useState([]);
         const [designData, setDesignData] = useState([]);
@@ -51,6 +53,7 @@
 
         // Handle 'Go' button click
         const handleGoReport = async () => {
+            setHasFetched(false); 
             if (!newProduction) {
                 console.error("Production type is missing.");
                 return;
@@ -68,83 +71,86 @@
             try {
                 // Fetch the data for the selected production type
                 await fetchReport();
-                // await fetchData(newProduction);
+                 //await fetchData(newProduction);
+
+                  setHasFetched(true);   
 
             } catch (error) {
                 console.error("Error in handleGoReport:", error);
+                setHasFetched(true); 
             }
         };
 
-        const fetchData = async (reporttype) => {
-            setLoading(true);
+        // const fetchData = async (reporttype) => {
+        //     setLoading(true);
 
-            try {
-                let response;
+        //     try {
+        //         let response;
 
-                if (reporttype === 'CS') {
-                    response = await axios.post(config.JobSummary.URL.Getalljob);
-                    console.log(enteredDt, 'entered datae of cs: ', response.data);
-                    setEnteredDt(response.data);
-                    setCsData(response.data);
-                } else if (reporttype === 'Design') {
-                    response = await axios.post(config.Design.URL.Getalldesign);
-                    console.log(designEnteredDt, 'entered datae of design: ', response.data);
-                    setDesignEnteredDt(response.data)
-                    setDesignData(response.data);
+        //         if (reporttype === 'CS') {
+        //             response = await axios.post(config.JobSummary.URL.Getalljob);
+        //             console.log(enteredDt, 'entered datae of cs: ', response.data);
+        //             setEnteredDt(response.data);
+        //             setCsData(response.data);
+        //         } else if (reporttype === 'Design') {
+        //             response = await axios.post(config.Design.URL.Getalldesign);
+        //             console.log(designEnteredDt, 'entered datae of design: ', response.data);
+        //             setDesignEnteredDt(response.data)
+        //             setDesignData(response.data);
 
-                    const dataWithTotalTimes = response.data.map((row) => {
-                        if (row.startdate && row.enddate) {
-                            try {
-                                const startDate = moment(row.startdate, "DD/MM/YYYY HH:mm:ss");
-                                const endDate = moment(row.enddate, "DD/MM/YYYY HH:mm:ss");
+        //             const dataWithTotalTimes = response.data.map((row) => {
+        //                 if (row.startdate && row.enddate) {
+        //                     try {
+        //                         const startDate = moment(row.startdate, "DD/MM/YYYY HH:mm:ss");
+        //                         const endDate = moment(row.enddate, "DD/MM/YYYY HH:mm:ss");
 
-                                if (startDate.isValid() && endDate.isValid()) {
-                                    const totalTime = moment.duration(endDate.diff(startDate));
-                                    return {
-                                        ...row,
-                                        totalTime: `${totalTime.days()}d ${totalTime.hours()}h ${totalTime.minutes()}m`
-                                    };
-                                }
-                            } catch (e) {
-                                console.error("Error calculating time for row: ", row, e);
-                            }
+        //                         if (startDate.isValid() && endDate.isValid()) {
+        //                             const totalTime = moment.duration(endDate.diff(startDate));
+        //                             return {
+        //                                 ...row,
+        //                                 totalTime: `${totalTime.days()}d ${totalTime.hours()}h ${totalTime.minutes()}m`
+        //                             };
+        //                         }
+        //                     } catch (e) {
+        //                         console.error("Error calculating time for row: ", row, e);
+        //                     }
 
 
-                        }
-                        return {
-                            ...row,
-                            totalTime: "N/A"
-                        };
-                    });
-                    setDesignData(dataWithTotalTimes);
-                    console.log("Total Times: ", dataWithTotalTimes);
-                } else if (reporttype === 'Printing') {
-                    response = await axios.post(config.Printing.URL.GetCompletedPrinting);
-                    console.log(printingEnteredDt, 'entered datae of printing: ', response.data);
-                    setPrintingEnteredDt(response.data)
-                    setPrintingData(response.data);
-                } else if (reporttype === 'Delivery') {
-                    response = await axios.post(config.Delivery.URL.Getalldelivery);
-                    console.log(deliveryEnteredDt, 'entered datae of delivery: ', response.data);
-                    setDeliveryEnteredDt(response.data);
-                    setDeliveryData(response.data);
-                } else if (reporttype === 'Reprint') {
-                    response = await axios.post(config.Printing.URL.GetCompletedPrinting);
-                    const filteredData = response.data.filter(row => row.isPrintingdone === 1);
-                    setReprintData(filteredData);  // ✅ Correct state assignment
-                }
-                else {
-                    console.log('Invalid production type');
-                }
+        //                 }
+        //                 return {
+        //                     ...row,
+        //                     totalTime: "N/A"
+        //                 };
+        //             });
+        //             setDesignData(dataWithTotalTimes);
+        //             console.log("Total Times: ", dataWithTotalTimes);
+        //         } else if (reporttype === 'Printing') {
+        //             response = await axios.post(config.Printing.URL.GetCompletedPrinting);
+        //             console.log(printingEnteredDt, 'entered datae of printing: ', response.data);
+        //             setPrintingEnteredDt(response.data)
+        //             setPrintingData(response.data);
+        //         } else if (reporttype === 'Delivery') {
+        //             response = await axios.post(config.Delivery.URL.Getalldelivery);
+        //             console.log(deliveryEnteredDt, 'entered datae of delivery: ', response.data);
+        //             setDeliveryEnteredDt(response.data);
+        //             setDeliveryData(response.data);
+        //         } else if (reporttype === 'Reprint') {
+        //             response = await axios.post(config.Printing.URL.GetCompletedPrinting);
+        //             const filteredData = response.data.filter(row => row.isPrintingdone === 1);
+        //             setReprintData(filteredData);  // ✅ Correct state assignment
+        //         }
+        //         else {
+        //             console.log('Invalid production type');
+        //         }
 
-                console.log('response', response.data);
-            } catch (err) {
+        //         console.log('response', response.data);
+        //     } catch (err) {
 
-                console.error(err);
-            } finally {
-                setLoading(false);
-            }
-        };
+        //         console.error(err);
+        //     } finally {
+        //         setLoading(false);
+        //     }
+        // };
 
         const fetchReport = async () => {
             setLoading(true);
@@ -164,14 +170,29 @@
                 });
 
                 if (response.status === 200 && response.data) {
-                    await fetchData();
+                   // await fetchData();
                     switch (newProduction) {
                         case "CS":
                             setCsData(response.data);
                             break;
-                        case "Design":
-                            setDesignData(response.data);
-                            break;
+                        case "Design":{
+                            const dataWithTimeTaken = response.data.map((row) => {
+                            if (row.startdate && row.enddate) {
+                            const start = moment(row.startdate, "DD/MM/YYYY HH:mm:ss");
+                            const end = moment(row.enddate, "DD/MM/YYYY HH:mm:ss");
+
+                            if (start.isValid() && end.isValid()) {
+                                const duration = moment.duration(end.diff(start));
+                                const timeTaken = `${duration.hours()}h ${duration.minutes()}m`;
+                                return { ...row, totalTime: timeTaken };
+                            }
+                            }
+                            return { ...row, totalTime: "N/A" };
+                        });
+
+                        setDesignData(dataWithTimeTaken);
+                        break;
+                        }
                         case "Printing":
                             setPrintingData(response.data);
                             break;
@@ -319,7 +340,8 @@
                     { label: "CS Name", key: "Entrdby" },
                     { label: "Artworker Deadline", key: "artworkerDeadline" },
                     { label: "Start Time", key: "startdate" },
-                    { label: "End Time", key: "enddate" }
+                    { label: "End Time", key: "enddate" },
+                     { label: "Time Taken", key: "totalTime" }
                 ]
             },
             Printing: {
@@ -594,58 +616,174 @@
         };
 
         const renderTable = () => {
-            const config = tableConfigs[newProduction];
-            if (!config) return null;
+    const config = tableConfigs[newProduction];
+    if (!config) return null;
 
-            // Inject data based on selected production type
-            let reportData = [];
-            switch (newProduction) {
-                case "CS":
-                    reportData = csData;
-                    break;
-                case "Design":
-                    reportData = designData;
-                    break;
-                case "Printing":
-                    reportData = printingData;
-                    break;
-                case "Delivery":
-                    reportData = deliveryData;
-                    break;
-                case "Reprint":
-                    reportData = reprintData;
-                    break;
-                default:
-                    reportData = [];
-            }
+    // Inject data based on selected production type
+    let reportData = [];
+    switch (newProduction) {
+        case "CS":
+            reportData = csData;
+            break;
+        case "Design":
+            reportData = designData;
+            break;
+        case "Printing":
+            reportData = printingData;
+            break;
+        case "Delivery":
+            reportData = deliveryData;
+            break;
+        case "Reprint":
+            reportData = reprintData;
+            break;
+        default:
+            reportData = [];
+    }
 
-            if (!Array.isArray(reportData) || reportData.length === 0) {
-                return <div>No data available for the selected report type.</div>;
-            }
+    if (hasFetched && (!Array.isArray(reportData) || reportData.length === 0)) {
+        return <div>No data available for the selected report type.</div>;
+    }
+return (
+    <>
+{reportData.length > 0 && (
+  <Card className="mt-4">
+    <CardBody style={{ padding: "0" }}>
+      <div
+        style={{
+          overflowX: "auto",
+          overflowY: "auto",
+          maxHeight: "500px",
+          border: "1px solid #ccc"
+        }}
+      >
+        <Table
+          striped
+          bordered
+          hover
+          className="tableBody"
+          style={{
+            minWidth: "1200px",
+            tableLayout: "auto",
+            marginBottom: 0
+          }}
+        >
+          <thead className="table-dark">
+            <tr>
+              {config.headers.map((header, index) => (
+                <th key={index}>{header.label}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {reportData.map((row, rowIndex) => (
+              <tr key={rowIndex}>
+                {config.headers.map((header, colIndex) => (
+                  <td key={colIndex}>
+                    {header.key === "date"
+                      ? getFormattedDate(row)
+                      : row[header.key] ?? "-"}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
+    </CardBody>
+  </Card>
+  )}
+  </>
+);
+  
+    
 
-            return (
-                <Table striped bordered hover className='tableBody'>
-                    <thead>
-                        <tr>
-                            {config.headers.map((header, index) => (
-                                <th key={index}>{header.label}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {reportData.map((row, rowIndex) => (
-                            <tr key={rowIndex}>
-                                {config.headers.map((header, colIndex) => (
-                                    <td key={colIndex}>
-                                        {header.key === 'date' ? getFormattedDate(row) : (row[header.key] ?? "-")}
-                                    </td>
-                                ))}
-                            </tr>
-                        ))}
-                    </tbody>
-                </Table>
-            );
-        };
+    //     <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "500px", border: "1px solid #ccc" }}>
+    //         <Table
+    //             striped
+    //             bordered
+    //             hover
+    //             className="tableBody"
+    //             style={{ minWidth: "500px", tableLayout: "auto", marginBottom: 0 }}
+    //         >
+    //             <thead className="table-dark">
+    //                 <tr>
+    //                     {config.headers.map((header, index) => (
+    //                         <th key={index}>{header.label}</th>
+    //                     ))}
+    //                 </tr>
+    //             </thead>
+    //             <tbody>
+    //                 {reportData.map((row, rowIndex) => (
+    //                     <tr key={rowIndex}>
+    //                         {config.headers.map((header, colIndex) => (
+    //                             <td key={colIndex}>
+    //                                 {header.key === "date"
+    //                                     ? getFormattedDate(row)
+    //                                     : row[header.key] ?? "-"}
+    //                             </td>
+    //                         ))}
+    //                     </tr>
+    //                 ))}
+    //             </tbody>
+    //         </Table>
+    //     </div>
+    // );
+};
+
+        // const renderTable = () => {
+        //     const config = tableConfigs[newProduction];
+        //     if (!config) return null;
+
+        //     // Inject data based on selected production type
+        //     let reportData = [];
+        //     switch (newProduction) {
+        //         case "CS":
+        //             reportData = csData;
+        //             break;
+        //         case "Design":
+        //             reportData = designData;
+        //             break;
+        //         case "Printing":
+        //             reportData = printingData;
+        //             break;
+        //         case "Delivery":
+        //             reportData = deliveryData;
+        //             break;
+        //         case "Reprint":
+        //             reportData = reprintData;
+        //             break;
+        //         default:
+        //             reportData = [];
+        //     }
+
+        //     if (!Array.isArray(reportData) || reportData.length === 0) {
+        //         return <div>No data available for the selected report type.</div>;
+        //     }
+
+        //     return (
+        //         <Table striped bordered hover className='tableBody'>
+        //             <thead>
+        //                 <tr>
+        //                     {config.headers.map((header, index) => (
+        //                         <th key={index}>{header.label}</th>
+        //                     ))}
+        //                 </tr>
+        //             </thead>
+        //             <tbody>
+        //                 {reportData.map((row, rowIndex) => (
+        //                     <tr key={rowIndex}>
+        //                         {config.headers.map((header, colIndex) => (
+        //                             <td key={colIndex}>
+        //                                 {header.key === 'date' ? getFormattedDate(row) : (row[header.key] ?? "-")}
+        //                             </td>
+        //                         ))}
+        //                     </tr>
+        //                 ))}
+        //             </tbody>
+        //         </Table>
+        //     );
+        // };
 
 
         const [jobsFromSql, setJobsFromSql] = useState([]);
@@ -803,8 +941,8 @@
             XLSX.writeFile(workbook, "ProductsReport.xlsx"); // Save as Excel file
         };
         useEffect(() => {
-            fetchJobs();
-            GetAllJobsFromSql();
+            //fetchJobs();
+            //GetAllJobsFromSql();
         }, []);
 
         return (

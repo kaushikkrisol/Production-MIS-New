@@ -66,6 +66,7 @@ const DataTables = () => {
 
   const [userId, setUserId] = useState(null);
   const [userName, setUsername] = useState('');
+  const [rolenames, setRolenames] = useState('');
   // const [subClient, setSubClient] = useState('');
 
   console.log(userId, userName, totalValues);
@@ -200,6 +201,7 @@ const DataTables = () => {
 
 
   const customColumnDefs = filterConfig.map(column => {
+    
   if (column.key === "productionLocation") {
     return {
       headerName: column.placeholder,
@@ -367,6 +369,7 @@ const DataTables = () => {
         const userObj = JSON.parse(users);
         const userId = userObj?.message?.user_id;
         const userName = userObj?.message?.username;
+        const rolename = userObj?.message?.rolE_NAME;
 
         // Log the retrieved values to the console
         console.log('Fetched User ID:', userId);
@@ -380,6 +383,10 @@ const DataTables = () => {
         // Set state if values exist
         if (userId) {
           setUserId(userId);
+        }
+        if(rolename){
+          setRolenames(rolename);
+          console.log("role name is ", rolename);
         }
 
         if (userName) {
@@ -1658,6 +1665,7 @@ const DataTables = () => {
               getRowHeight={() => 60}
               headerHeight={50}
               singleClickEdit={true}
+              
                                   rowClassRules={{
   "row-packing": params => params.data?.isPackingDone === "1",
   "row-implupload": params =>
@@ -1689,24 +1697,24 @@ const DataTables = () => {
           suppressRowClickSelection={true} // ✅ Prevent automatic selection
             onCellValueChanged={(params) => {
               if (params.colDef.field === 'productionLocation') {
-                const jobNo = params.data.jobNo;
+                const id = params.data.id;
                 const newLocation = params.newValue;
-                const billingLocation = params.data.billingLocation; // Assuming you want to keep the existing billing location
 
     axios.post(`${config.JobSummary.URL.UpdateProductionLocation}`, {
-      jobNo,
+      id: id,
       productionLocation: newLocation,
-      billingLocation:billingLocation,
-      
-
+      employeename: userName,
+      rolename:rolenames
     }).then(() => {
       toast.success("Production Location updated");
+      
     }).catch((error) => {
       toast.error("Failed to update Production Location");
       console.error("API error:", error);
     });
   }
 }}
+
 />
                 </div>
                   <OrderPopup

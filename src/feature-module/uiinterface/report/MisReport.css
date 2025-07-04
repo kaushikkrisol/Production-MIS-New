@@ -9,3 +9,11 @@
 .tableBody {
     margin-top: 2em;
 }
+.tableBody {
+  white-space: nowrap;
+}
+.tableBody thead th,
+.tableBody tbody td {
+  text-align: left;
+  vertical-align: middle;
+}

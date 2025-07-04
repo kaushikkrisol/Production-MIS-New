@@ -845,7 +845,7 @@
                             const days = Math.floor(totalHours / 24);
                             const hours = totalHours % 24;
                             
-                            message.push(`Job No: ${job.jobNo}, Printer Name: ${printerName} has missed its deadline! Time passed: ${days}d ${hours}h`);
+                            message.push(`Job No: ${job.jobNo},Job Date: ${job.date}, Client name: ${job.client}, Printer Name: ${printerName} has missed its deadline! Time passed: ${days}d ${hours}h`);
                         }
                     });
 
