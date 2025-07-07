@@ -22,6 +22,7 @@ import { FaSyncAlt, FaSearch, FaFilter } from 'react-icons/fa';
 import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
 import FilterSidebar from "../ui/FilterComponent";
+import { use } from "react";
 
 // import Sort from "../ui/Sort";
 // import { responsiveArray } from "antd/es/_util/responsiveObserver";
@@ -47,6 +48,8 @@ const DataTables = () => {
   console.log(data);
 
   const [selectSearchTerm, setSelectSearchTerm] = useState('');
+  const [deleteComment,setDeleteComment]=useState('');
+
   const [filteredJobNumbers, setFilteredJobNumbers] = useState([]);
   const [customerid, setCustomerid] = useState('');
 
@@ -67,6 +70,7 @@ const DataTables = () => {
   const [userId, setUserId] = useState(null);
   const [userName, setUsername] = useState('');
   const [rolenames, setRolenames] = useState('');
+  
   // const [subClient, setSubClient] = useState('');
 
   console.log(userId, userName, totalValues);
@@ -386,6 +390,7 @@ const DataTables = () => {
         }
         if(rolename){
           setRolenames(rolename);
+          
           console.log("role name is ", rolename);
         }
 
@@ -513,6 +518,39 @@ const DataTables = () => {
     }
   }, [selectSearchTerm, uniqueJobNumbers]);
 
+     const handleDeleteSelectedJobs = async () => {
+      const selectedNodes = gridRef.current.api.getSelectedNodes();
+      const selectedData = selectedNodes.map(node => node.data);
+
+      if (selectedData.length === 0) {
+        toast.error("Please select at least one job to delete.");
+        return;
+      }
+      if(!deleteComment.trim()){
+        toast.error("Please enter a comment for deletion.");
+        return;
+      }
+
+      const jobNos = selectedData.map(job => job.id);
+      console.log("Selected job number is ", jobNos);
+
+      try {
+        await axios.post(config.JobSummary.URL.DeleteSelectedJobs, 
+          {
+            jobNos: jobNos,
+            DeleteComment:deleteComment
+          }
+        );
+        toast.success("Selected jobs deleted successfully.");
+
+        GetAllJobAccToLocation()
+      } catch (error) {
+        console.error("Error deleting jobs:", error);
+        toast.error("Failed to delete jobs.");
+      }
+    };
+
+
   // const handleSelectJobNoChange = (e) => {
   //   const selectedJobNo = e.target.value;
   //   console.log("e is ", e)
@@ -631,27 +669,27 @@ const DataTables = () => {
     const userObj = JSON.parse(users);
 
     const userNamedata = userObj?.message?.username;
-    const locationdata = userObj?.message?.location_id
-    const payload = {
-      locationId: locationdata,
-      username: userNamedata,
-    }
+    const locationdata = userObj?.message?.location_id;
+ const payload = {
+  locationId: locationdata,
+  username: userNamedata,
+  ...(rolenames === "Admindelete" && { rolename: rolenames })
+};
 
-    console.log("locationid and username is ", payload)
-    try {
+  console.log("Payload to GetAllJobAccToLocation:", payload);
 
-      const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
-      console.log('response of jobs acc to location: ', response.data);
-      // setLocationJob(response.data);
-
-      setData(response.data.items);
-
-    } catch (error) {
-      console.error('Error fetching jobs according to location', error);
-    } finally {
-      setLoading(false);
-    }
+  try {
+    const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
+    console.log('response of jobs acc to location: ', response.data);
+    setData(response.data.items);
+  } catch (error) {
+    console.error('Error fetching jobs according to location', error);
+  } finally {
+    setLoading(false);
   }
+};
+
+      // setLocationJob(response.data);
 
 
   const GetAllJobsFromSql = async () => {
@@ -1325,6 +1363,33 @@ const DataTables = () => {
                         <FaFilter style={{ marginRight: '0.5em' }} />
                         Open Filters
                       </Button>
+
+                       {rolenames === "Admindelete" && (
+    <>
+      <input
+        type="text"
+        placeholder="Enter deletion comment"
+        value={deleteComment}
+        onChange={(e) => setDeleteComment(e.target.value)}
+        style={{
+          padding: '8px',
+          borderRadius: '4px',
+          border: '1px solid #ccc',
+          minWidth: '220px'
+        }}
+      />
+      <Button
+        variant="danger"
+        onClick={() => handleDeleteSelectedJobs(deleteComment)}
+        style={{
+          padding: '8px 16px'
+        }}
+      >
+        Delete Selected Jobs
+      </Button>
+    </>
+  )}
+
 
                     <Button
                       variant="warning"

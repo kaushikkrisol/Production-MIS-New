@@ -1,333 +1,324 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { Link } from "react-router-dom";
-import { all_routes } from "../../../Router/all_routes";
-import { Alert, Spinner, Table, Button, Form, InputGroup } from 'react-bootstrap';
-// import { PDFDownloadLink } from '@react-pdf/renderer';
+import { Button, Form, Spinner, Alert, Modal } from "react-bootstrap";
+import { AgGridReact } from "ag-grid-react";
 import axios from "axios";
-import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer';
-import { pdf } from '@react-pdf/renderer';
-// import { saveAs } from 'file-saver';
+import { FaUpload, FaDownload } from "react-icons/fa";
 import config from "../../../config";
-import { FaDownload, FaSearch } from 'react-icons/fa';
-// import PdfTemplate from "../../pages/implementationUploadPdf/PdfTemplate";
-import Sort from "../ui/Sort";
 
-const ImplementationDownload = () => {
-    const [error, setError] = useState(null);
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState([]);
-    const [salonAddresses, setSalonAddresses] = useState({});
-    const [searchTerm, setSearchTerm] = useState('');
-    const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
-    // const [imageURLs, setImageURLs] = useState({});
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 
-    const fetchImplUploadData = async () => {
-        setLoading(true);
+const ImplementationUpload = () => {
+  const [groupedData, setGroupedData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState(null);
+  const [uploadFile, setUploadFile] = useState(null);
+  const [mediaType, setMediaType] = useState("Image");
+  const [imageType, setImageType] = useState("After");
+  const [selectedLineItem, setSelectedLineItem] = useState(null);
+const [personName, setPersonName] = useState("");
+const [contact, setContact] = useState("");
+const [authority, setAuthority] = useState("");
+  const [uploadPage, setUploadPage] = useState(1);
+  const pageSize = 5;
 
-        try {
-            const response = await axios.get(config.ImplementationUpload.URL.GetAllImplementationUpload);
-            setData(response.data);
-            console.log('Implementation upload is here: ', response.data);
-        } catch (error) {
-            console.error("Error fetching Implementation Upload Data: ", error);
-        } finally {
-            setLoading(false);
-        }
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-        // let configData = {
-        //     method: 'post',
-        //     maxBodyLength: Infinity,
-        //     url: config.ImplementationUpload.URL.GetAllImplementationUpload,
-        //     headers: {}
-        // }
-
-        // axios.request(configData)
-        //     .then((response) => {
-        //         console.log("response of impl upload", response.data);  // Log the initial response data
-        //         setData(response.data);
-
-        //         // const salonAddressPromises = response.data.map(item => fetchImplSalonAddress(item.id));
-        //         // return Promise.all(salonAddressPromises); 
-        //     })
-        //     .catch((error) => {
-        //         console.log(error);  // Log any errors that occur during the process
-        //     });
-
-        // try {
-        //     const response = await axios.post(config.ImplementationUpload.URL.GetAllImplementationUpload);
-        //     setData(response.data);        
-        //     console.log('response of impl upload: ', response.data);
-        //     const salonAddressPromises = response.data.map(item => fetchImplSalonAddress(item.id));
-        //     await Promise.all(salonAddressPromises);
-        //     // for (const item of response.data) {
-        //     //     await fetchImplSalonAddress(item.id);
-        //     // }
-        // } catch (e) {
-        //     setError("Failed to fetch data.");
-        // } finally {
-        //     setLoading(false);
-        // }
-    };
-
-
-    const PdfTemplate = ({ item, salonAddress }) => {
-    const styles = StyleSheet.create({
-        page: {
-            padding: 20,
-            fontSize: 12,
-            fontFamily: 'Helvetica',
-        },
-        section: {
-            marginBottom: 10,
-        },
-        heading: {
-            fontSize: 16,
-            marginBottom: 10,
-            fontWeight: 'bold',
-        },
-        label: {
-            fontWeight: 'bold',
-        },
-    });
-
-    return (
-        <Document>
-            <Page size="A4" style={styles.page}>
-                <View style={styles.section}>
-                    <Text style={styles.heading}>Implementation Report</Text>
-                </View>
-                <View style={styles.section}>
-                    <Text><Text style={styles.label}>Job No:</Text> {item.jobNo}</Text>
-                    <Text><Text style={styles.label}>Person Name:</Text> {item.mediaFiles?.[0]?.personName || 'N/A'}</Text>
-                    <Text><Text style={styles.label}>Contact:</Text> {item.mediaFiles?.[0]?.contact || 'N/A'}</Text>
-                    <Text><Text style={styles.label}>Authority:</Text> {item.mediaFiles?.[0]?.authority || 'N/A'}</Text>
-                    <Text><Text style={styles.label}>Sign Date:</Text> {item.signDate || 'N/A'}</Text>
-                    <Text><Text style={styles.label}>Image Type:</Text> {item.mediaFiles?.[0]?.imageType || 'N/A'}</Text>
-                    <Text><Text style={styles.label}>Salon Address:</Text> {salonAddress || 'N/A'}</Text>
-                </View>
-            </Page>
-        </Document>
-    );
-};
-
-    const fetchImplSalonAddress = async (id) => {
-        try {
-            const response = await axios.get(`${config.ImplementationUpload.URL.GetImplementationUploadWithSalonAddress}/${id}`);
-            setSalonAddresses(prev => ({ ...prev, [id]: response.data.salonAddress }));
-            console.log(response.data);
-        } catch (e) {
-            setError("Failed to fetch salon address");
-        }
-    };
-    console.log(fetchImplSalonAddress);
-
-    useEffect(() => {
-        fetchImplUploadData();
-    }, []);
-
-    console.log('salon address is: ', salonAddresses);
-
-    const filteredData = data.filter(row =>
-        row.jobNo && row.jobNo.toString().toLowerCase().includes(searchTerm.trim().toLowerCase())
-      );
-      
-    console.log('Filtered data: ', filteredData);
-
-    const urlTest = filteredData.map((data) => data.mediaFiles.map((mf) => `https://productionapi.comart.in/${mf.url}`));
-    console.log('urlTest', urlTest);
-
-
-    const sortedData = useMemo(() => {
-        let sortableItems = [...filteredData];
-        if (sortConfig !== null) {
-            sortableItems.sort((a, b) => {
-                if (a[sortConfig.key] < b[sortConfig.key]) {
-                    return sortConfig.direction === 'ascending' ? -1 : 1;
-                }
-                if (a[sortConfig.key] > b[sortConfig.key]) {
-                    return sortConfig.direction === 'ascending' ? 1 : -1;
-                }
-                return 0;
-            });
-        }
-        return sortableItems;
-    }, [filteredData, sortConfig]);
-
-    const requestSort = (key) => {
-        let direction = 'ascending';
-        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
-            direction = 'descending';
-        }
-        setSortConfig({ key, direction });
-    };
-
- const handleBackendPdfDownload = async (jobNo) => {
+  const fetchData = async () => {
+    setLoading(true);
     try {
-        const response = await axios.get(`${config.downloadPDF.URL.GetPdf}${jobNo}`, {
-            responseType: 'blob', 
-        });
-
-        // Create a download link and trigger it
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', `${jobNo}_implementation.pdf`);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    } catch (error) {
-        console.error('Error downloading PDF from backend:', error);
-        setError('Failed to download PDF');
+      const response = await axios.get(config.ImplementationUpload.URL.GetAllImplementationUpload);
+      setGroupedData(response.data);
+    } catch (err) {
+      console.error("Error loading data", err);
+      setError("Failed to load data");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const getMediaTypeEnumValue = (type) => {
+  switch (type) {
+    case "Image": return 0;
+    case "Video": return 1;
+    case "Signature": return 2;
+    default: return 0;
+  }
+};
+const handleUpload = async () => {
+
+
+   if (!uploadFile || !selectedJob || !selectedLineItem) {
+    return alert("Please select a file and a line item.");
+  }
+
+  const isSignature = mediaType === "Signature";
+
+  const users = localStorage.getItem('users');
+   const userObj = JSON.parse(users);
+const userName = userObj?.message?.username;
+
+
+  // Create JSON payload matching ImplementationUploadmodel structure
+const jsonData = JSON.stringify([
+    {
+        id: selectedLineItem.id,
+        jobNo: selectedJob.jobNo,
+        Width: selectedLineItem.width || null,
+        Height: selectedLineItem.height || null,
+        MediaFiles: [
+            {
+                FileType:getMediaTypeEnumValue (mediaType),
+                ImageType: mediaType === "Image" ? imageType : null,
+                PersonName: isSignature ? personName : null,
+                Contact: isSignature ? contact : null,
+                Authority: isSignature ? authority : null,
+                productionid: selectedLineItem.id,
+                Entrdby: userName,
+                entereddt: new Date().toISOString(),
+                Lstupatedby: userName,
+                Lstupdatedate: new Date().toISOString()
+            }
+        ],
+        enteredby: userName,
+        entereddt: new Date().toISOString()
+    }
+]);
+
+        const formData = new FormData();
+  formData.append("files", uploadFile);
+  formData.append("jsonData", jsonData);
+  formData.append("enteredby", userName); // or dynamic username if available
+
+  try {
+    setLoading(true);
+    await axios.post(config.ImplementationUpload.URL.Upload, formData); 
+    alert("Upload successful");
+    setShowModal(false);
+    setUploadFile(null);
+    fetchData();
+  } catch (err) {
+    console.error("Upload error", err);
+    setError("Upload failed");
+  } finally {
+    setLoading(false);
+  }
 };
 
 
+  const handleDownload = async (jobNo) => {
+    try {
+      const response = await axios.get(`${config.downloadPDF.URL.GetPdf}${jobNo}`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `${jobNo}_implementation.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      setError('Failed to download PDF');
+    }
+  };
 
-const downloadAllImages = (item) => {
-    const baseURL = 'https://productionapi.comart.in/';
-    if (!item.mediaFiles || item.mediaFiles.length === 0) return;
+  const rowData = useMemo(() => {
+    return groupedData.map(group => {
+      const jobArray = Array.isArray(group.jobDetails) ? group.jobDetails : [];
+      const firstJob = jobArray[0] || {};
+      const media = group.implementationItems?.[0]?.mediaFiles?.[0];
 
-    item.mediaFiles.forEach((media, index) => {
-        const imageUrl = `${baseURL}${media.url}`;
-        const link = document.createElement('a');
-        link.href = imageUrl;
-        link.download = `${item.jobNo || 'image'}_${index + 1}.jpg`; // Name it: JOBNO_1.jpg, etc.
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+      return {
+        jobNo: group.jobNo,
+        client: firstJob.client || 'N/A',
+        salonAddress: firstJob.salonAddress || 'N/A',
+        fullJob: jobArray,
+        imageUrl: media?.url || '',
+        jobDetails: jobArray,
+        implementationItems: group.implementationItems || []
+      };
     });
-};
+  }, [groupedData]);
 
-    // download test
-    // const downloadImageAndDisplayInPDF = (imageURL, jobNo) => {
-    //     // Download the image (you can use a temporary link for download)
-    //     const link = document.createElement('a');
-    //     link.href = imageURL;
-    //     link.download = `${jobNo}_image.jpg`;
-    //     link.click();
-
-    //     setImageURLs(prev => ({ ...prev, [jobNo]: imageURL }));
-    // };
-
-    return (
-        <div className="page-wrapper">
-            <div className="content container-fluid">
-                <div className="page-header">
-                    <div className="row">
-                        <div className="col">
-                            <ul className="breadcrumb">
-                                <li className="breadcrumb-item">
-                                    <Link to={all_routes.dashboard}></Link>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-                <div className="row">
-                    <div className="col-sm-12">
-                        <div className="card">
-                            <div className="card-body">
-                                <h1 className="display-7 text-center mb-4">Implementation Download</h1>
-                                <div>
-                                    <Form.Group className="mb-3 mt-3">
-                                        <InputGroup>
-                                            <InputGroup.Text style={{ cursor: 'pointer', color: 'grey', backgroundColor: 'white', borderRight: 'none' }}>
-                                                <FaSearch />
-                                            </InputGroup.Text>
-                                            <Form.Control
-                                                type="text"
-                                                placeholder="Search by Job No"
-                                                value={searchTerm}
-                                                style={{ borderLeft: 'none' }}
-                                                onChange={(e) => setSearchTerm(e.target.value)}
-                                            />
-                                        </InputGroup>
-                                    </Form.Group>
-                                </div>
-                                {error && <Alert variant="danger">{error}</Alert>}
-                                {loading ? (
-                                    <Spinner animation="border" className="d-block mx-auto" />
-                                ) : (
-                                    <div style={{ overflowX: 'auto' }} className="table-container">
-                                        {filteredData.length > 0 ? (
-                                            <Table striped bordered hover>
-                                                <thead className="sticky-header">
-                                                    <tr>
-                                                            <th><Sort sortKey="jobNo" thead="Job No" sortConfig={sortConfig} requestSort={requestSort} /></th>
-                                                        <th>Person Name</th>
-                                                        <th>Contact</th>
-                                                        <th>Authority</th>
-                                                        <th>Sign Date</th>
-                                                        <th>Image Type</th>
-                                                            <th>Action</th>
-                                                            <th>Download Images</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                
-                                                        {
-                                                            sortedData.length > 0 ? 
-                                                            (sortedData.map((item) => (
-                                                        <tr key={item.id}>
-                                                            <td>{item.jobNo}</td>
-                                                            <td>{item.mediaFiles?.[0]?.personName || ''}</td>
-                                                            <td>{item.mediaFiles?.[0]?.contact || ''}</td>
-                                                            <td>{item.mediaFiles?.[0]?.authority || ''}</td>
-                                                            <td>{item.signDate || 'N/A'}</td>
-                                                            <td>{item.mediaFiles?.[0]?.imageType || '' }</td>
-                                                            <td>
-                                                                      <Button variant="primary" onClick={() => handleBackendPdfDownload(item.jobNo)}>
-                                                                                        <FaDownload /> Download PDF
-                                                                                    </Button>
-
-                                                                        
-
-                                                                        {/* <PDFDownloadLink
-                                                                            document={
-                                                                                <PdfTemplate
-                                                                                    client={item.mediaFiles?.[0]?.personName || ''}
-                                                                                    jobNo={item.jobNo}
-                                                                                    salonAddress={salonAddresses[item.id] || 'N/A'} // Replace with actual address
-                                                                                    // images={item.mediaFiles?.map(file => `https://localhost:7035/`+ file.url) || []}
-                                                                                    images={imageURLs[item.jobNo] ? [imageURLs[item.jobNo]] : []}
-                                                                                    // images={[
-                                                                                    //     "https://productionapi.comart.in/signatures/J0625021769/download.jpg",
-                                                                                    //     "https://picsum.photos/200/300?random=1", // Random image 2
-                                                                                    //     "https://picsum.photos/200/300?random=2"  // Random image 3
-                                                                                    // ]}
-                                                                                />
-                                                                            }
-                                                                            fileName={`${item.jobNo}_${salonAddresses[item.id]}.pdf`}
-                                                                        >
-                                                                            <Button variant="primary">
-                                                                                <FaDownload /> Generate PDF
-                                                                            </Button>
-                                                                        </PDFDownloadLink>  */}
-                                                            </td>
-                                                            <td>
-                                                                 <Button variant="secondary" onClick={() => downloadAllImages(item)}>
-                                                                    <FaDownload /> Download Image
-                                                                </Button>
-                                                            </td>
-                                                        </tr>
-                                                            ))) : (
-                                                        <tr>
-                                                            <td colSpan="10" className="text-center">No results found</td>
-                                                        </tr>)}
-                                                </tbody>
-                                            </Table>
-                                        ) : (
-                                            <Alert variant="info">No implementation uploads found.</Alert>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+  const columnDefs = useMemo(() => [
+    { headerName: "Job No", field: "jobNo", flex: 1 },
+    { headerName: "Client", field: "client", flex: 1 },
+    { headerName: "Salon Address", field: "salonAddress", flex: 1 },
+    
+    {
+      headerName: "Actions",
+      cellRenderer: (params) => (
+        <div className="d-flex gap-2">
+          <Button
+            size="sm"
+            variant="success"
+            onClick={() => {
+              setSelectedJob({
+                jobNo: params.data.jobNo,
+                salonAddress: params.data.salonAddress,
+                jobDetails: params.data.fullJob || [],
+              });
+              setSelectedLineItem(null);
+              setShowModal(true);
+              setUploadPage(1);
+            }}
+          >
+            <FaUpload /> Upload
+          </Button>
+          <Button size="sm" variant="primary" onClick={() => handleDownload(params.data.jobNo)}>
+            <FaDownload /> PDF
+          </Button>
         </div>
-    );
+      ),
+      flex: 1,
+    },
+  ], []);
+
+  const paginatedRows = useMemo(() => {
+    if (!selectedJob?.jobDetails) return [];
+    const start = (uploadPage - 1) * pageSize;
+    return selectedJob.jobDetails.slice(start, start + pageSize);
+  }, [selectedJob, uploadPage]);
+
+  const totalPages = Math.ceil((selectedJob?.jobDetails?.length || 0) / pageSize);
+
+return (
+    <div className="container mt-2" style={{ marginTop: 100 }}>
+        <h4 className="text-center mb-3">Implementation Upload & Downloads</h4>
+
+        {loading && <Spinner animation="border" />} 
+        {error && <Alert variant="danger">{error}</Alert>}
+
+        <div className="ag-theme-alpine" style={{ height: 400, width: "100%" }}>
+            <AgGridReact
+                rowData={rowData}
+                columnDefs={columnDefs}
+                pagination={false}
+                rowHeight={120}
+            />
+        </div>
+
+        {/* Paging below the grid */}
+        <div className="d-flex justify-content-between align-items-center mt-2">
+            <Button
+                disabled={uploadPage === 1}
+                onClick={() => setUploadPage(p => p - 1)}
+            >
+                Previous
+            </Button>
+            <span>
+                Page {uploadPage} of {totalPages}
+            </span>
+            <Button
+                disabled={uploadPage === totalPages}
+                onClick={() => setUploadPage(p => p + 1)}
+            >
+                Next
+            </Button>
+        </div>
+
+        <Modal show={showModal} onHide={() => setShowModal(false)} centered size="xxl">
+            <Modal.Header closeButton>
+                <Modal.Title>Upload Media</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <div className="ag-theme-alpine mb-3" style={{ height: 250, width: "100%" }}>
+                    <AgGridReact
+                        rowData={paginatedRows}
+                        columnDefs={[
+                            { headerName: "Product Details", field: "nameSubCode", flex: 1 },
+                            { headerName: "Media", field: "media", flex: 1 },
+                            { headerName: "City", field: "city", flex: 1 },
+                            { headerName: "Qty", field: "qty", flex: 1 },               
+                            {headerName: "width", field: "width", flex: 1},
+                            {headerName: "height", field: "height", flex: 1},
+
+                        ]}
+                        rowSelection="single"
+                        onRowClicked={(e) => setSelectedLineItem(e.data)}
+                        domLayout="autoHeight"
+                    />
+                    {totalPages > 1 && (
+                        <div className="d-flex justify-content-between align-items-center mt-2">
+                            <Button disabled={uploadPage === 1} onClick={() => setUploadPage(p => p - 1)}>Previous</Button>
+                            <span>Page {uploadPage} of {totalPages}</span>
+                            <Button disabled={uploadPage === totalPages} onClick={() => setUploadPage(p => p + 1)}>Next</Button>
+                        </div>
+                    )}
+                </div>
+
+                <Form.Group className="mb-3" style={{ marginTop: 100 }}>
+                    <Form.Label>Media Type</Form.Label>
+                    <Form.Select value={mediaType} onChange={(e) => setMediaType(e.target.value)}>
+                        <option value="Image">Image</option>
+                        <option value="Video">Video</option>
+                        <option value="Signature">Signature</option>
+                    </Form.Select>
+                </Form.Group>
+
+                {mediaType === "Image" && (
+                    <Form.Group className="mb-3">
+                        <Form.Label>Image Type</Form.Label>
+                        <Form.Select value={imageType} onChange={(e) => setImageType(e.target.value)}>
+                            <option value="Before">Before</option>
+                            <option value="After">After</option>
+                        </Form.Select>
+                    </Form.Group>
+                )}
+
+                {mediaType === "Signature" && (
+  <>
+    <Form.Group className="mb-3">
+      <Form.Label>Person Name</Form.Label>
+      <Form.Control
+        type="text"
+        value={personName}
+        onChange={(e) => setPersonName(e.target.value)}
+        placeholder="Enter Person Name"
+      />
+    </Form.Group>
+
+    <Form.Group className="mb-3">
+      <Form.Label>Contact</Form.Label>
+      <Form.Control
+        type="text"
+        value={contact}
+        onChange={(e) => setContact(e.target.value)}
+        placeholder="Enter Contact Number"
+      />
+    </Form.Group>
+
+    <Form.Group className="mb-3">
+      <Form.Label>Authority</Form.Label>
+      <Form.Control
+        type="text"
+        value={authority}
+        onChange={(e) => setAuthority(e.target.value)}
+        placeholder="Enter Authority"
+      />
+    </Form.Group>
+  </>
+)}
+
+
+                <Form.Group className="mb-3">
+                    <Form.Label>Choose File</Form.Label>
+                    <Form.Control type="file" onChange={(e) => setUploadFile(e.target.files[0])} />
+                </Form.Group>
+            </Modal.Body>
+            <Modal.Footer>
+                <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+                <Button variant="success" onClick={handleUpload} disabled={!uploadFile}>Upload</Button>
+            </Modal.Footer>
+        </Modal>
+    </div>
+);
 };
 
-export default ImplementationDownload;
+export default ImplementationUpload;
