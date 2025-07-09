@@ -22,7 +22,6 @@ import { FaSyncAlt, FaSearch, FaFilter } from 'react-icons/fa';
 import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
 import FilterSidebar from "../ui/FilterComponent";
-import { use } from "react";
 
 // import Sort from "../ui/Sort";
 // import { responsiveArray } from "antd/es/_util/responsiveObserver";
@@ -48,8 +47,6 @@ const DataTables = () => {
   console.log(data);
 
   const [selectSearchTerm, setSelectSearchTerm] = useState('');
-  const [deleteComment,setDeleteComment]=useState('');
-
   const [filteredJobNumbers, setFilteredJobNumbers] = useState([]);
   const [customerid, setCustomerid] = useState('');
 
@@ -59,7 +56,17 @@ const DataTables = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [totalValues, setTotalValues] = useState({ width: 0, height: 0 });
+  const [rolename,setRolename]=useState('');
   const gridRef = useRef();
+
+  const [selectedRows, setSelectedRows] = useState({});
+const [selectedTotals, setSelectedTotals] = useState({
+  qty: 0,
+  width: 0,
+  length: 0,
+  totalSqFt: 0,
+});
+
 
 
   const[latestJobNo,setLatestJobNo]=useState('')
@@ -69,8 +76,6 @@ const DataTables = () => {
 
   const [userId, setUserId] = useState(null);
   const [userName, setUsername] = useState('');
-  const [rolenames, setRolenames] = useState('');
-  
   // const [subClient, setSubClient] = useState('');
 
   console.log(userId, userName, totalValues);
@@ -111,6 +116,7 @@ const DataTables = () => {
 
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
+  const [deleteComment,setDeleteComment]=useState('');
 
   const [acceptorders,setAcceptedorders]=useState([]);
   const [filters, setFilters] = useState({
@@ -204,49 +210,98 @@ const DataTables = () => {
  
 
 
-  const customColumnDefs = filterConfig.map(column => {
-    
-  if (column.key === "productionLocation") {
+
+  const editableFields = [
+  "billinglocation",
+  "qty",
+  "width",
+  "height",
+  "totalsqft",
+  "media",
+  "lamination",
+  "productionlocation"
+];
+
+const dropdownFields = ["productionlocation", "billinglocation"];
+const dropdownValues = ["North", "South", "East", "West"];
+
+const customColumnDefs = filterConfig.map(column => {
+  const fieldKey = column.key.toLowerCase();
+  const isEditable = rolename === "Branch Manager" && editableFields.includes(fieldKey);
+
+  // Dropdown editor for location fields
+  if (dropdownFields.includes(fieldKey)) {
     return {
       headerName: column.placeholder,
-       field: "productionLocation", 
-      editable: true,
+      field: column.key,
+      editable: isEditable,
       cellEditor: 'agSelectCellEditor',
       cellEditorParams: {
-        values: ["North", "South", "East", "West"], // You can fetch these dynamically too
+        values: dropdownValues
       },
       minWidth: 160,
       resizable: true,
       sortable: true,
-      filter: true,
+      filter: true
     };
   }
 
+  // Default column
   return {
     headerName: column.placeholder,
     field: column.key,
+    editable: isEditable,
     sortable: true,
     filter: true,
     minWidth: 160,
     resizable: true,
-    cellRenderer: (params) => {
+    cellRenderer: !isEditable ? (params) => {
       const value = params.value;
 
-      if (["width", "height", "totalSqFt"].includes(column.key)) {
+      if (["width", "height", "totalsqft"].includes(fieldKey)) {
         const num = parseFloat(value);
         return isNaN(num) ? '' : num.toFixed(2);
       }
 
-      if (column.key === "date") {
+      if (fieldKey === "date") {
         if (value) return value;
-        const enteredDate = params.data.entereddt;
+        const enteredDate = params.data?.entereddt;
         return enteredDate ? new Date(enteredDate).toLocaleDateString('en-GB') : '';
       }
 
       return value;
-    }
+    } : undefined
   };
 });
+
+
+const onSelectionChanged = () => {
+            const selectedNodes = gridRef.current?.api.getSelectedNodes() || [];
+            const visibleRowIndexes = gridRef.current?.api.getRenderedNodes().map(n => n.rowIndex) || [];
+            const selectedVisibleData = selectedNodes.filter(node => visibleRowIndexes.includes(node.rowIndex)).map(node => node.data);
+
+            let totalQty = 0, totalW = 0, totalL = 0, totalSqFt = 0;
+            selectedVisibleData.forEach(row => {
+            totalQty += parseFloat(row.qty || "0");
+            totalW += parseFloat(row.width || "0");
+            totalL += parseFloat((showLength ? row.length : row.height) || "0");
+            totalSqFt += parseFloat(row.totalSqFt || "0");
+            });
+
+            setSelectedTotals({
+            qty: totalQty,
+            width: totalW.toFixed(2),
+            length: totalL.toFixed(2),
+            totalSqFt: totalSqFt.toFixed(2),
+            });
+
+            const selectedMap = {};
+            selectedVisibleData.forEach(row => {
+            if (row.id) selectedMap[row.id] = true;
+            });
+            setSelectedRows(selectedMap);
+            setActualSqFt(totalSqFt.toFixed(2));
+        };
 
 
   console.log(setSortConfig)
@@ -373,7 +428,9 @@ const DataTables = () => {
         const userObj = JSON.parse(users);
         const userId = userObj?.message?.user_id;
         const userName = userObj?.message?.username;
-        const rolename = userObj?.message?.rolE_NAME;
+        const Role=userObj?.message?.rolE_NAME;
+
+        setRolename(Role)
 
         // Log the retrieved values to the console
         console.log('Fetched User ID:', userId);
@@ -387,11 +444,6 @@ const DataTables = () => {
         // Set state if values exist
         if (userId) {
           setUserId(userId);
-        }
-        if(rolename){
-          setRolenames(rolename);
-          
-          console.log("role name is ", rolename);
         }
 
         if (userName) {
@@ -447,6 +499,20 @@ const DataTables = () => {
 
   //   fetchUserData();
   // }, [userId]);
+
+
+  const handleExportCSV = () => {
+  if (gridRef.current && gridRef.current.api) {
+    gridRef.current.api.exportDataAsCsv({
+      fileName: `JobData_${new Date().toISOString().slice(0, 10)}.csv`,
+      columnKeys: columnDefs.map(col => col.field).filter(Boolean), // Only fields with names
+      allColumns: true,
+    });
+  } else {
+    toast.error("Grid is not ready.");
+  }
+};
+
 
   const getLoggedInUserId = () => {
     const users = localStorage.getItem('users');
@@ -518,7 +584,7 @@ const DataTables = () => {
     }
   }, [selectSearchTerm, uniqueJobNumbers]);
 
-     const handleDeleteSelectedJobs = async () => {
+      const handleDeleteSelectedJobs = async () => {
       const selectedNodes = gridRef.current.api.getSelectedNodes();
       const selectedData = selectedNodes.map(node => node.data);
 
@@ -538,6 +604,7 @@ const DataTables = () => {
         await axios.post(config.JobSummary.URL.DeleteSelectedJobs, 
           {
             jobNos: jobNos,
+            userName: userName,
             DeleteComment:deleteComment
           }
         );
@@ -661,20 +728,19 @@ const DataTables = () => {
   //   }
   // };
 
-  const GetAllJobAccToLocation = async () => {
+const GetAllJobAccToLocation = async () => {
+  const users = localStorage.getItem('users');
+  const userObj = JSON.parse(users);
 
+  const userNamedata = userObj?.message?.username;
+  const locationdata = userObj?.message?.location_id;
+  const roleName = userObj?.message?.rolE_NAME;
 
-    const users = localStorage.getItem('users');
-
-    const userObj = JSON.parse(users);
-
-    const userNamedata = userObj?.message?.username;
-    const locationdata = userObj?.message?.location_id;
- const payload = {
-  locationId: locationdata,
-  username: userNamedata,
-  ...(rolenames === "Admindelete" && { rolename: rolenames })
-};
+  const payload = {
+    locationId: locationdata,
+    username: userNamedata,
+    ...(roleName === "Admindelete" && { rolename: roleName }) // ✅ Only include if role is Admindelete
+  };
 
   console.log("Payload to GetAllJobAccToLocation:", payload);
 
@@ -689,7 +755,6 @@ const DataTables = () => {
   }
 };
 
-      // setLocationJob(response.data);
 
 
   const GetAllJobsFromSql = async () => {
@@ -847,7 +912,7 @@ const DataTables = () => {
 
     } catch (error) {
       console.error("Error fetching customer data:", error.response ? error.response.data : error.message);
-      setError("Error fetching job data");
+      // setError("Error fetching job data");
     } finally {
       setLoading(false);
     }
@@ -1357,16 +1422,21 @@ const DataTables = () => {
                           style={{ width: '400px' }} // Adjust width as necessary
                         />
                       </div> */}
-                    <div className="button-group" style={{ display: 'flex', justifyContent: 'space-between', marginLeft: 'auto', width: '100%' }}>
+                  <div
+  className="button-group"
+  style={{
+    display: 'flex',
+    alignItems: 'center',
+    gap: '12px',              // Adds space between input and button
+    marginBottom: '1em',
+    
 
-                      <Button variant="primary" style={{ marginBottom: "1em" }} onClick={() => setShowFilterSidebar(true)}>
-                        <FaFilter style={{ marginRight: '0.5em' }} />
-                        Open Filters
-                      </Button>
-
-                       {rolenames === "Admindelete" && (
+    width: 'fit-content'
+  }}
+>
+  {rolename === "Admindelete" && (
     <>
-      <input
+      {/* <input
         type="text"
         placeholder="Enter deletion comment"
         value={deleteComment}
@@ -1377,8 +1447,8 @@ const DataTables = () => {
           border: '1px solid #ccc',
           minWidth: '220px'
         }}
-      />
-      <Button
+      /> */}
+      {/* <Button
         variant="danger"
         onClick={() => handleDeleteSelectedJobs(deleteComment)}
         style={{
@@ -1386,10 +1456,17 @@ const DataTables = () => {
         }}
       >
         Delete Selected Jobs
-      </Button>
+      </Button> */}
     </>
   )}
 
+                    <Button
+                variant="success"
+                onClick={() => handleExportCSV()}
+                style={{ marginBottom: "1em" }}
+              >
+                Download CSV
+              </Button>
 
                     <Button
                       variant="warning"
@@ -1399,6 +1476,19 @@ const DataTables = () => {
                     >
                       Job On Hold
                     </Button>
+
+
+{/*                     
+                    <Button
+                      variant="warning"
+                      onClick={handleJobOnHold}
+                      style={{ marginBottom: "1em", marginLeft: '10px' }}
+                     
+                    >
+                      Edit Job
+                    </Button> */}
+
+                    
                       <FilterSidebar
                         show={showFilterSidebar}
                         handleClose={() => setShowFilterSidebar(false)}
@@ -1718,20 +1808,24 @@ const DataTables = () => {
 
                   <div style={{ overflowX: 'auto' }} className="table-container">
                   <div className="ag-theme-alpine custom-ag-grid" style={{ height: '600px', width: '100%' }}>
-                 <AgGridReact
-              ref={gridRef}
-              rowData={sortedData}
-              columnDefs={columnDefs}
-              defaultColDef={defaultColDef}
-              pagination={true}
-              paginationPageSize={50}
-              domLayout="normal"
-              rowSelection="multiple"
-              getRowHeight={() => 60}
-              headerHeight={50}
-              singleClickEdit={true}
-              
-                                  rowClassRules={{
+                    <div className="ag-theme-alpine custom-ag-grid" style={{ height: '600px', width: '100%' }}>
+                      <AgGridReact
+                        ref={gridRef}
+                        singleClickEdit={true}
+                        suppressClickEdit={false}
+                        rowData={sortedData}
+                        columnDefs={columnDefs}
+                        defaultColDef={defaultColDef}
+                        pagination={true}
+                        paginationPageSize={50}
+                        onSelectionChanged={onSelectionChanged}
+                         getRowNodeId={row => row.id}
+                        domLayout="normal"
+                        rowSelection="multiple"
+                        getRowHeight={() => 60}
+                        headerHeight={50}
+                        suppressRowClickSelection={true}
+                         rowClassRules={{
   "row-packing": params => params.data?.isPackingDone === "1",
   "row-implupload": params =>
     params.data?.isImplementationUploadDone === "1" &&
@@ -1759,7 +1853,7 @@ const DataTables = () => {
     params.data?.isImplementationUploadDone !== "1" &&
     params.data?.isPackingDone !== "1"
 }}
-          suppressRowClickSelection={true} // ✅ Prevent automatic selection
+       
             onCellValueChanged={(params) => {
               if (params.colDef.field === 'productionLocation') {
                 const id = params.data.id;
@@ -1781,14 +1875,19 @@ const DataTables = () => {
 }}
 
 />
+                  
+
+
+
                 </div>
-                  <OrderPopup
+                <OrderPopup
                 show={isPopupVisible}
                 items={data.filter(d => d.approved === "Yes")}
                 onClose={() => setIsPopupVisible(false)}
                 jobOptions={uniqueJobNoOptions}
                 onAcceptAllOrders={handleAcceptOrder}
               />
+
 
 
                     {/* <div>
@@ -1819,12 +1918,9 @@ const DataTables = () => {
                 jobOptions={uniqueJobNoOptions}
                 onAcceptAllOrders={handleAcceptOrder} // ✅ here
               />
-
-
-                </div>
               </div>
-              
-              <div className="status-legend-bar">
+                </div>
+                        <div className="status-legend-bar">
   <span className="legend-box printing">✅ Printing Done</span>
   <span className="legend-box delivery">🚚 Delivery Done</span>
   <span className="legend-box implementation">🛠️ Implementation Done</span>
@@ -1832,6 +1928,7 @@ const DataTables = () => {
   <span className="legend-box design">🎨 Design Done</span>
   <span className="legend-box implupload">⬆️ Impl Upload Done</span>
 </div>
+              </div>
             </div>
           </div>
         </div>

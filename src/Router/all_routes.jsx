@@ -48,6 +48,7 @@ export const all_routes = {
   implementation: "/Implementation",
   implementationDownload: "/ImplementationDownload",
   myPriority: "/myPriority",
+  layout: "/layout",
 
   misreport: "/MisReport",
   billingexport: "/Billingexport",

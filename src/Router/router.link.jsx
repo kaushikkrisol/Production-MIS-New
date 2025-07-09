@@ -73,6 +73,7 @@ import DataTables from "../feature-module/uiinterface/table/data-tables";
 
 import Production from "../feature-module/uiinterface/table/Production";
 import Designn from "../feature-module/uiinterface/table/Designn";
+import Layout from "../feature-module/uiinterface/table/Layout";
 import Delivery from "../feature-module/uiinterface/table/Delivery";
 import Implementation from "../feature-module/uiinterface/table/Implementation";
 import MyPriority from "../feature-module/pages/myPriority/MyPriority";
@@ -1697,5 +1698,12 @@ export const pagesRoute = [
     element: <Undermaintainence />,
     route: Route,
   },
+  {
+    id: 22,
+    path:routes.layout,
+    name: "layout",
+    element: <Layout />,
+    route: Route,
+  }
  
 ];

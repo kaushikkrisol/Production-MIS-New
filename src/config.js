@@ -2,14 +2,14 @@
 
 
     
-//let BaseURL = "https://localhost:7035";
+let BaseURL = "https://localhost:7035";  
 // 
-      let BaseURL ='https://productionapi.comart.in';
+    //   let BaseURL ='https://productionapi.comart.in';
 
 
     //let BaseURL1="https://kerp.comart.in:3001";
 
-    let BaseURL1="https://stores.comart.in:3001";
+    let BaseURL1="https://stores.comart.in:3001";   
 
 
     let BaseURL2="https://kerp.comart.in:3008";

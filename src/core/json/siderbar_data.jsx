@@ -3,8 +3,14 @@ import React from "react";
 import * as Icon from "react-feather";
 import { label } from "yet-another-react-lightbox";
 
+
+const user=localStorage.getItem("users");
+const userObj = JSON.parse(user);
+ const rolename = userObj?.message?.rolE_NAME;
+
+console.log("User Role:", rolename);
 export const SidebarData = [
-  // {
+  // {  
   //   label: "Main",
   //   submenuOpen: true,
   //   showSubRoute: false,
@@ -989,25 +995,28 @@ export const SidebarData = [
       //     { label: "Form Wizard", link: "/form-wizard" },
       //   ],
       // },
-      {
-        label: "Production",
-        submenu: true,
-        showSubRoute: false,
-        icon: <Icon.Columns />,
-        submenuItems: [
-          //  { label: "Basic Tables", link: "/tables-basic" },
-          { label: "CS", link: "/data-tables" },
-          { label: "Design", link: "/designn" },
-          { label: "Printing", link: "/production" },
-          {label:"Lamination/Mounting & Packing",link:"/printlaminpacking"},
-          { label: "Delivery", link: "/delivery" },
-          { label: "Implementation", link: "/implementation" },
-          { label: "Implementation Download", link: "/implementationDownload" },
-          { label: "My Design Priority", link: "/myPriority" },
-          
-          // { label: "Ajgrid", link:"/Ajgrid"},
-        ],
-      },
+    {
+  label: "Production",
+  submenu: true,
+  showSubRoute: false,
+  icon: <Icon.Columns />,
+  submenuItems: [
+    { label: "CS", link: "/data-tables" },
+    { label: "Design", link: "/designn" },
+    { label: "Printing", link: "/production" },
+    { label: "Lamination/Mounting & Packing", link: "/printlaminpacking" },
+    { label: "Delivery", link: "/delivery" },
+    { label: "Implementation", link: "/implementation" },
+    { label: "Implementation Download", link: "/implementationDownload" },
+
+    // ✅ Conditionally add this item
+    ...(rolename === "Admindelete"
+      ? [{ label: "Layout", link: "/layout" }]
+      : []),
+
+    { label: "My Design Priority", link: "/myPriority" },
+  ],
+},
 
       {
         label: "MIS Report",
