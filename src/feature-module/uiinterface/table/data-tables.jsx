@@ -207,9 +207,6 @@ const [selectedTotals, setSelectedTotals] = useState({
     { key: 'printerDeadline', placeholder: 'Printer Deadline', type: 'text' },
     { key: 'remarks', placeholder: 'Remarks / Instructions', type: 'text' },
   ]
- 
-
-
 
   const editableFields = [
   "billinglocation",
@@ -357,9 +354,6 @@ const onSelectionChanged = () => {
   }
 ]);
 
-  
-
-
   const defaultColDef = useMemo(() => ({
     flex: 1,
     minWidth: 120,
@@ -367,7 +361,6 @@ const onSelectionChanged = () => {
     sortable: true,
     filter: true
   }), []);
-
 
   const handleAcceptOrder = (orderItems) => {
   console.log("Accepted Order Items:", orderItems);
@@ -385,9 +378,6 @@ const onSelectionChanged = () => {
       console.error(err);
     });
 };
-
-
-
 
   // Check if users data exists and is not null
   useEffect(() => {

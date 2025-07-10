@@ -35,7 +35,7 @@ const headerMapping = {
   "Designer Name": "designerName",
   "Designer ID": "designerId",
   "Designer Deadline": "designerDeadline",
-  "Printing Machine": "printerPrintingName",
+  "Printer Name": "printerPrintingName",
   "Printer Deadline": "printerDeadline",
   "Print Ready File": "printReadyAvailable",
   "Lamination": "lamination",
@@ -110,8 +110,7 @@ const IST_TIMEZONE = 'Asia/Kolkata';
   }, [items]);
 
 
-
-const addJobDetails = async () => {
+const addSingleJobDetail = async (item) => {
   if (!userId) {
     toast.error("User not logged in");
     return;
@@ -122,7 +121,9 @@ const addJobDetails = async () => {
     return;
   }
 
-  const payload = displayedItems.map(item => ({
+  const currentDate = new Date().toISOString().split('T')[0];
+
+  const payload = [{
     ...item,
     ISnewjob: '0',
     "Job No": selectedJob?.value,
@@ -152,22 +153,19 @@ const addJobDetails = async () => {
     "campaignid": item.campaignId || "",
     "Designer Deadline": item.designerDeadline || "",
     "Job Deadline": item.jobdeadline || "",
-    
+    "Printer Name": item.printerPrintingName || "",
     "itemid": item.id || "",
     "updatedVisualImage": item.updatedVisualImage || ""
-  }));
-
-  console.log("🚀 addJobDetails payload", payload);
+  }];
 
   try {
     setLoading(true);
     const response = await axios.post(config.JobSummary.URL.Addjobdetails, payload);
     const jobNoCreated = response.data?.jobno || response.data?.jobNo || '';
-    setLatestJobNo(jobNoCreated);
-    toast.success(`Job created successfully. Job No: ${jobNoCreated}`);
+    toast.success(`Order Accepted. Job No: ${jobNoCreated}`);
   } catch (error) {
-    console.error("❌ Error adding job details:", error);
-    toast.error("Failed to create job.");
+    console.error("Error adding job detail:", error);
+    toast.error("Failed to add job detail.");
   } finally {
     setLoading(false);
   }
@@ -384,95 +382,111 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
         {Object.keys(headerMapping).map((header, idx) => (
           <th key={idx}>{header}</th>
         ))}
+        <th>Actions</th> 
       </tr>
     </thead>
-    <tbody>
-      {displayedItems.map((item, index) => (
-        <tr key={index}>
-          {Object.values(headerMapping).map((key, i) => (
-            <td key={i}>
-              {["productionLocation", "billingLocation"].includes(key) ? (
-                <Select
-                  options={[
-                    { value: "North", label: "North" },
-                    { value: "South", label: "South" },
-                    { value: "East", label: "East" },
-                    { value: "West", label: "West" }
-                  ]}
-                  value={item[key] ? { value: item[key], label: item[key] } : null}
-                  onChange={(selected) => {
-                    const updated = [...localItems];
-                    updated[index][key] = selected?.value || "";
-                    setLocalItems(updated);
-                  }}
-                  menuPortalTarget={document.body}
-                  styles={{
-                    menuPortal: base => ({ ...base, zIndex: 9999 }),
-                    control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
-                  }}
-                  isClearable
-                  isSearchable={false}
-                />
-              ) : key === "printerPrintingName" ? (
-                <Select
-                  options={printerOptions || []}
-                  value={item[key] ? { value: item[key], label: item[key] } : null}
-                  onChange={(selected) => {
-                    const updated = [...localItems];
-                    updated[index][key] = selected?.value || "";
-                    setLocalItems(updated);
-                  }}
-                  menuPortalTarget={document.body}
-                  styles={{
-                    menuPortal: base => ({ ...base, zIndex: 9999 }),
-                    control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
-                  }}
-                  isClearable
-                  isSearchable
-                />
-              ) : ["lamination", "mounting", "implementation", "printReadyAvailable"].includes(key) ? (
-                <Select
-                  options={[
-                    { value: "Yes", label: "Yes" },
-                    { value: "No", label: "No" }
-                  ]}
-                  value={item[key] ? { value: item[key], label: item[key] } : null}
-                  onChange={(selected) => {
-                    const updated = [...localItems];
-                    updated[index][key] = selected?.value || "";
-                    setLocalItems(updated);
-                  }}
-                  menuPortalTarget={document.body}
-                  styles={{
-                    menuPortal: base => ({ ...base, zIndex: 9999 }),
-                    control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
-                  }}
-                  isClearable
-                  isSearchable={false}
-                />
-              ) : ["designerDeadline","jobdeadline", "printerDeadline", "createdAt"].includes(key) ? (
-                <DatePicker
-                  selected={item[key] ? new Date(item[key]) : new Date()}
-                  onChange={(date) => {
-                    const updated = [...localItems];
-                    updated[index][key] = date.toISOString();
-                    setLocalItems(updated);
-                  }}
-                  showTimeSelect
-                  timeFormat="HH:mm"
-                  timeIntervals={15}
-                  dateFormat="yyyy-MM-dd HH:mm"
-                  className="form-control form-control-sm"
-                  placeholderText="Select date & time"
-                />
-              ) : (
-                typeof item[key] === "number" ? item[key].toFixed(2) : item[key] || ""
-              )}
-            </td>
-          ))}
-        </tr>
+  <tbody>
+  {displayedItems.map((item, index) => (
+    <tr key={index}>
+      {Object.values(headerMapping).map((key, i) => (
+        <td key={i}>
+          {["productionLocation", "billingLocation"].includes(key) ? (
+            <Select
+              options={[
+                { value: "North", label: "North" },
+                { value: "South", label: "South" },
+                { value: "East", label: "East" },
+                { value: "West", label: "West" }
+              ]}
+              value={item[key] ? { value: item[key], label: item[key] } : null}
+              onChange={(selected) => {
+                const updated = [...localItems];
+                updated[index][key] = selected?.value || "";
+                setLocalItems(updated);
+              }}
+              menuPortalTarget={document.body}
+              styles={{
+                menuPortal: base => ({ ...base, zIndex: 9999 }),
+                control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
+              }}
+              isClearable
+              isSearchable={false}
+            />
+          ) : key === "printerPrintingName" ? (
+            <Select
+              options={printerOptions || []}
+              value={item[key] ? { value: item[key], label: item[key] } : null}
+              onChange={(selected) => {
+                const updated = [...localItems];
+                updated[index][key] = selected?.value || "";
+                setLocalItems(updated);
+              }}
+              menuPortalTarget={document.body}
+              styles={{
+                menuPortal: base => ({ ...base, zIndex: 9999 }),
+                control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
+              }}
+              isClearable
+              isSearchable
+            />
+          ) : ["lamination", "mounting", "implementation", "printReadyAvailable"].includes(key) ? (
+            <Select
+              options={[
+                { value: "Yes", label: "Yes" },
+                { value: "No", label: "No" }
+              ]}
+              value={item[key] ? { value: item[key], label: item[key] } : null}
+              onChange={(selected) => {
+                const updated = [...localItems];
+                updated[index][key] = selected?.value || "";
+                setLocalItems(updated);
+              }}
+              menuPortalTarget={document.body}
+              styles={{
+                menuPortal: base => ({ ...base, zIndex: 9999 }),
+                control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
+              }}
+              isClearable
+              isSearchable={false}
+            />
+          ) : ["designerDeadline", "jobdeadline", "printerDeadline", "createdAt"].includes(key) ? (
+            <DatePicker
+              selected={item[key] ? new Date(item[key]) : new Date()}
+              onChange={(date) => {
+                const updated = [...localItems];
+                updated[index][key] = date.toISOString();
+                setLocalItems(updated);
+              }}
+              showTimeSelect
+              timeFormat="HH:mm"
+              timeIntervals={15}
+              dateFormat="yyyy-MM-dd HH:mm"
+              className="form-control form-control-sm"
+              placeholderText="Select date & time"
+            />
+          ) : (
+            typeof item[key] === "number" ? item[key].toFixed(2) : item[key] || ""
+          )}
+        </td>
       ))}
-    </tbody>
+      <td>
+        <Button
+          variant="outline-success"
+          size="sm"
+          onClick={async () => {
+          await moveAllItemsToStage([item], "Order Accepted");
+          await addSingleJobDetail(item);
+            toast.success(`Accepted order for Visual Code: ${item.visualCode}`);
+          }}
+          disabled={loading}
+        >
+          Accept Order
+        </Button>
+      </td>
+    </tr>
+  ))}
+</tbody>
+
   </table>
 </div>
 
