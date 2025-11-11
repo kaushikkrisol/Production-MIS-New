@@ -3,16 +3,19 @@
 
     
 // let BaseURL = "https://localhost:7035";  
-// 
+
       let BaseURL ='https://productionapi.comart.in';
 
 
-    //let BaseURL1="https://kerp.comart.in:3001";
+    // let BaseURL1="https://kerp.comart.in:3001";
 
     let BaseURL1="https://stores.comart.in:3001";   
 
 
     let BaseURL2="https://kerp.comart.in:3008";
+    // let BaseURL2="https://localhost:3008";
+
+
 
     // let BaseURL1="http://localhost:3001/api/get-orders"s
     // let BaseURL ='https://testproductionAPI.comart.in';
@@ -23,6 +26,7 @@ const config ={
             Checkuser: BaseURL + '/User/Checkuser',
             GetAllUserrole: BaseURL + '/User/getalluserrole/getalluserrole',
             GetAllUserAccToLocation: BaseURL + '/User/GetAllUserAccToLocation/GetAllUserAccToLocation',
+
         }
     },
     JobSummary: {
@@ -39,6 +43,9 @@ const config ={
             GetCustomerNameAccToLocation: BaseURL + '/api/JobSummary/GetCustomerNameFromSql',
             SetJobOnHold: BaseURL + '/api/JobSummary/SetJobOnHold',
             UpdateProductionLocation: BaseURL + '/api/JobSummary/UpdateProductionLocation',
+            GetDeletedData:BaseURL+'/api/JobSummary/GetDeletedData',
+            RestoreJob:BaseURL+'/api/JobSummary/RestoreJob',
+
         }
     },
     Design: {
@@ -93,6 +100,7 @@ const config ={
             AddImplementationStop: BaseURL + '/api/Implementation/AddImplementationStop',
             GetallImplementationJobs: BaseURL + '/api/Implementation/GetAllImplementationjobs',
             GetAllImplementationAccToLocation: BaseURL + '/api/Implementation/GetAllImplementationAccToLocation',
+            
         }
     },
     ImplementationUpload: {
@@ -100,6 +108,8 @@ const config ={
             GetAllImplementationUpload: BaseURL + '/api/ImplementationUpload/GetAllImplementationUpload',
             GetImplementationUploadWithSalonAddress: BaseURL + '/api/ImplementationUpload/GetImplementationUploadWithSalonAddress',
             Upload : BaseURL + '/api/ImplementationUpload/Upload',
+            GetPdfDataByCsId: BaseURL + '/api/ImplementationUpload/GetPdfDataByCsId',
+             ImageStatusById: BaseURL + '/api/ImplementationUpload/ImageStatusById/',
         }
     },
     MyPriority: {
@@ -113,6 +123,8 @@ const config ={
             AddReport: BaseURL + '/api/Report',
             Getallreport: BaseURL + '/api/Report/Getallreport',
             GetProductReportWithJobNo: BaseURL + '/api/Report/GetProductReportWithJobNo',
+            GetallreportNoLocation: BaseURL + '/api/Report/GetallreportNoLocation',
+            GetGangReport:BaseURL+ "/api/Report/GetGangReport"
         }
     },
 

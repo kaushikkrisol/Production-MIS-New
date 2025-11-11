@@ -24,6 +24,10 @@ export const SidebarData = [
 
         submenuItems: [
           { label: "Admin Dashboard", link: "/admin-dashboard" },
+          {
+        label: "CS Dashboard",
+        link: "https://productiondashboard.comart.in/",
+      },
           // { label: "Production Dashboard", link: "/sales-dashboard" },
         ],
       },
@@ -1025,6 +1029,13 @@ export const SidebarData = [
         icon: <Icon.Columns />,
         link: "/misreport",
       },
+      {
+        label: "Consolidated MIS Report",
+        submenu: false,
+        showSubRoute: false,
+        icon: <Icon.Columns />,
+        link: "/ConsolidatedReport",
+      },
 
       {
         label: "Billing Export",
@@ -1041,6 +1052,7 @@ export const SidebarData = [
         icon: <Icon.Columns />,
         link: "/jobtracker",
       },
+      
 
       {
         label: "Data Store Application",

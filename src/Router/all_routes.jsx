@@ -50,7 +50,10 @@ export const all_routes = {
   myPriority: "/myPriority",
   layout: "/layout",
 
+  csdashboard:'https://productiondashboard.comart.in/',
+
   misreport: "/MisReport",
+  ConsolidatedReport: "/ConsolidatedReport",
   billingexport: "/Billingexport",
   jobtracker: "/JobTracker",
   approval: "/approval",

@@ -1,0 +1,64 @@
+.consolidated-btn-grp {
+  margin-left: 70px; /* aligns with MisReport.css button group */
+}
+
+.kpi-card {
+  border-radius: 10px;
+}
+
+.kpi-title {
+  font-size: 0.9rem;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.kpi-sub {
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.consolidated-table-wrap {
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: 500px;
+  border: 1px solid #ccc;
+}
+
+.consolidated-table {
+  min-width: 1200px;
+  white-space: nowrap;
+}
+
+.consolidated-table thead th,
+.consolidated-table tbody td {
+  text-align: left;
+  vertical-align: middle;
+}
+/* === Date Range Picker === */
+.daterange-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.daterange-wrapper .input-range {
+  width: 100%;
+  padding-right: 36px; /* space for icon */
+  border-radius: 6px;
+  border: 1px solid #ced4da;
+  font-size: 0.95rem;
+  height: 40px;
+}
+
+.daterange-wrapper .calendar-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #800000; /* match your theme */
+  pointer-events: none; /* avoid blocking clicks */
+}

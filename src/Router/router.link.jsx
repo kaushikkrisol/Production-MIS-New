@@ -80,6 +80,7 @@ import MyPriority from "../feature-module/pages/myPriority/MyPriority";
 import ImplementationDownload from "../feature-module/uiinterface/table/ImplementationUpload";
 
 import MisReport from "../feature-module/uiinterface/report/MisReport";
+import ConsolidatedReport from "../feature-module/uiinterface/report/ConsolidatedReport";
 import BillingExport from "../feature-module/uiinterface/report/PrintingReport";
 import JobTracker from "../feature-module/uiinterface/summary/JobTrack";
 import Approval from "../.././src/approvalPage/Approval";
@@ -212,6 +213,7 @@ import { all_routes } from "./all_routes";
 import BankSettingGrid from "../feature-module/settings/financialsettings/banksettinggrid";
 import PayrollList from "../feature-module/hrm/payroll-list";
 import Printlaminpacking from "../feature-module/uiinterface/table/Printlaminpacking";
+import { element } from "prop-types";
 export const publicRoutes = [
   {
     id: 1,
@@ -646,6 +648,13 @@ export const publicRoutes = [
     path: routes.misreport,
     name: "misreport",
     element: <MisReport />,
+    route: Route,
+  },
+    {
+    id: 50,
+    path: routes.ConsolidatedReport,
+    name: "ConsolidatedReport",
+    element: <ConsolidatedReport />,
     route: Route,
   },
   {
@@ -1704,6 +1713,13 @@ export const pagesRoute = [
     name: "layout",
     element: <Layout />,
     route: Route,
+  },
+  {
+    id:23,
+    path:routes.csdashboard,
+    name:"csdashboard",
+    element:"https://productiondashboard.comart.in/",
+    route:Route
   }
  
 ];

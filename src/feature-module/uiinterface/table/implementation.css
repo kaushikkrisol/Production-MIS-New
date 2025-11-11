@@ -44,3 +44,28 @@
   color: white !important;
   filter: brightness(10);
 }
+/* put this in your component CSS (e.g., DataTables.css) */
+.modal-header .modal-title::before {
+  content: none !important;   /* kill any injected bar */
+}
+.upload-summary table {
+  margin: 0;
+}
+.upload-summary th,
+.upload-summary td {
+  padding: .4rem .6rem;
+  white-space: nowrap;
+}
+/* keep header/columns stable and compact */
+.slim-table {
+  table-layout: fixed;
+  font-size: 0.9rem;
+}
+
+/* ellipsis for long text cells */
+.truncate {
+  max-width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}

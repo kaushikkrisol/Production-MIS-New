@@ -26,6 +26,8 @@ const CompletedPrinting = () => {
         { value: 'Print Damage During Transit', label: 'Print Damage During Transit' },
         { value: 'Lamination Error', label: 'Lamination Error' },
         { value: 'Installation Error', label: 'Installation Error' },
+        { value: 'Reprint due to client requirement', label: 'Reprint due to client requirement' },
+
     ];
 
     const [user, setUser] = useState('');

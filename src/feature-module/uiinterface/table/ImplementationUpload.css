@@ -56,3 +56,132 @@ h6 {
     z-index: 10;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
+
+/* -------- Implementation Download (scoped) -------- */
+.impl-download{
+  --brand:#7a1c1d;       /* maroon header */
+  --brand-700:#5c1213;
+  --ink:#111827;         /* slate-900 */
+  --muted:#64748b;       /* slate-500 */
+  --line:#e5e7eb;        /* slate-200 */
+  --bg:#f8fafc;
+  --card:#ffffff;
+}
+
+.impl-download{
+  background:var(--bg);
+  color:var(--ink);
+}
+
+.impl-download .card{
+  border:1px solid var(--line);
+  border-radius:14px;
+  box-shadow:0 8px 24px rgba(2,6,23,.06);
+}
+
+/* scrollable table area with sticky header */
+.impl-download .table-container{
+  max-height:calc(100vh - 260px);
+  overflow:auto;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:var(--card);
+}
+
+.impl-download .impl-table{
+  margin:0;
+  border-collapse:separate;
+  border-spacing:0;
+}
+
+.impl-download .impl-table thead.sticky-header th{
+  position:sticky;
+  top:0;
+  z-index:2;
+  background:var(--brand);
+  color:#fff;
+  font-weight:700;
+  border-bottom:1px solid var(--brand-700) !important;
+  box-shadow:0 2px 0 rgba(0,0,0,.05);
+}
+
+/* header cell padding */
+.impl-download .impl-table thead th{
+  padding:.65rem .75rem;
+  vertical-align:middle;
+  white-space:nowrap;
+  border-color:transparent !important;
+}
+
+/* cells */
+.impl-download .impl-table tbody td{
+  padding:.55rem .75rem;
+  vertical-align:middle;
+  border-color:var(--line) !important;
+  color:var(--ink);
+}
+
+/* zebra + hover */
+.impl-download .impl-table tbody tr:nth-child(odd){ background:#fcfcff; }
+.impl-download .impl-table tbody tr:hover{ background:#f7f7fd; }
+
+/* round top corners */
+.impl-download .impl-table thead th:first-child{ border-top-left-radius:12px; }
+.impl-download .impl-table thead th:last-child{ border-top-right-radius:12px; }
+
+/* fixed-ish widths to keep layout tidy */
+.impl-download .impl-table th:nth-child(1),
+.impl-download .impl-table td:nth-child(1){ width:140px; white-space:nowrap; }
+.impl-download .impl-table th:nth-child(5),
+.impl-download .impl-table td:nth-child(5){ width:140px; white-space:nowrap; }
+.impl-download .impl-table th:nth-child(6),
+.impl-download .impl-table td:nth-child(6){ width:130px; white-space:nowrap; }
+.impl-download .impl-table th:nth-child(7),
+.impl-download .impl-table td:nth-child(7),
+.impl-download .impl-table th:nth-child(8),
+.impl-download .impl-table td:nth-child(8){
+  width:160px; white-space:nowrap; text-align:center;
+}
+
+/* buttons */
+.impl-download .btn-upload{
+  background:#16a34a;  /* green-600 */
+  border-color:#16a34a;
+  color:#fff;
+  padding:.35rem .6rem;
+  border-radius:10px;
+  line-height:1.1;
+  box-shadow:0 1px 0 rgba(2,6,23,.06);
+}
+.impl-download .btn-upload:hover{
+  background:#15803d;  /* green-700 */
+  border-color:#15803d;
+}
+
+.impl-download .btn-pdf{
+  background:#991b1b;  /* red-700 */
+  border-color:#991b1b;
+  color:#fff;
+  padding:.35rem .6rem;
+  border-radius:10px;
+  line-height:1.1;
+  box-shadow:0 1px 0 rgba(2,6,23,.06);
+}
+.impl-download .btn-pdf:hover{
+  background:#7f1d1d;  /* red-800 */
+  border-color:#7f1d1d;
+}
+.impl-download .btn-upload svg,
+.impl-download .btn-pdf svg{ margin-right:.35rem; }
+
+/* slim scrollbars */
+.impl-download .table-container::-webkit-scrollbar{ height:10px; width:10px; }
+.impl-download .table-container::-webkit-scrollbar-thumb{ background:#d1d5db; border-radius:8px; }
+.impl-download .table-container::-webkit-scrollbar-track{ background:transparent; }
+
+/* mobile */
+@media (max-width: 768px){
+  .impl-download .table-container{ max-height:calc(100vh - 220px); }
+  .impl-download .impl-table td,
+  .impl-download .impl-table th{ padding:.5rem .55rem; }
+}

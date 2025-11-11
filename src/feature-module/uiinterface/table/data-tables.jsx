@@ -6,7 +6,8 @@ import { Table, Tab, Form, Nav, NavItem, Button, Row, NavLink, Card, Col, CardBo
 import 'react-toastify/dist/ReactToastify.css';
 import Sort from "../ui/Sort";
 import OrderPopup from "../../dashboard/orderPopup"; 
-
+import ExcelJS from "exceljs";
+import { saveAs } from "file-saver";
 // import EditableCell from './EditableCell'; // Adjust path accordingly
 // import EditableRow from './EditableRow'; // Adjust path accordingly
 import { AgGridReact } from "ag-grid-react";
@@ -14,6 +15,7 @@ import './DataTables.css'; // Adjust path accordingly
 
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
+import * as XLSX from "xlsx";
 
 import { read, utils } from 'xlsx';
 import axios from "axios";
@@ -117,6 +119,10 @@ const [selectedTotals, setSelectedTotals] = useState({
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
   const [showFilterSidebar, setShowFilterSidebar] = useState(false);
   const [deleteComment,setDeleteComment]=useState('');
+  const [showLength, setShowLength] = useState(false);
+  const [actualSqFt, setActualSqFt] = useState(0);
+
+
 
   const [acceptorders,setAcceptedorders]=useState([]);
   const [filters, setFilters] = useState({
@@ -271,6 +277,92 @@ const customColumnDefs = filterConfig.map(column => {
   };
 });
 
+ 
+const handleExportExcel = async () => {
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet("Job Data");
+
+  const columns = [
+    ...columnDefs.filter(col => col.field).map(col => ({
+      header: col.headerName || col.field,
+      key: col.field,
+    })),
+    { header: "Status", key: "status" },
+    { header: "Download Timestamp", key: "downloadTimestamp" },
+  ];
+
+  worksheet.columns = columns;
+
+  const downloadTime = new Date().toISOString();
+
+  gridRef.current.api.forEachNodeAfterFilterAndSort((node) => {
+    const row = { ...node.data };
+
+    const design = row.isDesignDone === "1";
+    const print = row.isPrinitngdone === "1";
+    const delivery = row.isDeliveryDone === "1";
+    const implementation = row.isImplementationDone === "1";
+    const upload = row.isImplementationUploadDone === "1";
+    const packing = row.isPackingDone === "1";
+
+    let status = "Not Started";
+
+    if (packing) status = "Packed";
+    else if (upload) status = "Implementation Uploaded";
+    else if (implementation) status = "Implementation Done";
+    else if (design && print && delivery) status = "Delivered";
+    else if (design && print) status = "Printed";
+    else if (design) status = "Designed";
+
+    row.status = status;
+    row.downloadTimestamp = downloadTime;
+
+    // ✅ Format specific numeric fields to 2 decimal places
+    const formattedRow = { ...row };
+    ["qty", "width", "height", "totalSqFt"].forEach((key) => {
+      if (formattedRow[key] !== undefined) {
+        const num = parseFloat(formattedRow[key]);
+        formattedRow[key] = isNaN(num) ? "" : num.toFixed(2);
+      }
+    });
+
+    const newRow = worksheet.addRow(formattedRow);
+
+    // ✅ Cell coloring by status
+    const statusColors = {
+      "Not Started": "FFFFFF",
+      Designed: "FFEB9C",
+      Printed: "ADD8E6",
+      Delivered: "C6EFCE",
+      "Implementation Done": "FFD966",
+      "Implementation Uploaded": "D9D2E9",
+      Packed: "B7E1CD",
+    };
+
+    const fillColor = statusColors[status] || "FFFFFF";
+    newRow.eachCell((cell) => {
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: fillColor },
+      };
+    });
+
+    const tsCell = newRow.getCell("downloadTimestamp");
+    tsCell.numFmt = "yyyy-mm-dd hh:mm:ss";
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+
+  saveAs(blob, `JobData_${new Date().toISOString().slice(0, 10)}.xlsx`);
+};
+
+
+
+
 
 const onSelectionChanged = () => {
             const selectedNodes = gridRef.current?.api.getSelectedNodes() || [];
@@ -281,7 +373,8 @@ const onSelectionChanged = () => {
             selectedVisibleData.forEach(row => {
             totalQty += parseFloat(row.qty || "0");
             totalW += parseFloat(row.width || "0");
-            totalL += parseFloat((showLength ? row.length : row.height) || "0");
+            totalL += parseFloat(row.length || "0");
+
             totalSqFt += parseFloat(row.totalSqFt || "0");
             });
 
@@ -491,17 +584,6 @@ const onSelectionChanged = () => {
   // }, [userId]);
 
 
-  const handleExportCSV = () => {
-  if (gridRef.current && gridRef.current.api) {
-    gridRef.current.api.exportDataAsCsv({
-      fileName: `JobData_${new Date().toISOString().slice(0, 10)}.csv`,
-      columnKeys: columnDefs.map(col => col.field).filter(Boolean), // Only fields with names
-      allColumns: true,
-    });
-  } else {
-    toast.error("Grid is not ready.");
-  }
-};
 
 
   const getLoggedInUserId = () => {
@@ -1426,7 +1508,7 @@ const GetAllJobAccToLocation = async () => {
 >
   {rolename === "Admindelete" && (
     <>
-      {/* <input
+       <input
         type="text"
         placeholder="Enter deletion comment"
         value={deleteComment}
@@ -1437,8 +1519,8 @@ const GetAllJobAccToLocation = async () => {
           border: '1px solid #ccc',
           minWidth: '220px'
         }}
-      /> */}
-      {/* <Button
+      /> 
+      <Button
         variant="danger"
         onClick={() => handleDeleteSelectedJobs(deleteComment)}
         style={{
@@ -1446,16 +1528,16 @@ const GetAllJobAccToLocation = async () => {
         }}
       >
         Delete Selected Jobs
-      </Button> */}
+      </Button>
     </>
   )}
 
                     <Button
                 variant="success"
-                onClick={() => handleExportCSV()}
+                onClick={() => handleExportExcel()}
                 style={{ marginBottom: "1em" }}
               >
-                Download CSV
+                Download Excel
               </Button>
 
                     <Button
@@ -1808,8 +1890,8 @@ const GetAllJobAccToLocation = async () => {
                         defaultColDef={defaultColDef}
                         pagination={true}
                         paginationPageSize={50}
-                        onSelectionChanged={onSelectionChanged}
-                         getRowNodeId={row => row.id}
+                        // onSelectionChanged={onSelectionChanged}
+                        //  getRowNodeId={row => row.id}
                         domLayout="normal"
                         rowSelection="multiple"
                         getRowHeight={() => 60}

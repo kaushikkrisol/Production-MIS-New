@@ -1,0 +1,33 @@
+.page-title {
+  font-weight: 600;
+  font-size: 24px;
+  color: #1c1c1c;
+  background: white;
+  padding: 12px 0;
+  border-bottom: 2px solid #e2e2e2;
+}
+
+.custom-ag-grid .ag-header {
+  background-color: #800000 !important;
+  color: white;
+  font-weight: bold;
+  text-align: center;
+}
+
+.custom-ag-grid .ag-header-cell-label {
+  justify-content: center;
+}
+
+.custom-ag-grid .ag-root-wrapper {
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.custom-ag-grid .ag-cell {
+  padding: 8px;
+  font-size: 14px;
+}
+
+.custom-ag-grid .ag-row {
+  border-bottom: 1px solid #f0f0f0;
+}
