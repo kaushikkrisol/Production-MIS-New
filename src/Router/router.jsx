@@ -6,6 +6,7 @@ import { ApprovalRoute, pagesRoute, posRoutes, publicRoutes } from "./router.lin
 import { Outlet } from "react-router-dom";
 import { useSelector } from "react-redux";
 import ThemeSettings from "../InitialPage/themeSettings";
+
 // import Approval from "../approvalPage/Approval";
 
 const AllRoutes = () => {

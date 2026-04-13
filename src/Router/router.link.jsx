@@ -2,6 +2,7 @@ import React from "react";
 import { Route, Navigate } from "react-router-dom";
 import ProductList from "../feature-module/inventory/productlist";
 import Dashboard from "../feature-module/dashboard/Dashboard";
+import TimesheetDashboard from "../feature-module/dashboard/TimesheetDashboard";
 import AddProduct from "../feature-module/inventory/addproduct";
 import SalesDashbaord from "../feature-module/dashboard/salesdashbaord";
 import BrandList from "../feature-module/inventory/brandlist";
@@ -78,6 +79,8 @@ import Delivery from "../feature-module/uiinterface/table/Delivery";
 import Implementation from "../feature-module/uiinterface/table/Implementation";
 import MyPriority from "../feature-module/pages/myPriority/MyPriority";
 import ImplementationDownload from "../feature-module/uiinterface/table/ImplementationUpload";
+import PendingJobsWithHold from "../feature-module/uiinterface/table/PendingJobsWithHold";
+
 
 import MisReport from "../feature-module/uiinterface/report/MisReport";
 import ConsolidatedReport from "../feature-module/uiinterface/report/ConsolidatedReport";
@@ -214,6 +217,10 @@ import BankSettingGrid from "../feature-module/settings/financialsettings/bankse
 import PayrollList from "../feature-module/hrm/payroll-list";
 import Printlaminpacking from "../feature-module/uiinterface/table/Printlaminpacking";
 import { element } from "prop-types";
+import { id } from "date-fns/locale";
+import DeliveryChallanPreview from "../feature-module/uiinterface/table/DeliveryChallanPreview";
+import ImplementationChallanPreview from "../feature-module/uiinterface/table/ImplementationChallanPreview";
+import ChallanDashboard from "../feature-module/uiinterface/table/challan_dashboard";
 export const publicRoutes = [
   {
     id: 1,
@@ -222,6 +229,7 @@ export const publicRoutes = [
     element: <Dashboard />,
     route: Route,
   },
+  
   {
     id: 2,
     path: routes.productlist,
@@ -246,6 +254,13 @@ export const publicRoutes = [
   },
   {
     id: 5,
+    path: routes.timesheetdashboard,
+    name: "timesheetdashboard",
+    element: <TimesheetDashboard />,
+    route: Route,
+  },
+  {
+    id: 6,
     path: routes.brandlist,
     name: "brant",
     element: <BrandList />,
@@ -1522,6 +1537,14 @@ export const publicRoutes = [
     element: <PayrollList />,
     route: Route,
   },
+  {
+    id: 120,
+    path: routes.pendingJobsWithHold,
+    name: "pending-jobs-with-hold",
+    element: <PendingJobsWithHold />,
+    route: Route,
+  },
+  
 ];
 export const posRoutes = [
   {
@@ -1720,6 +1743,27 @@ export const pagesRoute = [
     name:"csdashboard",
     element:"https://productiondashboard.comart.in/",
     route:Route
-  }
+  },
+  {
+    id:24,
+    path:routes.deliverychallan,
+    name:"deliverychallan",
+    element:<DeliveryChallanPreview/>,
+    route:Route
+  },
+  {
+    id:25,
+    path:routes.implementationchallan,
+    name:"implementationchallan",
+    element:<ImplementationChallanPreview/>,
+    route:Route
+  },
+  {
+    id:26,
+    path:routes.challandashboard,
+    name:"challandashboard",
+    element:<ChallanDashboard/>,
+    route:Route
+  },
  
 ];

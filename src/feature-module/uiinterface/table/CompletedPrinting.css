@@ -8,3 +8,89 @@
 .reason-input:focus {
     border-color: #95312F;
 }
+
+
+
+.completed-printing-modal .modal-dialog {
+  max-width: 90vw !important;
+  width: 90vw !important;
+}
+
+.completed-printing-modal .modal-content {
+  width: 100% !important;
+  max-width: 106rem !important;
+}
+
+/* Give modal body height and scrolling */
+.completed-printing-modal .modal-body {
+  max-height: 75vh;
+  overflow: auto;
+}
+
+/* Ensure table uses full width */
+.completed-printing-modal table {
+  width: 100% !important;
+}
+
+/* Prevent header text wrapping (optional) */
+.completed-printing-modal th,
+.completed-printing-modal td {
+  white-space: nowrap;
+}
+
+/* For react-bootstrap Modal */
+.completed-printing-modal {
+  max-width: 90vw !important;
+  width: 90vw !important;
+}
+
+/* Modal body scroll */
+.completed-printing-modal .modal-body {
+  max-height:100vh;
+  overflow: auto;
+}
+
+/* make the table not wrap */
+.completed-printing-page th,
+.completed-printing-page td {
+  white-space: nowrap;
+}
+
+/* ================================
+   ✅ COMPLETED PRINTING PAGE BIGGER UI
+   ================================ */
+
+.completed-printing-page {
+  font-size: 16px;            /* overall bigger */
+}
+
+.completed-printing-page .table th,
+.completed-printing-page .table td {
+  font-size: 15px !important;
+  padding: 10px 12px !important;
+}
+
+/* keep headers readable */
+.completed-printing-page .table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* react-select bigger control */
+.completed-printing-page .select__control {
+  min-height: 44px !important;
+  font-size: 15px !important;
+}
+.completed-printing-page .select__value-container {
+  padding: 6px 10px !important;
+}
+.completed-printing-page .select__menu {
+  font-size: 15px !important;
+}
+
+/* input bigger */
+.completed-printing-page input.form-control {
+  height: 44px;
+  font-size: 15px;
+}

@@ -3,6 +3,37 @@ import { Grid, User } from "react-feather";
 import { Link } from "react-router-dom";
 
 const HorizontalSidebar = () => {
+  const normalizeUserId = (value) => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return String(value);
+    if (typeof value === "object") {
+      return (
+        value.user_id ||
+        value.userId ||
+        value.userid ||
+        value.id ||
+        value._id ||
+        value.$oid ||
+        value.oid ||
+        ""
+      );
+    }
+    return String(value);
+  };
+
+  // Get userid from localStorage (use normalized value)
+  const user = localStorage.getItem('users');
+  let userid = '';
+  if (user) {
+    const userStorage = JSON.parse(user);
+    userid =
+      normalizeUserId(userStorage?.message?.user_id) ||
+      normalizeUserId(userStorage?.message?.userId) ||
+      normalizeUserId(userStorage?.message?.userid) ||
+      normalizeUserId(userStorage?.message?.id) ||
+      normalizeUserId(userStorage?.message);
+  }
   const [isActive, setIsActive] = useState(false);
   const [isActive2, setIsActive2] = useState(false);
   const [isActive3, setIsActive3] = useState(false);
@@ -218,10 +249,13 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive ? "block" : "none" }}>
                   <li>
-                    <Link to="/admin-dashboard">Admin Dashboard</Link>
+                    <Link to={userid ? `/admin-dashboard?userid=${userid}` : "/admin-dashboard"}>Admin Dashboard</Link>
                   </li>
                   <li>
-                    <Link to="sales-dashboard" className="active">
+                    <Link to={userid ? `/timesheet-dashboard?userid=${userid}` : "/timesheet-dashboard"}>Timesheet Dashboard</Link>
+                  </li>
+                  <li>
+                    <Link to={userid ? `sales-dashboard?userid=${userid}` : "sales-dashboard"} className="active">
                       Sales Dashboard
                     </Link>
                   </li>
@@ -234,7 +268,7 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul>
                   <li>
-                    <Link to="chat">Chat</Link>
+                    <Link to={userid ? `chat?userid=${userid}` : "chat"}>Chat</Link>
                   </li>
                   <li className="submenu submenu-two">
                     <Link to="#">
@@ -243,30 +277,30 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="video-call">Video Call</Link>
+                        <Link to={userid ? `video-call?userid=${userid}` : "video-call"}>Video Call</Link>
                       </li>
                       <li>
-                        <Link to="audio-call">Audio Call</Link>
+                        <Link to={userid ? `audio-call?userid=${userid}` : "audio-call"}>Audio Call</Link>
                       </li>
                       <li>
-                        <Link to="call-history">Call History</Link>
+                        <Link to={userid ? `call-history?userid=${userid}` : "call-history"}>Call History</Link>
                       </li>
                     </ul>
                   </li>
                   <li>
-                    <Link to="calendar">Calendar</Link>
+                    <Link to={userid ? `calendar?userid=${userid}` : "calendar"}>Calendar</Link>
                   </li>
                   <li>
-                    <Link to="email">Email</Link>
+                    <Link to={userid ? `email?userid=${userid}` : "email"}>Email</Link>
                   </li>
                   <li>
-                    <Link to="todo">To Do</Link>
+                    <Link to={userid ? `todo?userid=${userid}` : "todo"}>To Do</Link>
                   </li>
                   <li>
-                    <Link to="notes">Notes</Link>
+                    <Link to={userid ? `notes?userid=${userid}` : "notes"}>Notes</Link>
                   </li>
                   <li>
-                    <Link to="file-manager">File Manager</Link>
+                    <Link to={userid ? `file-manager?userid=${userid}` : "file-manager"}>File Manager</Link>
                   </li>
                 </ul>
               </li>
@@ -283,62 +317,62 @@ const HorizontalSidebar = () => {
             </Link>
             <ul style={{ display: isActive2 ? "block" : "none" }}>
               <li>
-                <Link to="product-list">
+                <Link to={userid ? `product-list?userid=${userid}` : "product-list"}>
                   <span>Products</span>
                 </Link>
               </li>
               <li>
-                <Link to="add-product">
+                <Link to={userid ? `add-product?userid=${userid}` : "add-product"}>
                   <span>Create Product</span>
                 </Link>
               </li>
               <li>
-                <Link to="expired-products">
+                <Link to={userid ? `expired-products?userid=${userid}` : "expired-products"}>
                   <span>Expired Products</span>
                 </Link>
               </li>
               <li>
-                <Link to="low-stocks">
+                <Link to={userid ? `low-stocks?userid=${userid}` : "low-stocks"}>
                   <span>Low Stocks</span>
                 </Link>
               </li>
               <li>
-                <Link to="category-list">
+                <Link to={userid ? `category-list?userid=${userid}` : "category-list"}>
                   <span>Category</span>
                 </Link>
               </li>
               <li>
-                <Link to="sub-categories">
+                <Link to={userid ? `sub-categories?userid=${userid}` : "sub-categories"}>
                   <span>Sub Category</span>
                 </Link>
               </li>
               <li>
-                <Link to="brand-list">
+                <Link to={userid ? `brand-list?userid=${userid}` : "brand-list"}>
                   <span>Brands</span>
                 </Link>
               </li>
               <li>
-                <Link to="units">
+                <Link to={userid ? `units?userid=${userid}` : "units"}>
                   <span>Units</span>
                 </Link>
               </li>
               <li>
-                <Link to="varriant-attributes">
+                <Link to={userid ? `varriant-attributes?userid=${userid}` : "varriant-attributes"}>
                   <span>Variant Attributes</span>
                 </Link>
               </li>
               <li>
-                <Link to="warranty">
+                <Link to={userid ? `warranty?userid=${userid}` : "warranty"}>
                   <span>Warranties</span>
                 </Link>
               </li>
               <li>
-                <Link to="barcode">
+                <Link to={userid ? `barcode?userid=${userid}` : "barcode"}>
                   <span>Print Barcode</span>
                 </Link>
               </li>
               <li>
-                <Link to="qrcode">
+                <Link to={userid ? `qrcode?userid=${userid}` : "qrcode"}>
                   <span>Print QR Code</span>
                 </Link>
               </li>
@@ -365,32 +399,32 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive2 ? "block" : "none" }}>
                   <li>
-                    <Link to="sales-list">
+                    <Link to={userid ? `sales-list?userid=${userid}` : "sales-list"}>
                       <span>Sales</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="invoice-report">
+                    <Link to={userid ? `invoice-report?userid=${userid}` : "invoice-report"}>
                       <span>Invoices</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="sales-returns">
+                    <Link to={userid ? `sales-returns?userid=${userid}` : "sales-returns"}>
                       <span>Sales Return</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="quotation-list">
+                    <Link to={userid ? `quotation-list?userid=${userid}` : "quotation-list"}>
                       <span>Quotation</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="pos">
+                    <Link to={userid ? `pos?userid=${userid}` : "pos"}>
                       <span>POS</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="coupons">
+                    <Link to={userid ? `coupons?userid=${userid}` : "coupons"}>
                       <span>Coupons</span>
                     </Link>
                   </li>
@@ -407,32 +441,32 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive3 ? "block" : "none" }}>
                   <li>
-                    <Link to="purchase-list">
+                    <Link to={userid ? `purchase-list?userid=${userid}` : "purchase-list"}>
                       <span>Purchases</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="purchase-order-report">
+                    <Link to={userid ? `purchase-order-report?userid=${userid}` : "purchase-order-report"}>
                       <span>Purchase Order</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="purchase-returns">
+                    <Link to={userid ? `purchase-returns?userid=${userid}` : "purchase-returns"}>
                       <span>Purchase Return</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="manage-stocks">
+                    <Link to={userid ? `manage-stocks?userid=${userid}` : "manage-stocks"}>
                       <span>Manage Stock</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="stock-adjustment">
+                    <Link to={userid ? `stock-adjustment?userid=${userid}` : "stock-adjustment"}>
                       <span>Stock Adjustment</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="stock-transfer">
+                    <Link to={userid ? `stock-transfer?userid=${userid}` : "stock-transfer"}>
                       <span>Stock Transfer</span>
                     </Link>
                   </li>
@@ -449,10 +483,10 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive4 ? "block" : "none" }}>
                   <li>
-                    <Link to="expense-list">Expenses</Link>
+                    <Link to={userid ? `expense-list?userid=${userid}` : "expense-list"}>Expenses</Link>
                   </li>
                   <li>
-                    <Link to="expense-category">Expense Category</Link>
+                    <Link to={userid ? `expense-category?userid=${userid}` : "expense-category"}>Expense Category</Link>
                   </li>
                 </ul>
               </li>
@@ -479,22 +513,22 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive5 ? "block" : "none" }}>
                   <li>
-                    <Link to="customers">
+                    <Link to={userid ? `customers?userid=${userid}` : "customers"}>
                       <span>Customers</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="suppliers">
+                    <Link to={userid ? `suppliers?userid=${userid}` : "suppliers"}>
                       <span>Suppliers</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="store-list">
+                    <Link to={userid ? `store-list?userid=${userid}` : "store-list"}>
                       <span>Stores</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="warehouse">
+                    <Link to={userid ? `warehouse?userid=${userid}` : "warehouse"}>
                       <span>Warehouses</span>
                     </Link>
                   </li>
@@ -511,12 +545,12 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive6 ? "block" : "none" }}>
                   <li>
-                    <Link to="roles-permissions">
+                    <Link to={userid ? `roles-permissions?userid=${userid}` : "roles-permissions"}>
                       <span>Roles &amp; Permissions</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="delete-account">
+                    <Link to={userid ? `delete-account?userid=${userid}` : "delete-account"}>
                       <span>Delete Account Request</span>
                     </Link>
                   </li>
@@ -533,94 +567,94 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive7 ? "block" : "none" }}>
                   <li>
-                    <Link to="ui-alerts">Alerts</Link>
+                    <Link to={userid ? `ui-alerts?userid=${userid}` : "ui-alerts"}>Alerts</Link>
                   </li>
                   <li>
-                    <Link to="ui-accordion">Accordion</Link>
+                    <Link to={userid ? `ui-accordion?userid=${userid}` : "ui-accordion"}>Accordion</Link>
                   </li>
                   <li>
-                    <Link to="ui-avatar">Avatar</Link>
+                    <Link to={userid ? `ui-avatar?userid=${userid}` : "ui-avatar"}>Avatar</Link>
                   </li>
                   <li>
-                    <Link to="ui-badges">Badges</Link>
+                    <Link to={userid ? `ui-badges?userid=${userid}` : "ui-badges"}>Badges</Link>
                   </li>
                   <li>
-                    <Link to="ui-borders">Border</Link>
+                    <Link to={userid ? `ui-borders?userid=${userid}` : "ui-borders"}>Border</Link>
                   </li>
                   <li>
-                    <Link to="ui-buttons">Buttons</Link>
+                    <Link to={userid ? `ui-buttons?userid=${userid}` : "ui-buttons"}>Buttons</Link>
                   </li>
                   <li>
-                    <Link to="ui-buttons-group">Button Group</Link>
+                    <Link to={userid ? `ui-buttons-group?userid=${userid}` : "ui-buttons-group"}>Button Group</Link>
                   </li>
                   <li>
-                    <Link to="ui-breadcrumb">Breadcrumb</Link>
+                    <Link to={userid ? `ui-breadcrumb?userid=${userid}` : "ui-breadcrumb"}>Breadcrumb</Link>
                   </li>
                   <li>
-                    <Link to="ui-cards">Card</Link>
+                    <Link to={userid ? `ui-cards?userid=${userid}` : "ui-cards"}>Card</Link>
                   </li>
                   <li>
-                    <Link to="ui-carousel">Carousel</Link>
+                    <Link to={userid ? `ui-carousel?userid=${userid}` : "ui-carousel"}>Carousel</Link>
                   </li>
                   <li>
-                    <Link to="ui-colors">Colors</Link>
+                    <Link to={userid ? `ui-colors?userid=${userid}` : "ui-colors"}>Colors</Link>
                   </li>
                   <li>
-                    <Link to="ui-dropdowns">Dropdowns</Link>
+                    <Link to={userid ? `ui-dropdowns?userid=${userid}` : "ui-dropdowns"}>Dropdowns</Link>
                   </li>
                   <li>
-                    <Link to="ui-grid">Grid</Link>
+                    <Link to={userid ? `ui-grid?userid=${userid}` : "ui-grid"}>Grid</Link>
                   </li>
                   <li>
-                    <Link to="ui-images">Images</Link>
+                    <Link to={userid ? `ui-images?userid=${userid}` : "ui-images"}>Images</Link>
                   </li>
                   <li>
-                    <Link to="ui-lightbox">Lightbox</Link>
+                    <Link to={userid ? `ui-lightbox?userid=${userid}` : "ui-lightbox"}>Lightbox</Link>
                   </li>
                   <li>
-                    <Link to="ui-media">Media</Link>
+                    <Link to={userid ? `ui-media?userid=${userid}` : "ui-media"}>Media</Link>
                   </li>
                   <li>
-                    <Link to="ui-modals">Modals</Link>
+                    <Link to={userid ? `ui-modals?userid=${userid}` : "ui-modals"}>Modals</Link>
                   </li>
                   <li>
-                    <Link to="ui-offcanvas">Offcanvas</Link>
+                    <Link to={userid ? `ui-offcanvas?userid=${userid}` : "ui-offcanvas"}>Offcanvas</Link>
                   </li>
                   <li>
-                    <Link to="ui-pagination">Pagination</Link>
+                    <Link to={userid ? `ui-pagination?userid=${userid}` : "ui-pagination"}>Pagination</Link>
                   </li>
                   <li>
-                    <Link to="ui-popovers">Popovers</Link>
+                    <Link to={userid ? `ui-popovers?userid=${userid}` : "ui-popovers"}>Popovers</Link>
                   </li>
                   <li>
-                    <Link to="ui-progress">Progress</Link>
+                    <Link to={userid ? `ui-progress?userid=${userid}` : "ui-progress"}>Progress</Link>
                   </li>
                   <li>
-                    <Link to="ui-placeholders">Placeholders</Link>
+                    <Link to={userid ? `ui-placeholders?userid=${userid}` : "ui-placeholders"}>Placeholders</Link>
                   </li>
                   <li>
-                    <Link to="ui-rangeslider">Range Slider</Link>
+                    <Link to={userid ? `ui-rangeslider?userid=${userid}` : "ui-rangeslider"}>Range Slider</Link>
                   </li>
                   <li>
-                    <Link to="ui-spinner">Spinner</Link>
+                    <Link to={userid ? `ui-spinner?userid=${userid}` : "ui-spinner"}>Spinner</Link>
                   </li>
                   <li>
-                    <Link to="ui-sweetalerts">Sweet Alerts</Link>
+                    <Link to={userid ? `ui-sweetalerts?userid=${userid}` : "ui-sweetalerts"}>Sweet Alerts</Link>
                   </li>
                   <li>
-                    <Link to="ui-nav-tabs">Tabs</Link>
+                    <Link to={userid ? `ui-nav-tabs?userid=${userid}` : "ui-nav-tabs"}>Tabs</Link>
                   </li>
                   <li>
-                    <Link to="ui-toasts">Toasts</Link>
+                    <Link to={userid ? `ui-toasts?userid=${userid}` : "ui-toasts"}>Toasts</Link>
                   </li>
                   <li>
-                    <Link to="ui-tooltips">Tooltips</Link>
+                    <Link to={userid ? `ui-tooltips?userid=${userid}` : "ui-tooltips"}>Tooltips</Link>
                   </li>
                   <li>
-                    <Link to="ui-typography">Typography</Link>
+                    <Link to={userid ? `ui-typography?userid=${userid}` : "ui-typography"}>Typography</Link>
                   </li>
                   <li>
-                    <Link to="ui-video">Video</Link>
+                    <Link to={userid ? `ui-video?userid=${userid}` : "ui-video"}>Video</Link>
                   </li>
                 </ul>
               </li>
@@ -635,34 +669,34 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive8 ? "block" : "none" }}>
                   <li>
-                    <Link to="ui-ribbon">Ribbon</Link>
+                    <Link to={userid ? `ui-ribbon?userid=${userid}` : "ui-ribbon"}>Ribbon</Link>
                   </li>
                   <li>
-                    <Link to="ui-clipboard">Clipboard</Link>
+                    <Link to={userid ? `ui-clipboard?userid=${userid}` : "ui-clipboard"}>Clipboard</Link>
                   </li>
                   <li>
-                    <Link to="ui-drag-drop">Drag &amp; Drop</Link>
+                    <Link to={userid ? `ui-drag-drop?userid=${userid}` : "ui-drag-drop"}>Drag &amp; Drop</Link>
                   </li>
                   <li>
-                    <Link to="ui-rangeslider">Range Slider</Link>
+                    <Link to={userid ? `ui-rangeslider?userid=${userid}` : "ui-rangeslider"}>Range Slider</Link>
                   </li>
                   <li>
-                    <Link to="ui-rating">Rating</Link>
+                    <Link to={userid ? `ui-rating?userid=${userid}` : "ui-rating"}>Rating</Link>
                   </li>
                   <li>
-                    <Link to="ui-text-editor">Text Editor</Link>
+                    <Link to={userid ? `ui-text-editor?userid=${userid}` : "ui-text-editor"}>Text Editor</Link>
                   </li>
                   <li>
-                    <Link to="ui-counter">Counter</Link>
+                    <Link to={userid ? `ui-counter?userid=${userid}` : "ui-counter"}>Counter</Link>
                   </li>
                   <li>
-                    <Link to="ui-scrollbar">Scrollbar</Link>
+                    <Link to={userid ? `ui-scrollbar?userid=${userid}` : "ui-scrollbar"}>Scrollbar</Link>
                   </li>
                   <li>
-                    <Link to="ui-stickynote">Sticky Note</Link>
+                    <Link to={userid ? `ui-stickynote?userid=${userid}` : "ui-stickynote"}>Sticky Note</Link>
                   </li>
                   <li>
-                    <Link to="ui-timeline">Timeline</Link>
+                    <Link to={userid ? `ui-timeline?userid=${userid}` : "ui-timeline"}>Timeline</Link>
                   </li>
                 </ul>
               </li>
@@ -677,22 +711,22 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive9 ? "block" : "none" }}>
                   <li>
-                    <Link to="chart-apex">Apex Charts</Link>
+                    <Link to={userid ? `chart-apex?userid=${userid}` : "chart-apex"}>Apex Charts</Link>
                   </li>
                   <li>
-                    <Link to="chart-c3">Chart C3</Link>
+                    <Link to={userid ? `chart-c3?userid=${userid}` : "chart-c3"}>Chart C3</Link>
                   </li>
                   <li>
-                    <Link to="chart-js">Chart Js</Link>
+                    <Link to={userid ? `chart-js?userid=${userid}` : "chart-js"}>Chart Js</Link>
                   </li>
                   <li>
-                    <Link to="chart-morris">Morris Charts</Link>
+                    <Link to={userid ? `chart-morris?userid=${userid}` : "chart-morris"}>Morris Charts</Link>
                   </li>
                   <li>
-                    <Link to="chart-flot">Flot Charts</Link>
+                    <Link to={userid ? `chart-flot?userid=${userid}` : "chart-flot"}>Flot Charts</Link>
                   </li>
                   <li>
-                    <Link to="chart-peity">Peity Charts</Link>
+                    <Link to={userid ? `chart-peity?userid=${userid}` : "chart-peity"}>Peity Charts</Link>
                   </li>
                 </ul>
               </li>
@@ -707,19 +741,19 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive10 ? "block" : "none" }}>
                   <li>
-                    <Link to="icon-fontawesome">Fontawesome Icons</Link>
+                    <Link to={userid ? `icon-fontawesome?userid=${userid}` : "icon-fontawesome"}>Fontawesome Icons</Link>
                   </li>
                   <li>
-                    <Link to="icon-feather">Feather Icons</Link>
+                    <Link to={userid ? `icon-feather?userid=${userid}` : "icon-feather"}>Feather Icons</Link>
                   </li>
                   <li>
-                    <Link to="icon-ionic">Ionic Icons</Link>
+                    <Link to={userid ? `icon-ionic?userid=${userid}` : "icon-ionic"}>Ionic Icons</Link>
                   </li>
                   <li>
-                    <Link to="icon-material">Material Icons</Link>
+                    <Link to={userid ? `icon-material?userid=${userid}` : "icon-material"}>Material Icons</Link>
                   </li>
                   <li>
-                    <Link to="icon-pe7">Pe7 Icons</Link>
+                    <Link to={userid ? `icon-pe7?userid=${userid}` : "icon-pe7"}>Pe7 Icons</Link>
                   </li>
                 </ul>
               </li>
@@ -734,19 +768,19 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive11 ? "block" : "none" }}>
                   <li>
-                    <Link to="icon-simpleline">Simpleline Icons</Link>
+                    <Link to={userid ? `icon-simpleline?userid=${userid}` : "icon-simpleline"}>Simpleline Icons</Link>
                   </li>
                   <li>
-                    <Link to="icon-themify">Themify Icons</Link>
+                    <Link to={userid ? `icon-themify?userid=${userid}` : "icon-themify"}>Themify Icons</Link>
                   </li>
                   <li>
-                    <Link to="icon-weather">Weather Icons</Link>
+                    <Link to={userid ? `icon-weather?userid=${userid}` : "icon-weather"}>Weather Icons</Link>
                   </li>
                   <li>
-                    <Link to="icon-typicon">Typicon Icons</Link>
+                    <Link to={userid ? `icon-typicon?userid=${userid}` : "icon-typicon"}>Typicon Icons</Link>
                   </li>
                   <li>
-                    <Link to="icon-flag">Flag Icons</Link>
+                    <Link to={userid ? `icon-flag?userid=${userid}` : "icon-flag"}>Flag Icons</Link>
                   </li>
                 </ul>
               </li>
@@ -767,27 +801,27 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="form-basic-inputs">Basic Inputs</Link>
+                        <Link to={userid ? `form-basic-inputs?userid=${userid}` : "form-basic-inputs"}>Basic Inputs</Link>
                       </li>
                       <li>
-                        <Link to="form-checkbox-radios">
+                        <Link to={userid ? `form-checkbox-radios?userid=${userid}` : "form-checkbox-radios"}>
                           Checkbox &amp; Radios
                         </Link>
                       </li>
                       <li>
-                        <Link to="form-input-groups">Input Groups</Link>
+                        <Link to={userid ? `form-input-groups?userid=${userid}` : "form-input-groups"}>Input Groups</Link>
                       </li>
                       <li>
-                        <Link to="form-grid-gutters">Grid &amp; Gutters</Link>
+                        <Link to={userid ? `form-grid-gutters?userid=${userid}` : "form-grid-gutters"}>Grid &amp; Gutters</Link>
                       </li>
                       <li>
-                        <Link to="form-select">Form Select</Link>
+                        <Link to={userid ? `form-select?userid=${userid}` : "form-select"}>Form Select</Link>
                       </li>
                       <li>
-                        <Link to="form-mask">Input Masks</Link>
+                        <Link to={userid ? `form-mask?userid=${userid}` : "form-mask"}>Input Masks</Link>
                       </li>
                       <li>
-                        <Link to="form-fileupload">File Uploads</Link>
+                        <Link to={userid ? `form-fileupload?userid=${userid}` : "form-fileupload"}>File Uploads</Link>
                       </li>
                     </ul>
                   </li>
@@ -798,24 +832,24 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="form-horizontal">Horizontal Form</Link>
+                        <Link to={userid ? `form-horizontal?userid=${userid}` : "form-horizontal"}>Horizontal Form</Link>
                       </li>
                       <li>
-                        <Link to="form-vertical">Vertical Form</Link>
+                        <Link to={userid ? `form-vertical?userid=${userid}` : "form-vertical"}>Vertical Form</Link>
                       </li>
                       <li>
-                        <Link to="form-floating-labels">Floating Labels</Link>
+                        <Link to={userid ? `form-floating-labels?userid=${userid}` : "form-floating-labels"}>Floating Labels</Link>
                       </li>
                     </ul>
                   </li>
                   <li>
-                    <Link to="form-validation">Form Validation</Link>
+                    <Link to={userid ? `form-validation?userid=${userid}` : "form-validation"}>Form Validation</Link>
                   </li>
                   <li>
-                    <Link to="form-select2">Select2</Link>
+                    <Link to={userid ? `form-select2?userid=${userid}` : "form-select2"}>Select2</Link>
                   </li>
                   <li>
-                    <Link to="form-wizard">Form Wizard</Link>
+                    <Link to={userid ? `form-wizard?userid=${userid}` : "form-wizard"}>Form Wizard</Link>
                   </li>
                 </ul>
               </li>
@@ -830,10 +864,10 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive13 ? "block" : "none" }}>
                   <li>
-                    <Link to="tables-basic">Basic Tables </Link>
+                    <Link to={userid ? `tables-basic?userid=${userid}` : "tables-basic"}>Basic Tables </Link>
                   </li>
                   <li>
-                    <Link to="data-tables">Data Table </Link>
+                    <Link to={userid ? `data-tables?userid=${userid}` : "data-tables"}>Data Table </Link>
                   </li>
                 </ul>
               </li>
@@ -850,7 +884,7 @@ const HorizontalSidebar = () => {
             </Link>
             <ul style={{ display: isActive5 ? "block" : "none" }}>
               <li>
-                <Link to="profile">
+                <Link to={userid ? `profile?userid=${userid}` : "profile"}>
                   <span>Profile</span>
                 </Link>
               </li>
@@ -871,13 +905,13 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="signin">Cover</Link>
+                        <Link to={userid ? `signin?userid=${userid}` : "signin"}>Cover</Link>
                       </li>
                       <li>
-                        <Link to="signin-2">Illustration</Link>
+                        <Link to={userid ? `signin-2?userid=${userid}` : "signin-2"}>Illustration</Link>
                       </li>
                       <li>
-                        <Link to="signin-3">Basic</Link>
+                        <Link to={userid ? `signin-3?userid=${userid}` : "signin-3"}>Basic</Link>
                       </li>
                     </ul>
                   </li>
@@ -888,13 +922,13 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="register">Cover</Link>
+                        <Link to={userid ? `register?userid=${userid}` : "register"}>Cover</Link>
                       </li>
                       <li>
-                        <Link to="register-2">Illustration</Link>
+                        <Link to={userid ? `register-2?userid=${userid}` : "register-2"}>Illustration</Link>
                       </li>
                       <li>
-                        <Link to="register-3">Basic</Link>
+                        <Link to={userid ? `register-3?userid=${userid}` : "register-3"}>Basic</Link>
                       </li>
                     </ul>
                   </li>
@@ -905,13 +939,13 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="forgot-password">Cover</Link>
+                        <Link to={userid ? `forgot-password?userid=${userid}` : "forgot-password"}>Cover</Link>
                       </li>
                       <li>
-                        <Link to="forgot-password-2">Illustration</Link>
+                        <Link to={userid ? `forgot-password-2?userid=${userid}` : "forgot-password-2"}>Illustration</Link>
                       </li>
                       <li>
-                        <Link to="forgot-password-3">Basic</Link>
+                        <Link to={userid ? `forgot-password-3?userid=${userid}` : "forgot-password-3"}>Basic</Link>
                       </li>
                     </ul>
                   </li>
@@ -922,13 +956,13 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="reset-password">Cover</Link>
+                        <Link to={userid ? `reset-password?userid=${userid}` : "reset-password"}>Cover</Link>
                       </li>
                       <li>
-                        <Link to="reset-password-2">Illustration</Link>
+                        <Link to={userid ? `reset-password-2?userid=${userid}` : "reset-password-2"}>Illustration</Link>
                       </li>
                       <li>
-                        <Link to="reset-password-3">Basic</Link>
+                        <Link to={userid ? `reset-password-3?userid=${userid}` : "reset-password-3"}>Basic</Link>
                       </li>
                     </ul>
                   </li>
@@ -939,13 +973,13 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="email-verification">Cover</Link>
+                        <Link to={userid ? `email-verification?userid=${userid}` : "email-verification"}>Cover</Link>
                       </li>
                       <li>
-                        <Link to="email-verification-2">Illustration</Link>
+                        <Link to={userid ? `email-verification-2?userid=${userid}` : "email-verification-2"}>Illustration</Link>
                       </li>
                       <li>
-                        <Link to="email-verification-3">Basic</Link>
+                        <Link to={userid ? `email-verification-3?userid=${userid}` : "email-verification-3"}>Basic</Link>
                       </li>
                     </ul>
                   </li>
@@ -956,18 +990,18 @@ const HorizontalSidebar = () => {
                     </Link>
                     <ul>
                       <li>
-                        <Link to="two-step-verification">Cover</Link>
+                        <Link to={userid ? `two-step-verification?userid=${userid}` : "two-step-verification"}>Cover</Link>
                       </li>
                       <li>
-                        <Link to="two-step-verification-2">Illustration</Link>
+                        <Link to={userid ? `two-step-verification-2?userid=${userid}` : "two-step-verification-2"}>Illustration</Link>
                       </li>
                       <li>
-                        <Link to="two-step-verification-3">Basic</Link>
+                        <Link to={userid ? `two-step-verification-3?userid=${userid}` : "two-step-verification-3"}>Basic</Link>
                       </li>
                     </ul>
                   </li>
                   <li>
-                    <Link to="lock-screen">Lock Screen</Link>
+                    <Link to={userid ? `lock-screen?userid=${userid}` : "lock-screen"}>Lock Screen</Link>
                   </li>
                 </ul>
               </li>
@@ -982,23 +1016,23 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive15 ? "block" : "none" }}>
                   <li>
-                    <Link to="error-404">404 Error </Link>
+                    <Link to={userid ? `error-404?userid=${userid}` : "error-404"}>404 Error </Link>
                   </li>
                   <li>
-                    <Link to="error-500">500 Error </Link>
+                    <Link to={userid ? `error-500?userid=${userid}` : "error-500"}>500 Error </Link>
                   </li>
                   <li>
-                    <Link to="blank-page">
+                    <Link to={userid ? `blank-page?userid=${userid}` : "blank-page"}>
                       <span>Blank Page</span>{" "}
                     </Link>
                   </li>
                   <li>
-                    <Link to="coming-soon">
+                    <Link to={userid ? `coming-soon?userid=${userid}` : "coming-soon"}>
                       <span>Coming Soon</span>{" "}
                     </Link>
                   </li>
                   <li>
-                    <Link to="under-maintenance">
+                    <Link to={userid ? `under-maintenance?userid=${userid}` : "under-maintenance"}>
                       <span>Under Maintenance</span>{" "}
                     </Link>
                   </li>
@@ -1015,10 +1049,10 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive16 ? "block" : "none" }}>
                   <li>
-                    <Link to="countries">Countries</Link>
+                    <Link to={userid ? `countries?userid=${userid}` : "countries"}>Countries</Link>
                   </li>
                   <li>
-                    <Link to="states">States</Link>
+                    <Link to={userid ? `states?userid=${userid}` : "states"}>States</Link>
                   </li>
                 </ul>
               </li>
@@ -1033,22 +1067,22 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive17 ? "block" : "none" }}>
                   <li>
-                    <Link to="employees-grid">
+                    <Link to={userid ? `employees-grid?userid=${userid}` : "employees-grid"}>
                       <span>Employees</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="department-grid">
+                    <Link to={userid ? `department-grid?userid=${userid}` : "department-grid"}>
                       <span>Departments</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="designation">
+                    <Link to={userid ? `designation?userid=${userid}` : "designation"}>
                       <span>Designation</span>
                     </Link>
                   </li>
                   <li>
-                    <Link to="shift">
+                    <Link to={userid ? `shift?userid=${userid}` : "shift"}>
                       <span>Shifts</span>
                     </Link>
                   </li>
@@ -1065,10 +1099,10 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive18 ? "block" : "none" }}>
                   <li>
-                    <Link to="attendance-employee">Employee Attendence</Link>
+                    <Link to={userid ? `attendance-employee?userid=${userid}` : "attendance-employee"}>Employee Attendence</Link>
                   </li>
                   <li>
-                    <Link to="attendance-admin">Admin Attendence</Link>
+                    <Link to={userid ? `attendance-admin?userid=${userid}` : "attendance-admin"}>Admin Attendence</Link>
                   </li>
                 </ul>
               </li>
@@ -1083,16 +1117,16 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive19 ? "block" : "none" }}>
                   <li>
-                    <Link to="leaves-admin">Admin Leaves</Link>
+                    <Link to={userid ? `leaves-admin?userid=${userid}` : "leaves-admin"}>Admin Leaves</Link>
                   </li>
                   <li>
-                    <Link to="leaves-employee">Employee Leaves</Link>
+                    <Link to={userid ? `leaves-employee?userid=${userid}` : "leaves-employee"}>Employee Leaves</Link>
                   </li>
                   <li>
-                    <Link to="leave-types">Leave Types</Link>
+                    <Link to={userid ? `leave-types?userid=${userid}` : "leave-types"}>Leave Types</Link>
                   </li>
                   <li>
-                    <Link to="holidays">
+                    <Link to={userid ? `holidays?userid=${userid}` : "holidays"}>
                       <span>Holidays</span>
                     </Link>
                   </li>
@@ -1100,7 +1134,7 @@ const HorizontalSidebar = () => {
               </li>
               <li className="submenu">
                 <Link
-                  to="payroll-list"
+                  to={userid ? `payroll-list?userid=${userid}` : "payroll-list"}
                   onClick={handleSubClick20}
                   className={subActive20 ? "subdrop" : ""}
                 >
@@ -1109,10 +1143,10 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive20 ? "block" : "none" }}>
                   <li>
-                    <Link to="payroll-list">Employee Salary</Link>
+                    <Link to={userid ? `payroll-list?userid=${userid}` : "payroll-list"}>Employee Salary</Link>
                   </li>
                   <li>
-                    <Link to="payslip">Payslip</Link>
+                    <Link to={userid ? `payslip?userid=${userid}` : "payslip"}>Payslip</Link>
                   </li>
                 </ul>
               </li>
@@ -1129,52 +1163,52 @@ const HorizontalSidebar = () => {
             </Link>
             <ul style={{ display: isActive6 ? "block" : "none" }}>
               <li>
-                <Link to="sales-report">
+                <Link to={userid ? `sales-report?userid=${userid}` : "sales-report"}>
                   <span>Sales Report</span>
                 </Link>
               </li>
               <li>
-                <Link to="purchase-report">
+                <Link to={userid ? `purchase-report?userid=${userid}` : "purchase-report"}>
                   <span>Purchase report</span>
                 </Link>
               </li>
               <li>
-                <Link to="inventory-report">
+                <Link to={userid ? `inventory-report?userid=${userid}` : "inventory-report"}>
                   <span>Inventory Report</span>
                 </Link>
               </li>
               <li>
-                <Link to="invoice-report">
+                <Link to={userid ? `invoice-report?userid=${userid}` : "invoice-report"}>
                   <span>Invoice Report</span>
                 </Link>
               </li>
               <li>
-                <Link to="supplier-report">
+                <Link to={userid ? `supplier-report?userid=${userid}` : "supplier-report"}>
                   <span>Supplier Report</span>
                 </Link>
               </li>
               <li>
-                <Link to="customer-report">
+                <Link to={userid ? `customer-report?userid=${userid}` : "customer-report"}>
                   <span>Customer Report</span>
                 </Link>
               </li>
               <li>
-                <Link to="expense-report">
+                <Link to={userid ? `expense-report?userid=${userid}` : "expense-report"}>
                   <span>Expense Report</span>
                 </Link>
               </li>
               <li>
-                <Link to="income-report">
+                <Link to={userid ? `income-report?userid=${userid}` : "income-report"}>
                   <span>Income Report</span>
                 </Link>
               </li>
               <li>
-                <Link to="tax-reports">
+                <Link to={userid ? `tax-reports?userid=${userid}` : "tax-reports"}>
                   <span>Tax Report</span>
                 </Link>
               </li>
               <li>
-                <Link to="profit-and-loss">
+                <Link to={userid ? `profit-and-loss?userid=${userid}` : "profit-and-loss"}>
                   <span>Profit &amp; Loss</span>
                 </Link>
               </li>
@@ -1201,16 +1235,16 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive21 ? "block" : "none" }}>
                   <li>
-                    <Link to="general-settings">Profile</Link>
+                    <Link to={userid ? `general-settings?userid=${userid}` : "general-settings"}>Profile</Link>
                   </li>
                   <li>
-                    <Link to="security-settings">Security</Link>
+                    <Link to={userid ? `security-settings?userid=${userid}` : "security-settings"}>Security</Link>
                   </li>
                   <li>
-                    <Link to="notification">Notifications</Link>
+                    <Link to={userid ? `notification?userid=${userid}` : "notification"}>Notifications</Link>
                   </li>
                   <li>
-                    <Link to="connected-apps">Connected Apps</Link>
+                    <Link to={userid ? `connected-apps?userid=${userid}` : "connected-apps"}>Connected Apps</Link>
                   </li>
                 </ul>
               </li>
@@ -1225,30 +1259,30 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive22 ? "block" : "none" }}>
                   <li>
-                    <Link to="system-settings">System Settings</Link>
+                    <Link to={userid ? `system-settings?userid=${userid}` : "system-settings"}>System Settings</Link>
                   </li>
                   <li>
-                    <Link to="company-settings">Company Settings </Link>
+                    <Link to={userid ? `company-settings?userid=${userid}` : "company-settings"}>Company Settings </Link>
                   </li>
                   <li>
-                    <Link to="localization-settings">Localization</Link>
+                    <Link to={userid ? `localization-settings?userid=${userid}` : "localization-settings"}>Localization</Link>
                   </li>
                   <li>
-                    <Link to="prefixes">Prefixes</Link>
+                    <Link to={userid ? `prefixes?userid=${userid}` : "prefixes"}>Prefixes</Link>
                   </li>
                   <li>
-                    <Link to="preference">Preference</Link>
+                    <Link to={userid ? `preference?userid=${userid}` : "preference"}>Preference</Link>
                   </li>
                   <li>
-                    <Link to="appearance">Appearance</Link>
+                    <Link to={userid ? `appearance?userid=${userid}` : "appearance"}>Appearance</Link>
                   </li>
                   <li>
-                    <Link to="social-authentication">
+                    <Link to={userid ? `social-authentication?userid=${userid}` : "social-authentication"}>
                       Social Authentication
                     </Link>
                   </li>
                   <li>
-                    <Link to="language-settings">Language</Link>
+                    <Link to={userid ? `language-settings?userid=${userid}` : "language-settings"}>Language</Link>
                   </li>
                 </ul>
               </li>
@@ -1263,16 +1297,16 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive23 ? "block" : "none" }}>
                   <li>
-                    <Link to="invoice-settings">Invoice</Link>
+                    <Link to={userid ? `invoice-settings?userid=${userid}` : "invoice-settings"}>Invoice</Link>
                   </li>
                   <li>
-                    <Link to="printer-settings">Printer</Link>
+                    <Link to={userid ? `printer-settings?userid=${userid}` : "printer-settings"}>Printer</Link>
                   </li>
                   <li>
-                    <Link to="pos-settings">POS</Link>
+                    <Link to={userid ? `pos-settings?userid=${userid}` : "pos-settings"}>POS</Link>
                   </li>
                   <li>
-                    <Link to="custom-fields">Custom Fields</Link>
+                    <Link to={userid ? `custom-fields?userid=${userid}` : "custom-fields"}>Custom Fields</Link>
                   </li>
                 </ul>
               </li>
@@ -1287,16 +1321,16 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive23 ? "block" : "none" }}>
                   <li>
-                    <Link to="email-settings">Email</Link>
+                    <Link to={userid ? `email-settings?userid=${userid}` : "email-settings"}>Email</Link>
                   </li>
                   <li>
-                    <Link to="sms-gateway">SMS Gateways</Link>
+                    <Link to={userid ? `sms-gateway?userid=${userid}` : "sms-gateway"}>SMS Gateways</Link>
                   </li>
                   <li>
-                    <Link to="otp-settings">OTP</Link>
+                    <Link to={userid ? `otp-settings?userid=${userid}` : "otp-settings"}>OTP</Link>
                   </li>
                   <li>
-                    <Link to="gdpr-settings">GDPR Cookies</Link>
+                    <Link to={userid ? `gdpr-settings?userid=${userid}` : "gdpr-settings"}>GDPR Cookies</Link>
                   </li>
                 </ul>
               </li>
@@ -1311,16 +1345,16 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive24 ? "block" : "none" }}>
                   <li>
-                    <Link to="payment-gateway-settings">Payment Gateway</Link>
+                    <Link to={userid ? `payment-gateway-settings?userid=${userid}` : "payment-gateway-settings"}>Payment Gateway</Link>
                   </li>
                   <li>
-                    <Link to="bank-settings-grid">Bank Accounts</Link>
+                    <Link to={userid ? `bank-settings-grid?userid=${userid}` : "bank-settings-grid"}>Bank Accounts</Link>
                   </li>
                   <li>
-                    <Link to="tax-rates">Tax Rates</Link>
+                    <Link to={userid ? `tax-rates?userid=${userid}` : "tax-rates"}>Tax Rates</Link>
                   </li>
                   <li>
-                    <Link to="currency-settings">Currencies</Link>
+                    <Link to={userid ? `currency-settings?userid=${userid}` : "currency-settings"}>Currencies</Link>
                   </li>
                 </ul>
               </li>
@@ -1335,10 +1369,10 @@ const HorizontalSidebar = () => {
                 </Link>
                 <ul style={{ display: subActive25 ? "block" : "none" }}>
                   <li>
-                    <Link to="storage-settings">Storage</Link>
+                    <Link to={userid ? `storage-settings?userid=${userid}` : "storage-settings"}>Storage</Link>
                   </li>
                   <li>
-                    <Link to="ban-ip-address">Ban IP Address</Link>
+                    <Link to={userid ? `ban-ip-address?userid=${userid}` : "ban-ip-address"}>Ban IP Address</Link>
                   </li>
                 </ul>
               </li>

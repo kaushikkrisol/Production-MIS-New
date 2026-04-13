@@ -70,6 +70,7 @@
     "react-jvectormap": "^0.0.16",
     "react-loading": "^2.0.3",
     "react-modal-video": "^2.0.1",
+    "react-qr-code": "^2.0.18",
     "react-redux": "^9.1.2",
     "react-rnd": "^10.5.2",
     "react-router": "^7.1.4",

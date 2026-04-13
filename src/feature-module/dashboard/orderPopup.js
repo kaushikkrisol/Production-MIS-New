@@ -42,7 +42,8 @@ const headerMapping = {
   "Mounting": "mounting",
   "Implementation": "implementation",
   "Salon / Store Address": "salonAddress",
-  "Remarks / Instructions": "imageUrl"
+  "Image URL": "imageUrl",
+  "Remarks / Instructions": "REMARK"
 };
 
 const OrderPopup = ({
@@ -103,6 +104,10 @@ const IST_TIMEZONE = 'Asia/Kolkata';
         totalSqFt,
         media: item["Media"] || item.media || "",
         salonAddress: item["Location"] || item.salonAddress || "",
+        imageUrl:
+    // item["Updated Visual image"] || // from your sample JSON
+    item["ImageURL"] ||             // fallback
+    item.imageUrl || ""  
       };
     });
 
@@ -155,7 +160,7 @@ const addSingleJobDetail = async (item) => {
     "Job Deadline": item.jobdeadline || "",
     "Printer Name": item.printerPrintingName || "",
     "itemid": item.id || "",
-    "updatedVisualImage": item.updatedVisualImage || ""
+    "ImageURL": item.ImageURL || ""
   }];
 
   try {

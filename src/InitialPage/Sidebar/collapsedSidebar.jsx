@@ -3,6 +3,37 @@ import { Link } from "react-router-dom";
 import ImageWithBasePath from "../../core/img/imagewithbasebath";
 
 const CollapsedSidebar = () => {
+  const normalizeUserId = (value) => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return String(value);
+    if (typeof value === "object") {
+      return (
+        value.user_id ||
+        value.userId ||
+        value.userid ||
+        value.id ||
+        value._id ||
+        value.$oid ||
+        value.oid ||
+        ""
+      );
+    }
+    return String(value);
+  };
+
+  // Get userid from localStorage (use normalized value)
+  const user = localStorage.getItem('users');
+  let userid = '';
+  if (user) {
+    const userStorage = JSON.parse(user);
+    userid =
+      normalizeUserId(userStorage?.message?.user_id) ||
+      normalizeUserId(userStorage?.message?.userId) ||
+      normalizeUserId(userStorage?.message?.userid) ||
+      normalizeUserId(userStorage?.message?.id) ||
+      normalizeUserId(userStorage?.message);
+  }
   const [isActive, setIsActive] = useState(false);
   const [isActive2, setIsActive2] = useState(false);
   const [isActive3, setIsActive3] = useState(false);
@@ -184,6 +215,9 @@ const CollapsedSidebar = () => {
                 <ul style={{ display: isActive ? "block" : "none" }}>
                   <li>
                     <Link to="/admin-dashboard">Admin Dashboard</Link>
+                  </li>
+                  <li>
+                    <Link to="/timesheet-dashboard">Timesheet Dashboard</Link>
                   </li>
                   <li>
                     <Link to="sales-dashboard">Sales Dashboard</Link>

@@ -138,4 +138,41 @@ h6 {
     color: white;
   }
   
-  
+  /* ================================
+   ✅ REPRINT MODAL = FULL SCREEN BIG
+   (reactstrap modal used in Production)
+   ================================ */
+
+/* the overlay container */
+.completed-printing-modal.modal {
+  padding: 0 !important;
+}
+
+/* the dialog box size */
+.completed-printing-modal .modal-dialog {
+  max-width: 98vw !important;     /* was 90vw */
+  width: 98vw !important;
+  height: 95vh !important;       /* NEW */
+  margin: 1vh auto !important;   /* keep small gap */
+}
+
+/* modal content should fill dialog height */
+.completed-printing-modal .modal-content {
+  width: 100% !important;
+  height: 95vh !important;       /* NEW */
+  max-width: none !important;    /* remove 106rem restriction */
+  border-radius: 10px;
+}
+
+/* modal body takes remaining height and scrolls */
+.completed-printing-modal .modal-body {
+  height: calc(95vh - 70px) !important; /* header/footer space adjust */
+  max-height: none !important;
+  overflow: auto !important;
+  padding: 16px !important;
+}
+
+/* (optional) make footer stick and not waste space */
+.completed-printing-modal .modal-footer {
+  padding: 10px 16px !important;
+}

@@ -8,7 +8,69 @@ const user=localStorage.getItem("users");
 const userObj = JSON.parse(user);
  const rolename = userObj?.message?.rolE_NAME;
 
-console.log("User Role:", rolename);
+const extractMongoId = (value) => {
+  if (!value) return "";
+
+  if (typeof value === "string") return value;
+
+  if (typeof value === "number") return String(value);
+
+  if (typeof value === "object") {
+    if (value.$oid) return value.$oid;
+    if (value.oid) return value.oid;
+    if (value.id) return extractMongoId(value.id);
+    if (value.userId) return extractMongoId(value.userId);
+    if (value.userid) return extractMongoId(value.userid);
+    if (value._id) return extractMongoId(value._id);
+    // If it's an object with no identifiable id, return empty to avoid [object Object]
+    return "";
+  }
+
+  return String(value);
+};
+
+const rawUserId =
+  userObj?.message?.user_id ||
+  userObj?.message?.userid ||
+  userObj?.message?.userId ||
+  userObj?.message?.id ||
+  userObj?.message?._id ||
+  userObj?.user_id ||
+  userObj?.userid ||
+  userObj?.userId ||
+  userObj?.id ||
+  userObj?._id ||
+  "";
+
+
+  // Extract userName
+const userName =
+  userObj?.message?.user_name ||
+  userObj?.message?.username ||
+  userObj?.message?.name ||
+  userObj?.FullName ||
+  "";
+const userId = extractMongoId(rawUserId);
+  const ALLOWED_TIMESHEET_USER_IDS = ["10137", "10150","10090"];
+const showTimesheetDashboard = ALLOWED_TIMESHEET_USER_IDS.includes(userId);
+
+const base64UrlEncode = (obj) => {
+  const json = JSON.stringify(obj);
+  const b64 = btoa(unescape(encodeURIComponent(json)));
+  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+};
+
+const token = userId
+  ? base64UrlEncode({
+      userId,
+      ts: Date.now(),
+    })
+  : "";
+
+
+  
+
+console.log("User Role:", rolename, "rawUserId:", rawUserId, "resolved userId:", userId);
 export const SidebarData = [
   // {  
   //   label: "Main",
@@ -24,10 +86,20 @@ export const SidebarData = [
 
         submenuItems: [
           { label: "Admin Dashboard", link: "/admin-dashboard" },
+          ...(showTimesheetDashboard ? [{ label: "Timesheet Dashboard", link: "/timesheet-dashboard" }] : []),
           {
         label: "CS Dashboard",
         link: "https://productiondashboard.comart.in/",
       },
+      {
+  label: "Timesheet",
+  link: `https://timesheet.comart.in/?userid=${encodeURIComponent(userId)}${userName ? `&userName=${encodeURIComponent(userName)}` : ""}`,
+},
+{
+  label:"Challan Dashboard",
+  link:"/challandashboard"
+}
+      
           // { label: "Production Dashboard", link: "/sales-dashboard" },
         ],
       },
@@ -1009,6 +1081,7 @@ export const SidebarData = [
     { label: "Design", link: "/designn" },
     { label: "Printing", link: "/production" },
     { label: "Lamination/Mounting & Packing", link: "/printlaminpacking" },
+    { label: "Pending Jobs With Hold", link: "/pending-jobs-with-hold" },
     { label: "Delivery", link: "/delivery" },
     { label: "Implementation", link: "/implementation" },
     { label: "Implementation Download", link: "/implementationDownload" },

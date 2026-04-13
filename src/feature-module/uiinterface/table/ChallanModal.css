@@ -1,0 +1,212 @@
+.challan-modal-dialog.modal-dialog {
+  width: min(1480px, 96vw) !important;
+  max-width: min(1480px, 96vw) !important;
+  margin: 1rem auto !important;
+  left: 0;
+  right: 0;
+}
+
+.challan-modal-body {
+  max-height: 82vh;
+  overflow-y: auto;
+  padding: 1.5rem;
+  background: linear-gradient(180deg, #fbfcff 0%, #f4f7fb 100%);
+}
+
+.challan-modal-section {
+  background: #ffffff;
+  border: 1px solid #d9e1ef;
+  border-radius: 20px;
+  padding: 1.25rem;
+  box-shadow: 0 14px 32px rgba(33, 55, 104, 0.08);
+}
+
+.challan-modal-section + .challan-modal-section {
+  margin-top: 1.25rem;
+}
+
+.challan-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+.challan-modal-field {
+  min-width: 0;
+}
+
+.challan-modal-field--wide {
+  grid-column: span 2;
+}
+
+.challan-modal-field--fill {
+  width: 100%;
+}
+
+.challan-modal-body .form-group,
+.challan-modal-body .mb-3 {
+  margin-bottom: 0;
+}
+
+.challan-modal-body .form-label {
+  display: block;
+  margin-bottom: 0.45rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #43536c;
+}
+
+.challan-modal-body .form-control {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px solid #d6deeb;
+  min-height: 52px;
+  padding: 0.8rem 0.95rem;
+  color: #334155;
+  background: #fbfdff;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.challan-modal-body textarea.form-control {
+  min-height: 116px;
+  resize: vertical;
+  line-height: 1.45;
+}
+
+.challan-modal-body .form-control[readonly] {
+  background: #f7faff;
+  color: #445269;
+}
+
+.challan-modal-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.challan-modal-section-header h6 {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #22325d;
+}
+
+.challan-modal-section-header span {
+  color: #5c6b85;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.challan-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.challan-item-card {
+  border: 1px solid #d9e2ef;
+  border-radius: 18px;
+  padding: 1rem;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.challan-item-card__main {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+.challan-item-card__main .challan-modal-field--fill {
+  grid-column: 1 / -1;
+}
+
+.challan-item-card__metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.challan-item-card textarea.form-control {
+  min-height: 96px;
+}
+
+.challan-modal-footer {
+  display: flex;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem 1.5rem;
+  border-top: 1px solid #dde5f0;
+  background: #ffffff;
+}
+
+.challan-modal-footer__button {
+  min-width: 170px;
+  border: none;
+  border-radius: 14px;
+  padding: 0.85rem 1.25rem;
+  font-weight: 700;
+}
+
+.challan-modal-footer__button--secondary {
+  background: #173a61;
+}
+
+.challan-modal-footer__button--secondary:hover,
+.challan-modal-footer__button--secondary:focus {
+  background: #12304f;
+}
+
+.challan-modal-footer__button--primary {
+  background: #b2433f;
+}
+
+.challan-modal-footer__button--primary:hover,
+.challan-modal-footer__button--primary:focus {
+  background: #963733;
+}
+
+@media (max-width: 1199.98px) {
+  .challan-modal-dialog.modal-dialog {
+    width: min(1200px, 98vw) !important;
+    max-width: min(1200px, 98vw) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+
+  .challan-modal-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .challan-item-card__main {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767.98px) {
+  .challan-modal-body {
+    padding: 1rem;
+  }
+
+  .challan-modal-grid,
+  .challan-item-card__main,
+  .challan-item-card__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .challan-modal-field--wide {
+    grid-column: span 1;
+  }
+
+  .challan-modal-footer {
+    flex-direction: column;
+  }
+
+  .challan-modal-footer__button {
+    width: 100%;
+    min-width: 0;
+  }
+}

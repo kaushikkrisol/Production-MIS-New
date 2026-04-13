@@ -1,6 +1,7 @@
 export const all_routes = {
   dashboard: "/admin-dashboard",
   table: "/",
+  timesheetdashboard:"/timesheet-dashboard",
   productlist: "/product-list",
   addproduct: "/add-product",
   salesdashboard: "/sales-dashboard",
@@ -51,6 +52,9 @@ export const all_routes = {
   layout: "/layout",
 
   csdashboard:'https://productiondashboard.comart.in/',
+  deliverychallan: "/deliverychallan",
+  implementationchallan: "/implementationchallan",
+  challandashboard:"/challandashboard",
 
   misreport: "/MisReport",
   ConsolidatedReport: "/ConsolidatedReport",
@@ -213,5 +217,6 @@ export const all_routes = {
   warehouses: "/warehouse",
   coupons:"/coupons",
   payrollList:"/payroll-list",
+  pendingJobsWithHold:"/pending-jobs-with-hold",
 
 };

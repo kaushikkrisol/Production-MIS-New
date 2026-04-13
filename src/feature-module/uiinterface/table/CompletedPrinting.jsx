@@ -19,16 +19,22 @@ const CompletedPrinting = () => {
     const [error, setError] = useState('');
     
     const reasonOptions = [
-        {value:'Other Error', label:'Other Error'},
-        { value: 'Design Error(Operator)', label: 'Design Error(Operator)' },
-        { value: 'Printer Error(Operator)', label: 'Printer Error(Operator)' },
-        { value: 'Print machine Error', label: 'Print machine Error' },
-        { value: 'Print Damage During Transit', label: 'Print Damage During Transit' },
-        { value: 'Lamination Error', label: 'Lamination Error' },
-        { value: 'Installation Error', label: 'Installation Error' },
-        { value: 'Reprint due to client requirement', label: 'Reprint due to client requirement' },
+  { value: "Reprinting – Client Request", label: "Reprinting – Client Request" },
+  { value: "Reprinting – Design Error (Client)", label: "Reprinting – Design Error (Client)" },
+  { value: "Reprinting – Design Error (Operator)", label: "Reprinting – Design Error (Operator)" },
+  { value: "Reprinting – Printer Error (Operator) internal", label: "Reprinting – Printer Error (Operator) internal" },
+  { value: "Reprinting – Printer Error Client side", label: "Reprinting – Printer Error Client side" },
+  { value: "Reprinting – Print Machine Error", label: "Reprinting – Print Machine Error" },
+  { value: "Reprinting – Print Damage During Transit", label: "Reprinting – Print Damage During Transit" },
+  { value: "Reprinting – Print Damage", label: "Reprinting – Print Damage" },
+  { value: "Reprinting – Lamination Error - Internal", label: "Reprinting – Lamination Error - Internal" },
+  { value: "Reprinting – Installation Error - Internal", label: "Reprinting – Installation Error - Internal" },
+  { value: "Reprint due to size issue - Client", label: "Reprint due to size issue - Client" },
+  { value: "Reprint due to size issue", label: "Reprint due to size issue" },
+  { value: "Reprint due to media mismatch", label: "Reprint due to media mismatch" },
+  { value: "Others", label: "Others" },
+];
 
-    ];
 
     const [user, setUser] = useState('');
     // Check if users data exists and is not null
@@ -240,49 +246,56 @@ const CompletedPrinting = () => {
         if (value) setError('');
     }
     return (
+      <div className="completed-printing-page">
+  {/* Row 1 */}
+  <Row className="g-3 align-items-end">
+    <Col lg={8}>
+      <Form.Group>
+        <Form.Label>Job No</Form.Label>
+        <Select
+          options={jobNoOptions}
+          value={jobNoOptions.find(o => o.value === selectedExJobNumber) || null}
+          onChange={handleExJobNoSelectChange}
+          placeholder="Select Job No"
+        />
+      </Form.Group>
+    </Col>
 
-        <div>
-            <Row className="mb-3 align-items-center">
-                <Col lg={9}>
-                    <Form.Group>
-                        <Form.Label>Job No</Form.Label>
-                        <Select
-                            options={jobNoOptions}
-                            value={jobNoOptions.find(option => option.value === selectedExJobNumber) || null} // Bind the selected value
-                            onChange={handleExJobNoSelectChange} // Call the updated function
-                            placeholder="Select Job No"
-                            style={{ width: '400px' }}
-                        />
-                    </Form.Group>
-                </Col>
-                <Col><Button onClick={handleSearch} className='mt-4'>Search</Button></Col>
-                <Col><Button onClick={handleReprint} className='mt-4 ml-8'>Reprint</Button></Col>
-                </Row>
+    <Col lg={2} className="d-grid">
+      <Button onClick={handleSearch}>Search</Button>
+    </Col>
 
-                <Row className="mb-3">
-                <Col>
-                    <Form.Label>Reason for Reprint</Form.Label>
-                    <Select
-                        options={reasonOptions}
-                        value={reasonOptions.find(option => option.value === reason) || null}
-                        onChange={selected => setReason(selected?.value || '')}
-                        placeholder="Select reason"
-                    />
-                </Col>
-                <Col>
-                    <Form.Label>Detailed Remark</Form.Label>
-                    <Form.Control
-                        type="text"
-                        placeholder="Enter detailed reason"
-                        value={detailedReason}
-                        onChange={handleDetailedreason}
-                    />
-                </Col>
-                {error && <div className="text-danger mt-2">{error}</div>}
-            </Row>
+    <Col lg={2} className="d-grid">
+      <Button onClick={handleReprint} variant="danger">Reprint</Button>
+    </Col>
+  </Row>
 
-            <div style={{ overflowX: 'auto', overflowY: 'auto', position: 'sticky' }}>
-                <Table striped bordered hover>
+  {/* Row 2 */}
+  <Row className="g-3 mt-1">
+    <Col lg={6}>
+      <Form.Label>Reason for Reprint</Form.Label>
+      <Select
+        options={reasonOptions}
+        value={reasonOptions.find(o => o.value === reason) || null}
+        onChange={selected => setReason(selected?.value || "")}
+        placeholder="Select reason"
+      />
+    </Col>
+
+    <Col lg={6}>
+      <Form.Label>Detailed Remark</Form.Label>
+      <Form.Control
+        type="text"
+        placeholder="Enter detailed reason"
+        value={detailedReason}
+        onChange={handleDetailedreason}
+      />
+    </Col>
+
+    {error && <div className="text-danger mt-2">{error}</div>}
+  </Row>
+            <div style={{ overflowX: 'auto', overflowY: 'auto' }}>
+                <Table striped bordered hover className='w-100 mb-0'>
                     <thead>
                         <tr>
                         <th><Form.Check
@@ -354,7 +367,7 @@ const CompletedPrinting = () => {
                             ))
                         ) : (
                             <tr>
-                                <td colSpan="10" className="text-center">No results found</td>
+                                <td colSpan="20" className="text-center">No results found</td>
                             </tr>
                         )}
                         

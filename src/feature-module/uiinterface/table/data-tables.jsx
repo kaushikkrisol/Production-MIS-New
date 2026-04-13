@@ -24,6 +24,7 @@ import { FaSyncAlt, FaSearch, FaFilter } from 'react-icons/fa';
 import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
 import FilterSidebar from "../ui/FilterComponent";
+import { mergeFallbackCustomers } from "./customerFallbacks";
 
 // import Sort from "../ui/Sort";
 // import { responsiveArray } from "antd/es/_util/responsiveObserver";
@@ -45,6 +46,7 @@ const DataTables = () => {
   
   const [BulkAdd, setBulkAdd] = useState(false);
   const [headers, setHeaders] = useState([]);
+  const [hsnCode, setHsnCode] = useState("");
   const [data, setData] = useState([]);
   console.log(data);
 
@@ -60,14 +62,21 @@ const DataTables = () => {
   const [totalValues, setTotalValues] = useState({ width: 0, height: 0 });
   const [rolename,setRolename]=useState('');
   const gridRef = useRef();
+  const [validationErrors, setValidationErrors] = useState([]);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [alertPosition, setAlertPosition] = useState(null);
+  const [isDraggingAlert, setIsDraggingAlert] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragStartPos, setDragStartPos] = useState({ left: 0, top: 0 });
+  const alertRef = useRef(null);
 
   const [selectedRows, setSelectedRows] = useState({});
-const [selectedTotals, setSelectedTotals] = useState({
-  qty: 0,
-  width: 0,
-  length: 0,
-  totalSqFt: 0,
-});
+  const [selectedTotals, setSelectedTotals] = useState({
+    qty: 0,
+    width: 0,
+    length: 0,
+    totalSqFt: 0,
+  });
 
 
 
@@ -90,6 +99,9 @@ const [selectedTotals, setSelectedTotals] = useState({
 
   const [user, setUser] = useState('');
   const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [deadlineWarningJobs, setDeadlineWarningJobs] = useState([]);
+  const [deadlineMissedJobs, setDeadlineMissedJobs] = useState([]);
+  const [showDeadlineDetails, setShowDeadlineDetails] = useState(false);
 
   const [emailid, setEmailid] = useState('');
   const [projectname,setProjectname]=useState('');
@@ -137,6 +149,7 @@ const [selectedTotals, setSelectedTotals] = useState({
     nameSubCode: '',
     city: '',
     qty: '',
+    hsnCode: '',
     width: '',
     height: '',
     totalSqFt: '',
@@ -170,6 +183,7 @@ const [selectedTotals, setSelectedTotals] = useState({
     "Total Sq.Ft": "Total Sq.ft",
     "Media": "Media",
     "Installation": "Installation",
+    "HSN Code": "HSN Code",
     "Job Deadline": "Job Deadline",
     "Designer Name": "Designer Name",
     "Designer ID": "Designer ID",
@@ -197,6 +211,7 @@ const [selectedTotals, setSelectedTotals] = useState({
     { key: 'city', placeholder: 'City', type: 'text' },
     { key: 'printReadyAvailable', placeholder: 'Print Ready File', type: 'text' },
     { key: 'qty', placeholder: 'Qty', type: 'text' },
+    { key: 'hsnCode', placeholder: 'HSN Code', type: 'text' },
     { key: 'width', placeholder: 'Width', type: 'text' },
     { key: 'height', placeholder: 'Height', type: 'text' },
     { key: 'totalSqFt', placeholder: 'Total Sq.Ft', type: 'text' },
@@ -811,7 +826,7 @@ const GetAllJobAccToLocation = async () => {
   const payload = {
     locationId: locationdata,
     username: userNamedata,
-    ...(roleName === "Admindelete" && { rolename: roleName }) // ✅ Only include if role is Admindelete
+    ...(roleName === "Admindelete" || roleName === "Branch Manager") && { rolename: roleName } // ✅ Only include if role is Admindelete or Branch Manager
   };
 
   console.log("Payload to GetAllJobAccToLocation:", payload);
@@ -827,6 +842,30 @@ const GetAllJobAccToLocation = async () => {
   }
 };
 
+const handleResumeSelectedJobs = async () => {
+  const selectedNodes = gridRef.current.api.getSelectedNodes();
+  const selectedData = selectedNodes.map(node => node.data);
+
+  if (selectedData.length === 0) {
+    toast.error("Please select at least one job.");
+    return;
+  }
+
+  try {
+    for (const job of selectedData) {
+      await axios.post(config.JobSummary.URL.ResumeJobFromHold, {
+        jobNo: job.jobNo,
+        userName: userName,
+      });
+    }
+
+    toast.success("Selected jobs resumed from Hold.");
+    GetAllJobAccToLocation();
+  } catch (error) {
+    console.error("Error resuming jobs:", error);
+    toast.error("Failed to resume jobs.");
+  }
+};
 
 
   const GetAllJobsFromSql = async () => {
@@ -842,12 +881,93 @@ const GetAllJobAccToLocation = async () => {
     }
   }
 
+  const parseDeadline = (value) => {
+    if (!value) return null;
+    const trimmedValue = String(value).trim();
+    const date = new Date(trimmedValue);
+    if (!isNaN(date.getTime())) {
+      return date;
+    }
+    const normalized = trimmedValue.replace(' ', 'T');
+    const parsed = new Date(normalized);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  const checkDeadlines = useCallback(() => {
+    if (!Array.isArray(data)) {
+      setDeadlineWarningJobs([]);
+      setDeadlineMissedJobs([]);
+      return;
+    }
+
+    const now = new Date();
+    const warningJobs = [];
+    const missedJobs = [];
+
+    data.forEach((row) => {
+      const deadlineValue = row.deadline || row['Job Deadline'] || row.printerDeadline || row['Printer Deadline'];
+      const deadlineDate = parseDeadline(deadlineValue);
+      if (!deadlineDate) return;
+
+      const diffMs = deadlineDate.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+
+      if (diffMs < 0) {
+        missedJobs.push(row);
+      } else if (diffHours <= 6) {
+        warningJobs.push(row);
+      }
+    });
+
+    setDeadlineWarningJobs(warningJobs);
+    setDeadlineMissedJobs(missedJobs);
+  }, [data]);
+
   useEffect(() => {
     // fetchJobs();
     fetchcustomers();
     GetAllJobsFromSql();
     GetAllJobAccToLocation();
   }, [locationid, userName]);
+
+  useEffect(() => {
+    checkDeadlines();
+    const interval = setInterval(checkDeadlines, 60000); // refresh every minute
+    return () => clearInterval(interval);
+  }, [checkDeadlines]);
+
+  useEffect(() => {
+    if (!isDraggingAlert) return;
+
+    const handleMouseMove = (event) => {
+      const dx = event.clientX - dragStart.x;
+      const dy = event.clientY - dragStart.y;
+      setAlertPosition({
+        left: Math.max(8, dragStartPos.left + dx),
+        top: Math.max(8, dragStartPos.top + dy),
+      });
+    };
+
+    const handleMouseUp = () => {
+      setIsDraggingAlert(false);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDraggingAlert, dragStart, dragStartPos]);
+
+  const handleAlertMouseDown = (event) => {
+    if (!alertRef.current) return;
+    const rect = alertRef.current.getBoundingClientRect();
+    setIsDraggingAlert(true);
+    setDragStart({ x: event.clientX, y: event.clientY });
+    setDragStartPos({ left: rect.left, top: rect.top });
+  };
 
   useEffect(() => {
     if (Array.isArray(data)) { // Check if data is an array
@@ -980,7 +1100,7 @@ const GetAllJobAccToLocation = async () => {
       });
 
       console.log('Get customer response:', response.data);
-      setcustomer(response.data);
+      setcustomer(mergeFallbackCustomers(response.data));
 
     } catch (error) {
       console.error("Error fetching customer data:", error.response ? error.response.data : error.message);
@@ -1008,6 +1128,143 @@ const GetAllJobAccToLocation = async () => {
 
   const normalizeHeader = (header) => header?.trim().toLowerCase();
 
+  const EXPECTED_FORMAT = "dd/MMM/yyyy HH:mm:ss (e.g. 23/FEB/2026 15:00:00)";
+
+const parseExcelDeadline = (value) => {
+  if (value === null || value === undefined || String(value).trim() === "") return null;
+
+  // allow Excel date values too (sometimes becomes Date-like string)
+  const s = String(value).trim();
+
+  // Must be like: 23/FEB/2026 15:00:00
+  const m = s.match(/^(\d{1,2})\/([A-Za-z]{3})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+  if (!m) return { ok: false, reason: `Wrong format. Use ${EXPECTED_FORMAT}` };
+
+  const day = parseInt(m[1], 10);
+  const monStr = m[2].toUpperCase();
+  const year = parseInt(m[3], 10);
+  const hh = parseInt(m[4], 10);
+  const mm = parseInt(m[5], 10);
+  const ss = parseInt(m[6] ?? "0", 10);
+
+  const months = { JAN:0, FEB:1, MAR:2, APR:3, MAY:4, JUN:5, JUL:6, AUG:7, SEP:8, OCT:9, NOV:10, DEC:11 };
+  if (!(monStr in months)) return { ok: false, reason: `Invalid month '${m[2]}'. Use JAN..DEC` };
+
+  const dt = new Date(year, months[monStr], day, hh, mm, ss);
+  if (isNaN(dt.getTime())) return { ok: false, reason: `Invalid date/time. Use ${EXPECTED_FORMAT}` };
+
+  // Validate exact match (prevents 32/FEB becoming March, etc.)
+  if (
+    dt.getFullYear() !== year ||
+    dt.getMonth() !== months[monStr] ||
+    dt.getDate() !== day ||
+    dt.getHours() !== hh ||
+    dt.getMinutes() !== mm ||
+    dt.getSeconds() !== ss
+  ) {
+    return { ok: false, reason: `Invalid date/time. Use ${EXPECTED_FORMAT}` };
+  }
+
+  return { ok: true, date: dt };
+};
+
+const validateDeadlines = (rows) => {
+  const errors = [];
+  const now = new Date();
+
+  rows.forEach((r, idx) => {
+    const jobVal = r["Job Deadline"];
+    const printVal = r["Printer Deadline"];
+
+    // 1) cannot be empty
+    if (jobVal === null || jobVal === undefined || String(jobVal).trim() === "") {
+      errors.push({ rowIndex: idx, field: "Job Deadline", value: jobVal, message: "Job Deadline cannot be empty." });
+    }
+    if (printVal === null || printVal === undefined || String(printVal).trim() === "") {
+      errors.push({ rowIndex: idx, field: "Printer Deadline", value: printVal, message: "Printer Deadline cannot be empty." });
+    }
+
+    // If empty, skip further checks
+    const pJob = parseExcelDeadline(jobVal);
+    const pPrint = parseExcelDeadline(printVal);
+
+    // 2) format dd/MMM/yyyy HH:mm:ss
+    if (pJob && pJob.ok === false) {
+      errors.push({ rowIndex: idx, field: "Job Deadline", value: jobVal, message: pJob.reason });
+    }
+    if (pPrint && pPrint.ok === false) {
+      errors.push({ rowIndex: idx, field: "Printer Deadline", value: printVal, message: pPrint.reason });
+    }
+
+    // 3) cannot be previous date/time
+    if (pJob && pJob.ok && pJob.date < now) {
+      errors.push({ rowIndex: idx, field: "Job Deadline", value: jobVal, message: "Job Deadline cannot be in the past." });
+    }
+    if (pPrint && pPrint.ok && pPrint.date < now) {
+      errors.push({ rowIndex: idx, field: "Printer Deadline", value: printVal, message: "Printer Deadline cannot be in the past." });
+    }
+  });
+
+  return errors;
+};
+
+// Better display for client: one toast + open modal
+const showExcelValidationUI = (errors) => {
+  setValidationErrors(errors);
+  setShowValidationModal(true);
+
+  const affectedRows = new Set(errors.map(e => e.rowIndex)).size;
+
+  toast.error(
+    `Excel has ${errors.length} issue(s) in ${affectedRows} row(s). Please click "View Errors" and fix.`,
+    { autoClose: false }
+  );
+};
+
+const exportValidationErrorsToExcel = async () => {
+  try {
+    if (!validationErrors || validationErrors.length === 0) {
+      toast.info("No validation errors to export.");
+      return;
+    }
+
+    const wb = new ExcelJS.Workbook();
+    const ws = wb.addWorksheet("Excel Errors");
+
+    ws.columns = [
+      { header: "Row No", key: "rowNo", width: 10 },
+      { header: "Column", key: "field", width: 22 },
+      { header: "Your Value", key: "value", width: 30 },
+      { header: "Fix / Message", key: "message", width: 45 },
+      { header: "Expected Format", key: "expected", width: 35 },
+    ];
+
+    // Header styling
+    ws.getRow(1).font = { bold: true };
+    ws.getRow(1).alignment = { vertical: "middle", horizontal: "center" };
+
+    validationErrors.forEach((e) => {
+      ws.addRow({
+        rowNo: (e.rowIndex ?? 0) + 2,
+        field: e.field,
+        value: e.value ?? "",
+        message: e.message,
+        expected: EXPECTED_FORMAT,
+      });
+    });
+
+    const buffer = await wb.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(blob, `Excel_Validation_Errors_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success("Error report exported.");
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to export error report.");
+  }
+};
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -1056,8 +1313,20 @@ const GetAllJobAccToLocation = async () => {
 
 
       setHeaders(Object.values(normalizedHeaderMap));
-      setData(mappedData);
 
+// ✅ Validate only when excel contains these columns
+const hasJobDeadline = headers.includes("Job Deadline") || Object.values(normalizedHeaderMap).includes("Job Deadline");
+const hasPrinterDeadline = headers.includes("Printer Deadline") || Object.values(normalizedHeaderMap).includes("Printer Deadline");
+
+const errors = validateDeadlines(mappedData);
+
+if (errors.length > 0) {
+  setData([]);               // block preview
+  showExcelValidationUI(errors);
+  return;
+}
+
+setData(mappedData);
       console.log('✅ Mapped Excel Headers:', Object.values(normalizedHeaderMap));
       console.log('✅ Parsed Data:', mappedData);
     };
@@ -1466,6 +1735,206 @@ const GetAllJobAccToLocation = async () => {
       <div className="page-wrapper">
         <div className="content container-fluid">
           <ToastContainer />
+
+          {(deadlineMissedJobs.length > 0 || deadlineWarningJobs.length > 0) && (
+            <Alert
+              ref={alertRef}
+              variant="light"
+              style={{
+                position: 'fixed',
+                right: alertPosition ? undefined : 20,
+                bottom: alertPosition ? undefined : 20,
+                left: alertPosition?.left,
+                top: alertPosition?.top,
+                zIndex: 1055,
+                minWidth: 380,
+                maxWidth: 'calc(100vw - 40px)',
+                boxShadow: '0 0 12px rgba(0,0,0,0.15)',
+                padding: '12px 14px',
+                userSelect: isDraggingAlert ? 'none' : 'auto',
+              }}
+            >
+              <div
+                onMouseDown={handleAlertMouseDown}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: 10,
+                  cursor: 'move',
+                }}
+              >
+                <div style={{ fontSize: 14, fontWeight: 700 }}>Drag to move</div>
+                <div style={{ fontSize: 12, opacity: 0.7 }}>Click and drag</div>
+              </div>
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '10px',
+                alignItems: 'center',
+              }}>
+                {deadlineMissedJobs.length > 0 && (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    background: '#d9534f',
+                    color: '#fff',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    minWidth: 160,
+                    fontSize: 14,
+                    lineHeight: 1.3,
+                  }}>
+                    <strong style={{ marginRight: 6 }}>Missed</strong>
+                    {deadlineMissedJobs.length} job(s)
+                  </div>
+                )}
+
+                {deadlineWarningJobs.length > 0 && (
+                  <div style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    background: '#f0ad4e',
+                    color: '#212529',
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    minWidth: 160,
+                    fontSize: 14,
+                    lineHeight: 1.3,
+                  }}>
+                    <strong style={{ marginRight: 6 }}>Warning</strong>
+                    {deadlineWarningJobs.length} job(s)
+                  </div>
+                )}
+              </div>
+
+              <div style={{
+                marginTop: 10,
+                fontSize: 13,
+                color: '#333',
+                lineHeight: 1.4,
+              }}>
+                {deadlineMissedJobs.length > 0 && (
+                  <span>
+                    Missed job nos: {deadlineMissedJobs.slice(0, 3).map((job, index) => (
+                      <span key={index}>
+                        {job.jobNo || job.comartjobno || job.id}
+                        {index < Math.min(deadlineMissedJobs.length, 3) - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                    {deadlineMissedJobs.length > 3 && '...'}
+                  </span>
+                )}
+                {deadlineMissedJobs.length > 0 && deadlineWarningJobs.length > 0 && <span style={{ margin: '0 6px' }}>|</span>}
+                {deadlineWarningJobs.length > 0 && (
+                  <span>
+                    Approaching job nos: {deadlineWarningJobs.slice(0, 3).map((job, index) => (
+                      <span key={index}>
+                        {job.jobNo || job.comartjobno || job.id}
+                        {index < Math.min(deadlineWarningJobs.length, 3) - 1 ? ', ' : ''}
+                      </span>
+                    ))}
+                    {deadlineWarningJobs.length > 3 && '...'}
+                  </span>
+                )}
+              </div>
+              <div style={{ textAlign: 'right', marginTop: 10 }}>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowDeadlineDetails(true)}
+                  style={{ fontSize: 12, padding: '4px 10px' }}
+                >
+                  View details
+                </Button>
+              </div>
+            </Alert>
+          )}
+          <Modal isOpen={showDeadlineDetails} toggle={() => setShowDeadlineDetails(false)} centered>
+            <ModalHeader toggle={() => setShowDeadlineDetails(false)}>
+              Deadline details
+            </ModalHeader>
+            <ModalBody>
+              {deadlineMissedJobs.length > 0 && (
+                <div style={{ marginBottom: 16 }}>
+                  <strong style={{ color: '#d9534f' }}>Missed deadlines</strong>
+                  <div style={{ marginTop: 8 }}>
+                    {deadlineMissedJobs.map((job, index) => (
+                      <div key={`missed-${index}`} style={{ marginBottom: 4 }}>
+                        {job.jobNo || job.comartjobno || job.id} — {job.deadline || job['Job Deadline'] || job.printerDeadline || job['Printer Deadline']}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {deadlineWarningJobs.length > 0 && (
+                <div>
+                  <strong style={{ color: '#f0ad4e' }}>Approaching deadlines</strong>
+                  <div style={{ marginTop: 8 }}>
+                    {deadlineWarningJobs.map((job, index) => (
+                      <div key={`warn-${index}`} style={{ marginBottom: 4 }}>
+                        {job.jobNo || job.comartjobno || job.id} — {job.deadline || job['Job Deadline'] || job.printerDeadline || job['Printer Deadline']}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </ModalBody>
+          </Modal>
+
+          <Modal isOpen={showValidationModal} toggle={() => setShowValidationModal(false)} centered>
+  <ModalHeader toggle={() => setShowValidationModal(false)}>
+    Excel Errors (Fix & Re-upload)
+  </ModalHeader>
+
+  <ModalBody>
+    <div style={{ marginBottom: 10 }}>
+      <b>Required format:</b>
+      <div style={{ fontFamily: "monospace" }}>{EXPECTED_FORMAT}</div>
+      <div style={{ color: "#666", marginTop: 6 }}>
+        Also: Deadline must not be past date/time.
+      </div>
+    </div>
+
+    <div style={{ maxHeight: 350, overflowY: "auto" }}>
+      <table className="table table-bordered table-sm">
+        <thead className="table-light" style={{ position: "sticky", top: 0 }}>
+          <tr>
+            <th style={{ width: 70 }}>Row</th>
+            <th style={{ width: 170 }}>Column</th>
+            <th>Your Value</th>
+            <th>Fix</th>
+          </tr>
+        </thead>
+        <tbody>
+          {validationErrors.map((e, i) => (
+            <tr key={i}>
+              <td>{(e.rowIndex ?? 0) + 2}</td>
+              <td><b>{e.field}</b></td>
+              <td style={{ fontFamily: "monospace" }}>{String(e.value ?? "")}</td>
+              <td>{e.message}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+
+    <div className="d-flex justify-content-end mt-2">
+    <Button
+  variant="success"
+  onClick={exportValidationErrorsToExcel}
+  style={{ marginRight: "10px" }}
+>
+  Export Errors (Excel)
+</Button>
+
+<Button variant="secondary" onClick={() => setShowValidationModal(false)}>
+  Close
+</Button>
+    </div>
+  </ModalBody>
+</Modal>
           <div className="page-header">
             <div className="row">
               <div className="col">
@@ -1548,7 +2017,14 @@ const GetAllJobAccToLocation = async () => {
                     >
                       Job On Hold
                     </Button>
-
+                    <Button
+  variant="success"
+  onClick={handleResumeSelectedJobs}
+  style={{ marginBottom: "1em", marginLeft: "10px" }}
+>
+  Resume Hold
+</Button>
+  
 
 {/*                     
                     <Button
@@ -1669,12 +2145,12 @@ const GetAllJobAccToLocation = async () => {
                                               <Form.Control type="date" value={lpoDate} onChange={(e) => setlpoDate(e.target.value)} />
                                             </Form.Group>
                                           </Col>
-                                          {/* <Col sm={6}>
-                                              <Form.Group controlId="subClient">
-                                                <Form.Label>Sub Client</Form.Label>
-                                                <Form.Control type="text" placeholder="Enter Sub Client" value={subClient} onChange={(e) => setSubClient(e.target.value)} />
+                                          <Col sm={6}>
+                                              <Form.Group controlId="hsnCode">
+                                                <Form.Label>HSN code</Form.Label>
+                                                <Form.Control type="text" placeholder="Enter HSN code" value={hsnCode} onChange={(e) => setHsnCode(e.target.value)} />
                                               </Form.Group>
-                                            </Col> */}
+                                            </Col>
                                           <Col sm={6}>
                                             <Form.Group controlId="PoType">
                                               <Form.Label>PO Type</Form.Label>
@@ -1897,54 +2373,62 @@ const GetAllJobAccToLocation = async () => {
                         getRowHeight={() => 60}
                         headerHeight={50}
                         suppressRowClickSelection={true}
-                         rowClassRules={{
-  "row-packing": params => params.data?.isPackingDone === "1",
+                       rowClassRules={{
+
+  // ✅ HIGHEST PRIORITY
+  "row-delivery": params =>
+    params.data?.isDeliveryDone === "1",
+
   "row-implupload": params =>
     params.data?.isImplementationUploadDone === "1" &&
-    params.data?.isPackingDone !== "1",
+    params.data?.isDeliveryDone !== "1",
+
   "row-implementation": params =>
     params.data?.isImplementationDone === "1" &&
     params.data?.isImplementationUploadDone !== "1" &&
-    params.data?.isPackingDone !== "1",
-  "row-design": params =>
-    params.data?.isDesignDone === "1" &&
+    params.data?.isDeliveryDone !== "1",
+
+  "row-packing": params =>
+    params.data?.isPackingDone === "1" &&
     params.data?.isImplementationDone !== "1" &&
     params.data?.isImplementationUploadDone !== "1" &&
-    params.data?.isPackingDone !== "1",
-  "row-delivery": params =>
-    params.data?.isDeliveryDone === "1" &&
-    params.data?.isDesignDone !== "1" &&
-    params.data?.isImplementationDone !== "1" &&
-    params.data?.isImplementationUploadDone !== "1" &&
-    params.data?.isPackingDone !== "1",
+    params.data?.isDeliveryDone !== "1",
+
   "row-printing": params =>
     params.data?.isPrinitngdone === "1" &&
-    params.data?.isDeliveryDone !== "1" &&
-    params.data?.isDesignDone !== "1" &&
+    params.data?.isPackingDone !== "1" &&
     params.data?.isImplementationDone !== "1" &&
     params.data?.isImplementationUploadDone !== "1" &&
-    params.data?.isPackingDone !== "1"
+    params.data?.isDeliveryDone !== "1",
+
+  // ✅ LOWEST PRIORITY
+  "row-design": params =>
+    params.data?.isDesignDone === "1" &&
+    params.data?.isPrinitngdone !== "1" &&
+    params.data?.isPackingDone !== "1" &&
+    params.data?.isImplementationDone !== "1" &&
+    params.data?.isImplementationUploadDone !== "1" &&
+    params.data?.isDeliveryDone !== "1"
 }}
-       
+
             onCellValueChanged={(params) => {
               if (params.colDef.field === 'productionLocation') {
                 const id = params.data.id;
                 const newLocation = params.newValue;
 
-    axios.post(`${config.JobSummary.URL.UpdateProductionLocation}`, {
-      id: id,
-      productionLocation: newLocation,
-      employeename: userName,
-      rolename:rolenames
-    }).then(() => {
-      toast.success("Production Location updated");
-      
-    }).catch((error) => {
-      toast.error("Failed to update Production Location");
-      console.error("API error:", error);
-    });
-  }
-}}
+                axios.post(`${config.JobSummary.URL.UpdateProductionLocation}`, {
+                  id: id,
+                  productionLocation: newLocation,
+                  employeename: userName,
+                  rolename: rolename
+                }).then(() => {
+                  toast.success("Production Location updated");
+                }).catch((error) => {
+                  toast.error("Failed to update Production Location");
+                  console.error("API error:", error);
+                });
+              }
+            }}
 
 />
                   
@@ -1997,8 +2481,8 @@ const GetAllJobAccToLocation = async () => {
   <span className="legend-box delivery">🚚 Delivery Done</span>
   <span className="legend-box implementation">🛠️ Implementation Done</span>
   <span className="legend-box packing">📦 Packing Done</span>
-  <span className="legend-box design">🎨 Design Done</span>
-  <span className="legend-box implupload">⬆️ Impl Upload Done</span>
+
+
 </div>
               </div>
             </div>

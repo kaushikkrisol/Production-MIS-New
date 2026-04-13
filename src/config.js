@@ -4,19 +4,12 @@
     
 // let BaseURL = "https://localhost:7035";  
 
-      let BaseURL ='https://productionapi.comart.in';
-
-
-    // let BaseURL1="https://kerp.comart.in:3001";
-
+    let BaseURL ='https://productionapi.comart.in';
+  
     let BaseURL1="https://stores.comart.in:3001";   
 
-
     let BaseURL2="https://kerp.comart.in:3008";
-    // let BaseURL2="https://localhost:3008";
-
-
-
+    // let BaseURL2="http://localhost:3008";
     // let BaseURL1="http://localhost:3001/api/get-orders"s
     // let BaseURL ='https://testproductionAPI.comart.in';
 
@@ -26,7 +19,6 @@ const config ={
             Checkuser: BaseURL + '/User/Checkuser',
             GetAllUserrole: BaseURL + '/User/getalluserrole/getalluserrole',
             GetAllUserAccToLocation: BaseURL + '/User/GetAllUserAccToLocation/GetAllUserAccToLocation',
-
         }
     },
     JobSummary: {
@@ -42,9 +34,11 @@ const config ={
             GetAllJobsAccToLocation: BaseURL + '/api/JobSummary/GetAllJobAccToLocation',
             GetCustomerNameAccToLocation: BaseURL + '/api/JobSummary/GetCustomerNameFromSql',
             SetJobOnHold: BaseURL + '/api/JobSummary/SetJobOnHold',
+            SetJobisPending: BaseURL + '/api/JobSummary/SetJobisPending',
             UpdateProductionLocation: BaseURL + '/api/JobSummary/UpdateProductionLocation',
             GetDeletedData:BaseURL+'/api/JobSummary/GetDeletedData',
             RestoreJob:BaseURL+'/api/JobSummary/RestoreJob',
+            ResumeJobFromHold: "/api/JobSummary/ResumeJobFromHold"
 
         }
     },
@@ -90,6 +84,12 @@ const config ={
             Addeliverystop: BaseURL + '/api/Delivery/Addeliverystop',
             Getalldeliveryjobs: BaseURL + '/api/Delivery/Getalldeliveryjobs',
             GetAllDeliveryAccToLocation: BaseURL + '/api/Delivery/GetAllDeliveryAccToLocation',
+            UpdateTimestamp: BaseURL + '/api/Delivery/UpdateTimestamp',
+            CreateDeliveryChallan: BaseURL+"/api/Delivery/CreateDeliveryChallan",
+            GetAllDeliveryChallans: BaseURL+"/api/Delivery/GetAllDeliveryChallans",
+            GetDeliveryChallanById: BaseURL+"/api/Delivery/GetDeliveryChallanById",
+            GetDeliveryChallanByJobNo: BaseURL+"/api/Delivery/GetDeliveryChallanByJobNo",
+            GetAllChallansDashboard: BaseURL+"/api/Delivery/GetAllChallansDashboard"
         }
     },
     Implementation: {
@@ -100,6 +100,10 @@ const config ={
             AddImplementationStop: BaseURL + '/api/Implementation/AddImplementationStop',
             GetallImplementationJobs: BaseURL + '/api/Implementation/GetAllImplementationjobs',
             GetAllImplementationAccToLocation: BaseURL + '/api/Implementation/GetAllImplementationAccToLocation',
+            UpdateTimestamp: BaseURL + '/api/Implementation/UpdateTimestamp',
+            CreateImplementationChallan: BaseURL + "/api/Implementation/CreateImplementationChallan",
+            GetImplementationChallanById: BaseURL + "/api/Implementation/GetImplementationChallanById",
+            GetImplementationChallanByJobNo: BaseURL + "/api/Implementation/GetImplementationChallanByJobNo"
             
         }
     },
@@ -147,7 +151,10 @@ const config ={
             AddPackingData:BaseURL+'/api/Packing/AddPackingData',
             StartPacking:BaseURL+'/api/Packing/StartPacking',
             StopPacking:BaseURL+'/api/Packing/StopPacking',
-            GetAllPacking:BaseURL+'/api/Packing/GetAllPacking'
+            GetAllPacking:BaseURL+'/api/Packing/GetAllPacking',
+            CreateDeliveryChallan:BaseURL+'/api/Packing/CreateDeliveryChallan',
+            GetAllDeliveryChallans:BaseURL+'/api/Packing/GetAllDeliveryChallans',
+            GetDeliveryChallanById:BaseURL+'/api/Packing/GetDeliveryChallanById/',
 
         }
     }

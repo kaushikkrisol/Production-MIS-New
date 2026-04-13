@@ -71,6 +71,11 @@ const Production = () => {
   const [showNotification2, setShowNotification2] = useState(false);
   const [notificationMessage2, setNotificationMessage2] = useState([]); // is array
 
+  const [showDeadlineWarning, setShowDeadlineWarning] = useState(false);
+  const [deadlineWarningMessages, setDeadlineWarningMessages] = useState([]);
+  const [showDeadlineMissed, setShowDeadlineMissed] = useState(false);
+  const [deadlineMissedMessages, setDeadlineMissedMessages] = useState([]);
+
   const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
   // ✅ Keep this as an array because Notification does message.map(...)
@@ -583,6 +588,47 @@ const wastePopupBottomStyle = {
   const handleCloseNotification = () => setShowNotification(false);
 
   useEffect(() => {
+    const checkJobDeadlines = () => {
+      const now = new Date();
+      const warningMessages = [];
+      const missedMessages = [];
+
+      data.forEach(job => {
+        if (!job.deadline) return;
+        const jobDeadline = new Date(job.deadline);
+        if (!jobDeadline || Number.isNaN(jobDeadline.getTime())) return;
+
+        const diffMs = jobDeadline - now;
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (!job.isCompleted && diffMs > 0 && diffMs <= 6 * 60 * 60 * 1000) {
+          warningMessages.push(
+            `Job No: ${job.jobNo} is due in ${diffHours}h ${diffMinutes}m (Deadline: ${moment(jobDeadline).format('DD/MM/YYYY HH:mm')})`
+          );
+        }
+
+        if (!job.isCompleted && diffMs <= 0) {
+          const passedHours = Math.abs(Math.floor(diffMs / (1000 * 60 * 60)));
+          const passedMinutes = Math.abs(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
+          missedMessages.push(
+            `Job No: ${job.jobNo} missed the deadline by ${passedHours}h ${passedMinutes}m (Deadline: ${moment(jobDeadline).format('DD/MM/YYYY HH:mm')})`
+          );
+        }
+      });
+
+      setDeadlineWarningMessages(warningMessages);
+      setShowDeadlineWarning(warningMessages.length > 0);
+      setDeadlineMissedMessages(missedMessages);
+      setShowDeadlineMissed(missedMessages.length > 0);
+    };
+
+    checkJobDeadlines();
+    const interval = setInterval(checkJobDeadlines, 60000);
+    return () => clearInterval(interval);
+  }, [data]);
+
+  useEffect(() => {
     const checkDeadlines2 = () => {
       const now = new Date();
       const message = [];
@@ -883,13 +929,13 @@ const wastePopupBottomStyle = {
                   <hr />
 
                   <div>
-                    {rolenamedata === "Branch Manager" && (
+                   
                       <Form inline style={{ marginBottom: '2em' }} onSubmit={(e) => e.preventDefault()}>
                         <Button color="danger" onClick={toggle}>Reprint</Button>
                       </Form>
-                    )}
-                    <Modal isOpen={open} className="">
-                      <ModalBody><CompletedPrinting /></ModalBody>
+                  
+                    <Modal isOpen={open} className="completed-printing-modal">
+                      <ModalBody ><CompletedPrinting /></ModalBody>
                       <ModalFooter>
                         <Button color="primary" onClick={() => { toggle(); window.location.reload(); }}>Close</Button>
                       </ModalFooter>
@@ -919,6 +965,32 @@ const wastePopupBottomStyle = {
                   </div>
 
                   {/* Deadline notifications (array messages) */}
+                 {showDeadlineWarning && (
+  <Notification2
+    headline="Job Deadline Approaching"
+    message={deadlineWarningMessages}
+    onClose={() => setShowDeadlineWarning(false)}
+    show={showDeadlineWarning}
+    
+    // Updated colors
+    containerBg="rgba(255, 140, 0, 0.15)"   // light orange background
+    bgColor="#ff8c00"                      // orange
+    headerColor="#e65100"                  // dark orange
+  />
+)}
+
+                  {showDeadlineMissed && (
+                    <Notification
+                      headline="Deadline Missed"
+                      message={deadlineMissedMessages}
+                      onClose={() => setShowDeadlineMissed(false)}
+                      show={showDeadlineMissed}
+                      containerBg="rgba(231, 116, 116, 0.445)"
+                      bgColor="#c82333"
+                      headerColor="#ff5b68"
+                    />
+                  )}
+
                   {showNotification && (
                     <Notification
                       headline="Deadline Alert!"

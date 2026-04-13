@@ -1,0 +1,129 @@
+/* PendingJobsWithHold.css */
+
+.pjwh-page{
+  width:100%;
+  padding:1rem 1rem 8px 1rem;
+  box-sizing:border-box;
+}
+
+/* bootstrap spacing */
+.pjwh-page .row{
+  margin-left:0 !important;
+  margin-right:0 !important;
+}
+.pjwh-page .col,
+.pjwh-page [class*="col-"]{
+  padding-left:7rem !important;
+  padding-right:8px !important;
+}
+
+/* labels */
+.pjwh-page label,
+.pjwh-page .form-label{
+  font-weight:700;
+  font-size:13px;
+  color:#2b2b2b;
+  margin-bottom:6px;
+}
+
+/* inputs */
+.pjwh-page .form-control{
+  height:40px;
+  border-radius:8px;
+}
+
+/* buttons */
+.pjwh-page .btn{
+  height:40px;
+  border-radius:8px;
+  font-weight:700;
+  white-space:nowrap;
+}
+
+/* Set On Hold button style */
+.pjwh-page .btn-warning{
+  color:#fff !important;
+  background:#b02a2a !important;
+  border-color:#b02a2a !important;
+}
+.pjwh-page .btn-warning:hover{
+  background:#8b2d2d !important;
+  border-color:#8b2d2d !important;
+}
+
+/* react-select (works because classNamePrefix="react-select") */
+.pjwh-page .react-select__control{
+  min-height:40px !important;
+  border-radius:8px !important;
+  border-color:#dcdcdc !important;
+  box-shadow:none !important;
+}
+.pjwh-page .react-select__value-container{
+  padding:0 10px !important;
+}
+.pjwh-page .react-select__indicator-separator{
+  display:none !important;
+}
+.pjwh-page .react-select__menu{
+  z-index:9999 !important;
+}
+
+/* table wrapper */
+.pjwh-table-wrap{
+  width:100%;
+  overflow:auto;
+  max-height:calc(100vh - 290px);
+  border:1px solid #e6e6e6;
+  border-radius:10px;
+  background:#fff;
+}
+
+/* table */
+.pjwh-table{
+  width:100%;
+  margin:0 !important;
+  font-size:13px;
+  border-collapse:separate !important;
+  border-spacing:0 !important;
+}
+
+/* sticky header */
+.pjwh-table thead th{
+  position:sticky;
+  top:0;
+  z-index:5;
+  background:#8b2d2d !important;
+  color:#fff !important;
+  font-weight:800;
+  white-space:nowrap;
+  padding:10px 10px;
+}
+
+/* cells */
+.pjwh-table tbody td{
+  white-space:nowrap;
+  padding:10px 10px;
+  vertical-align:middle;
+}
+
+/* zebra + hover */
+.pjwh-table tbody tr:nth-child(even){
+  background:#fafafa;
+}
+.pjwh-table tbody tr:hover{
+  background:#f2f6ff;
+}
+
+/* checkbox column */
+.pjwh-table th:first-child,
+.pjwh-table td:first-child{
+  width:60px;
+  text-align:center;
+}
+
+/* no data row */
+.pjwh-table tbody td.text-center{
+  font-weight:700;
+  color:#666;
+  padding:16px !important;
+}
