@@ -1,9 +1,10 @@
-import React, { useState } from "react";
+import React, { lazy, Suspense, useEffect, useState } from "react";
 import Scrollbars from "react-custom-scrollbars-2";
 import { Link, useLocation } from "react-router-dom";
 import { SidebarData } from "../../core/json/siderbar_data";
-import HorizontalSidebar from "./horizontalSidebar";
-import CollapsedSidebar from "./collapsedSidebar";
+
+const HorizontalSidebar = lazy(() => import("./horizontalSidebar"));
+const CollapsedSidebar = lazy(() => import("./collapsedSidebar"));
 
 const Sidebar = () => {
 
@@ -12,6 +13,51 @@ const Sidebar = () => {
 
   const [subOpen, setSubopen] = useState("");
   const [subsidebar, setSubsidebar] = useState("");
+  const [layoutStyle, setLayoutStyle] = useState(() =>
+    localStorage.getItem("layoutStyling") ||
+    document.documentElement.getAttribute("data-layout-style") ||
+    "default"
+  );
+
+  useEffect(() => {
+    const updateLayoutStyle = () => {
+      setLayoutStyle(
+        localStorage.getItem("layoutStyling") ||
+          document.documentElement.getAttribute("data-layout-style") ||
+          "default"
+      );
+    };
+
+    const observer = new MutationObserver(updateLayoutStyle);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["data-layout-style"],
+    });
+    window.addEventListener("storage", updateLayoutStyle);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("storage", updateLayoutStyle);
+    };
+  }, []);
+
+  useEffect(() => {
+    const activeMenu = SidebarData?.flatMap((mainLabel) => mainLabel?.submenuItems || []).find(
+      (title) => {
+        const childLinks =
+          title?.submenuItems?.flatMap((item) => [
+            item?.link,
+            ...(item?.submenuItems?.map((subItem) => subItem?.link) || []),
+          ]) || [];
+
+        return title?.link === Location.pathname || childLinks.includes(Location.pathname);
+      }
+    );
+
+    if (activeMenu?.submenu) {
+      setSubopen(activeMenu.label);
+    }
+  }, [Location.pathname]);
 
   const toggleSidebar = (title) => {
     if (title == subOpen) {
@@ -64,8 +110,13 @@ const Sidebar = () => {
                               }`}
                             >
                               <Link
-                                to={title?.link}
-                                onClick={() => toggleSidebar(title?.label)}
+                                to={title?.submenu ? "#" : title?.link}
+                                onClick={(event) => {
+                                  if (title?.submenu) {
+                                    event.preventDefault();
+                                  }
+                                  toggleSidebar(title?.label);
+                                }}
                                 className={`${
                                   subOpen === title?.label ? "subdrop" : ""
                                 } ${
@@ -168,8 +219,10 @@ const Sidebar = () => {
           </div>
         </Scrollbars>
       </div>
-      <HorizontalSidebar />
-      <CollapsedSidebar />
+      <Suspense fallback={null}>
+        {layoutStyle === "horizontal" && <HorizontalSidebar />}
+        {layoutStyle === "collapsed" && <CollapsedSidebar />}
+      </Suspense>
     </div>
   );
 };

@@ -190,7 +190,7 @@ const Dashboard = () => {
   }
 
   useEffect(() => {
-    fetchData("https://localhost:7035/api/Printing/TotalSQFT", setProductionData);
+    fetchData(config.Printing.URL.TotalSQFT, setProductionData);
   //  fetchData(config.Delay.URL.Delivery, setDelayData);
        setDelayData([]);
     setLowStockData([]);

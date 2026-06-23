@@ -153,7 +153,7 @@
             { headerName: 'Design Type', field: 'designType', minWidth: 150 },
             { headerName: 'Job Date', field: 'date', minWidth: 130 },
             { headerName: 'CS Name', field: 'Entrdby', minWidth: 140 },
-            { headerName: 'Visual Code', field: 'visualCode', minWidth: 140 },
+            { headerName: 'Visual Code', field: 'visualCode', minWidth: 220, width: 220 },
             { headerName: 'Product Details', field: 'nameSubCode', minWidth: 180 },
             { headerName: 'City', field: 'city', minWidth: 120 },
             { headerName: 'Designer Name', field: 'designerName', minWidth: 160 },

@@ -299,6 +299,57 @@
     "hsnCode": "39199010",
     "ratePerSqft": 75
   },
+  
+  {
+    "media": "Front Lit SAV + Lamination",
+    "hsnCode": "39199010",
+    "ratePerSqft": 60
+  },
+  {
+    "media": "Greyback SAV + Lamination",
+    "hsnCode": "39199010",
+    "ratePerSqft": 80
+  },
+  {
+    "media": "Front Lit SAV + Lamination + Mounting",
+    "hsnCode": "39199010",
+    "ratePerSqft": 80
+  },
+  {
+    "media": "Oneway Vision",
+    "hsnCode": "39199010",
+    "ratePerSqft": 80
+  },
+  {
+    "media": "Avery SAV + Lamination + Mounting",
+    "hsnCode": "39199010",
+    "ratePerSqft": 80
+  },
+  {
+    "media": "Avery SAV + Mounting",
+    "hsnCode": "39199010",
+    "ratePerSqft": 80
+  },
+  {
+    "media": "Translit Film",
+    "hsnCode": "39199010",
+    "ratePerSqft": 92
+  },
+  {
+    "media": "Translit Film + Lamination",
+    "hsnCode": "39199010",
+    "ratePerSqft": 92
+  },
+  {
+    "media": "Greyback SAV + Lamination + Mounting",
+    "hsnCode": "39199010",
+    "ratePerSqft": 94
+  },
+  {
+    "media": "Self Adhesive Vinyl",
+    "hsnCode": "39199010",
+    "ratePerSqft": 75
+  },
   {
     "media": "Self Adhesive Vinyl(Greyback)",
     "hsnCode": "39199090",

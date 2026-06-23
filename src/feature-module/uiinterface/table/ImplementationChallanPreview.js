@@ -5,6 +5,34 @@ const formatAmount = (value) => {
   return Number.isFinite(num) ? num.toFixed(2) : "0.00";
 };
 
+const firstNumber = (...values) => {
+  for (const value of values) {
+    const num = Number(value);
+    if (Number.isFinite(num) && num > 0) return num;
+  }
+  return 0;
+};
+
+const normalizeItem = (item, index, allItems, challanData) => {
+  const totalSqFt = firstNumber(item.totalSqFt, item.TotalSqFt, item.sqFt, item.SqFt, item.sqft, item.SQFT);
+  const lineJobValue = firstNumber(
+    item.lineJobValue,
+    item.LineJobValue,
+    item.amount,
+    item.Amount,
+    allItems.length === 1 ? challanData.jobValue : 0
+  );
+  const unitPrice = firstNumber(item.unitPrice, item.UnitPrice, item.rate, item.Rate, totalSqFt ? lineJobValue / totalSqFt : 0);
+
+  return {
+    ...item,
+    hsnCode: item.hsnCode || item.HsnCode || item.HSNCode || item.hsn || item.HSN || "",
+    unitPrice,
+    totalSqFt,
+    lineJobValue,
+  };
+};
+
 const ImplementationChallanPreview = () => {
   const challanData = useMemo(() => {
     const raw = localStorage.getItem("challanPreviewData");
@@ -15,7 +43,8 @@ const ImplementationChallanPreview = () => {
     return <div style={{ padding: 20 }}>No challan data found.</div>;
   }
 
-  const items = Array.isArray(challanData.items) ? challanData.items : [];
+  const rawItems = Array.isArray(challanData.items) ? challanData.items : [];
+  const items = rawItems.map((item, index) => normalizeItem(item, index, rawItems, challanData));
   const uniqueJobNo = Array.from(
     new Set(
       String(challanData.jobNo || "")

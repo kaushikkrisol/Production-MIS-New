@@ -16,13 +16,13 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import { FaSyncAlt, FaUpload, FaDownload } from "react-icons/fa";
 import Notification from "../../Notification/Notification";
 import { AgGridReact } from "ag-grid-react";
+import { all_routes } from "../../../Router/all_routes";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-alpine.css";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { createPortal } from "react-dom";
-import moment from "moment";
 import { getCompanyBranchDetails } from "./companyBranches";
 import { findCustomerRecord, mergeFallbackCustomers } from "./customerFallbacks";
 import {
@@ -32,6 +32,18 @@ import {
 } from "./hsnRateLookup";
 
 import "./DataTables.css";
+
+const formatDatePart = (value) => String(value).padStart(2, "0");
+
+const formatDateDDMMYYYY = (dateValue = new Date()) => {
+  const date = dateValue instanceof Date ? dateValue : new Date(dateValue);
+
+  if (Number.isNaN(date.getTime())) {
+    return dateValue || "";
+  }
+
+  return `${formatDatePart(date.getDate())}-${formatDatePart(date.getMonth() + 1)}-${date.getFullYear()}`;
+};
 
 /* =======================
    Timestamp cell
@@ -56,7 +68,6 @@ const TimestampCell = (props) => {
     "";
 
   const [draft, setDraft] = useState(initialIso ? new Date(initialIso) : null);
-  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     const iso =
@@ -67,18 +78,15 @@ const TimestampCell = (props) => {
       data?.ImplementationTimestamp ||
       "";
 
-    if (!dirty) setDraft(iso ? new Date(iso) : null);
+    setDraft(iso ? new Date(iso) : null);
   }, [
     context,
     rowId,
-    dirty,
     data?.implementationTimestampUtc,
     data?.ImplementationTimestampUtc,
     data?.implementationTimestamp,
     data?.ImplementationTimestamp,
   ]);
-
-  const canSave = !isLocked && draft && dirty;
 
   return (
     <div
@@ -91,7 +99,10 @@ const TimestampCell = (props) => {
         onChange={(date) => {
           if (isLocked) return;
           setDraft(date);
-          setDirty(true);
+          context.setRowTimestamps((prev) => ({
+            ...prev,
+            [rowId]: date ? date.toISOString() : "",
+          }));
         }}
         showTimeSelect
         timeIntervals={15}
@@ -105,30 +116,48 @@ const TimestampCell = (props) => {
         popperPlacement="bottom-start"
         popperContainer={({ children }) => createPortal(children, document.body)}
       />
-
-      {!isLocked && (
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          disabled={!canSave}
-          onClick={() => {
-            if (!draft) return;
-            const isoUtc = draft.toISOString();
-
-            context.setRowTimestamps((prev) => ({
-              ...prev,
-              [rowId]: isoUtc,
-            }));
-
-            context.saveTimestamp(rowId, isoUtc, data);
-            setDirty(false);
-          }}
-        >
-          Save
-        </button>
-      )}
     </div>
   );
+};
+
+const getAnyField = (row, keys) => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return "";
+};
+
+const isTruthyFlag = (value) => {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+};
+
+const getImplementationChallanMeta = (row) => {
+  const id = getAnyField(row, [
+    "implementationChallanId",
+    "ImplementationChallanId",
+    "challanId",
+    "ChallanId",
+  ]);
+  const no = getAnyField(row, [
+    "implementationChallanNo",
+    "ImplementationChallanNo",
+    "challanNo",
+    "ChallanNo",
+  ]);
+  const created = getAnyField(row, [
+    "isImplementationChallanCreated",
+    "IsImplementationChallanCreated",
+  ]);
+
+  return {
+    id,
+    no,
+    isCreated: Boolean(id || no || isTruthyFlag(created)),
+  };
 };
 
 /* =======================
@@ -164,10 +193,6 @@ const Implementation = () => {
   });
 
   const [selectedRows, setSelectedRows] = useState([]);
-
-  const [bulkTimestamp, setBulkTimestamp] = useState(null);
-  const [bulkSaving, setBulkSaving] = useState(false);
-
   const gridRef = useRef();
 
   const [showModal, setShowModal] = useState(false);
@@ -237,9 +262,9 @@ const Implementation = () => {
           customer?.customeR_NAME ||
           row?.customerName ||
           row?.customername ||
-          row?.subClient ||
           row?.clientName ||
           row?.client ||
+          row?.subClient ||
           ""
       )
         .trim()
@@ -254,10 +279,95 @@ const Implementation = () => {
     []
   );
 
-  const getSelectedExactRows = useCallback(() => {
-    const nodes = gridRef.current?.api?.getSelectedNodes?.() || [];
-    return nodes.map((n) => n.data).filter((r) => r?.id);
-  }, []);
+ const getSelectedExactRows = useCallback(() => {
+  const api = gridRef.current?.api;
+  if (!api) return [];
+
+  const visibleKeys = new Set();
+
+  api.forEachNodeAfterFilterAndSort((node) => {
+    if (node?.data?.__rowKey) {
+      visibleKeys.add(node.data.__rowKey);
+    }
+  });
+
+  return api
+    .getSelectedRows()
+    .filter((row) => row?.__rowKey && visibleKeys.has(row.__rowKey));
+}, []);
+
+  const handleOpenInvoicePreview = useCallback(() => {
+   const effectiveSelectedData = getSelectedExactRows();
+    if (!effectiveSelectedData.length) {
+      triggerTopToast("Please select at least one row", "danger");
+      return;
+    }
+
+    localStorage.setItem(
+      "invoicePreviewBuilderData",
+      JSON.stringify({
+        sourceModule: "implementation",
+        selectedRows: effectiveSelectedData,
+        customers,
+        username,
+        locationId,
+        createdAt: new Date().toISOString(),
+      })
+    );
+
+    window.open(all_routes.invoicepreviewbuilder, "_blank");
+  }, [customers, getSelectedExactRows, locationId, selectedRows, triggerTopToast, username]);
+
+  const openImplementationChallanFromRow = useCallback(
+    (row) => {
+      const meta = getImplementationChallanMeta(row);
+      const customer = findCustomerRecord(customers, row);
+      const branchDetails = getCompanyBranchDetails(row?.region || row?.productionLocation);
+      const pricing = buildChallanItemPricing(row);
+
+      localStorage.setItem(
+        "challanPreviewData",
+        JSON.stringify({
+          companyName: branchDetails.companyName,
+          companyAddress: branchDetails.companyAddress,
+          companyPhone: branchDetails.companyPhone,
+          companyGst: branchDetails.companyGst,
+          companyLogo: branchDetails.companyLogo,
+          name: customer?.customeR_NAME || row?.client || "",
+          address: row?.customerAddress || row?.CustomerAddress || row?.salonAddress || "",
+          gstNo: customer?.gsT_NO || row?.customerGstNo || row?.CustomerGstNo || "",
+          challanNo: meta.no,
+          challanId: meta.id,
+          challanDt: row?.challanDate || row?.ChallanDate || formatDisplayDate(new Date()),
+          jobNo: row?.jobNo || "",
+          jobValue: formatAmount(pricing.lineJobValue || row?.jobValue || row?.JobValue || 0),
+          storeName: row?.storeName || row?.StoreName || row?.salonAddress || "",
+          storeAddress: row?.storeAddress || row?.StoreAddress || row?.salonAddress || "",
+          productionLocation: row?.productionLocation || row?.region || "",
+          dispatchAddress: row?.dispatchAddress || "",
+          remarks: row?.remarks || "",
+          preparedBy: username,
+          items: [
+            {
+              sno: 1,
+              details: buildItemDetails(row),
+              hsnCode: pricing.hsnCode,
+              unitPrice: pricing.unitPrice,
+              totalSqFt: pricing.totalSqFt,
+              width: row?.width || "",
+              height: row?.height || row?.length || "",
+              size: `${row?.width || ""} X ${row?.height || row?.length || ""}`,
+              quantity: String(row?.qty || 0),
+              lineJobValue: pricing.lineJobValue,
+            },
+          ],
+        })
+      );
+
+      window.open("/implementationchallan/", "_blank");
+    },
+    [customers, username]
+  );
 
   const buildImplementationChallanForm = useCallback(
     (selectedData) => {
@@ -310,56 +420,57 @@ const Implementation = () => {
   );
 
   const handleOpenImplementationChallanModal = useCallback(() => {
-    const selectedData = getSelectedExactRows();
-    const effectiveSelectedData = selectedData.length ? selectedData : selectedRows;
+  const effectiveSelectedData = getSelectedExactRows();
 
-    if (!effectiveSelectedData.length) {
-      triggerTopToast("Please select at least one row", "danger");
-      return;
-    }
+  if (!effectiveSelectedData.length) {
+    triggerTopToast("Please select at least one row", "danger");
+    return;
+  }
 
-    const uniqueLocations = [
-      ...new Set(
-        effectiveSelectedData
-          .map((row) => getNormalizedProductionLocation(row))
-          .filter(Boolean)
-      ),
-    ];
+  const uniqueLocations = [
+    ...new Set(
+      effectiveSelectedData
+        .map((row) =>
+          String(row?.productionLocation || row?.ProductionLocation || row?.region || "")
+            .trim()
+            .toLowerCase()
+        )
+        .filter(Boolean)
+    ),
+  ];
 
-    if (uniqueLocations.length > 1) {
-      triggerTopToast(
-        "Please select line items from the same production location only",
-        "warning"
-      );
-      return;
-    }
+  if (uniqueLocations.length > 1) {
+    triggerTopToast(
+      `Please select line items from the same production location only. Selected: ${uniqueLocations.join(", ")}`,
+      "warning"
+    );
+    return;
+  }
 
-    const uniqueCustomers = [
-      ...new Set(
-        effectiveSelectedData
-          .map((row) => getNormalizedCustomerKey(row))
-          .filter(Boolean)
-      ),
-    ];
+  const uniqueCustomers = [
+    ...new Set(
+      effectiveSelectedData
+        .map((row) => getNormalizedCustomerKey(row))
+        .filter(Boolean)
+    ),
+  ];
 
-    if (uniqueCustomers.length > 1) {
-      triggerTopToast(
-        "Please select line items for the same customer only",
-        "warning"
-      );
-      return;
-    }
+  if (uniqueCustomers.length > 1) {
+    triggerTopToast(
+      "Please select line items for the same customer only",
+      "warning"
+    );
+    return;
+  }
 
-    setChallanForm(buildImplementationChallanForm(effectiveSelectedData));
-    setShowChallanModal(true);
-  }, [
-    getSelectedExactRows,
-    selectedRows,
-    triggerTopToast,
-    buildImplementationChallanForm,
-    getNormalizedProductionLocation,
-    getNormalizedCustomerKey,
-  ]);
+  setChallanForm(buildImplementationChallanForm(effectiveSelectedData));
+  setShowChallanModal(true);
+}, [
+  getSelectedExactRows,
+  triggerTopToast,
+  buildImplementationChallanForm,
+  getNormalizedCustomerKey,
+]);
 
   const validateImplementationChallanForm = useCallback(() => {
     if (!challanForm.customerAddress?.trim()) {
@@ -396,8 +507,7 @@ const Implementation = () => {
 
     const formatDisplayDate = (dateVal) => {
       if (!dateVal) return "";
-      const m = moment(dateVal);
-      return m.isValid() ? m.format("DD-MM-YYYY") : dateVal;
+      return formatDateDDMMYYYY(dateVal);
     };
 
   const handleNameChange = (e) => setName(e.target.value);
@@ -419,22 +529,139 @@ const Implementation = () => {
     setSelectedRows(getSelectedExactRows());
   }, [getSelectedExactRows]);
 
-  const handleSelectFilteredRows = useCallback(() => {
-    if (!gridRef.current?.api) return;
+const handleSelectFilteredRows = useCallback(() => {
+  const api = gridRef.current?.api;
+  if (!api) return;
 
-    gridRef.current.api.forEachNodeAfterFilter((node) => {
-      node.setSelected(true);
-    });
-  }, []);
+  api.deselectAll();
 
-  const handleClearSelection = useCallback(() => {
-    gridRef.current?.api?.deselectAll?.();
-    setSelectedRows([]);
-  }, []);
+  api.forEachNodeAfterFilterAndSort((node) => {
+    node.setSelected(true);
+  });
+
+  setTimeout(() => {
+    setSelectedRows(getSelectedExactRows());
+  }, 0);
+}, [getSelectedExactRows]);
+
+ const handleClearSelection = useCallback(() => {
+  const api = gridRef.current?.api;
+  if (!api) return;
+
+  api.deselectAll();
+  setSelectedRows([]);
+}, []);
+
+//   const saveImplementationTimestampForRows = useCallback(
+//   async (rows) => {
+//     const unlockedRows = rows.filter((row) => {
+//       const locked =
+//         !!row?.implementationTimestampUtc ||
+//         !!row?.ImplementationTimestampUtc ||
+//         !!row?.implementationTimestamp ||
+//         !!row?.ImplementationTimestamp;
+//       return !locked;
+//     });
+
+//     if (!unlockedRows.length) return;
+
+//     const rowsWithoutTimestamp = unlockedRows.filter(
+//       (row) => !rowTimestamps[row.id]
+//     );
+
+//     if (rowsWithoutTimestamp.length) {
+//       throw new Error(
+//         `Please select timestamp for all selected rows before creating challan. Missing Job No: ${rowsWithoutTimestamp
+//           .map((x) => x.jobNo)
+//           .join(", ")}`
+//       );
+//     }
+
+//     await Promise.all(
+//       unlockedRows.map((row) =>
+//         axios.post(config.Implementation.URL.UpdateTimestamp, {
+//           id: row.id,
+//           jobNo: row.jobNo,
+//           timestampUtc: rowTimestamps[row.id],
+//           updatedBy: username,
+//         })
+//       )
+//     );
+
+//     const selectedIds = new Set(unlockedRows.map((x) => x.id));
+
+//     setLocationAccData((prev) =>
+//       prev.map((r) =>
+//         selectedIds.has(r.id)
+//           ? {
+//               ...r,
+//               implementationTimestampUtc: rowTimestamps[r.id],
+//               implementationTimestamp: rowTimestamps[r.id],
+//               IsImplementationDone: "1",
+//             }
+//           : r
+//       )
+//     );
+//   },
+//   [rowTimestamps, username]
+// );
 
   /* =======================
      SAVE TIMESTAMP API
      ======================= */
+
+
+     const saveTimestampBeforeChallan = useCallback(
+  async (rows) => {
+    const unlockedRows = rows.filter((row) => {
+      const locked =
+        !!row?.implementationTimestampUtc ||
+        !!row?.ImplementationTimestampUtc ||
+        !!row?.implementationTimestamp ||
+        !!row?.ImplementationTimestamp;
+      return !locked;
+    });
+
+    if (!unlockedRows.length) return;
+
+    const nowIsoUtc = new Date().toISOString();
+
+    await Promise.all(
+      unlockedRows.map((row) =>
+        axios.post(config.Implementation.URL.UpdateTimestamp, {
+          id: row.id,
+          jobNo: row.jobNo,
+          timestampUtc: nowIsoUtc,
+          updatedBy: username,
+        })
+      )
+    );
+
+    const selectedIds = new Set(unlockedRows.map((x) => x.id));
+
+    setRowTimestamps((prev) => {
+      const updated = { ...prev };
+      unlockedRows.forEach((row) => {
+        updated[row.id] = nowIsoUtc;
+      });
+      return updated;
+    });
+
+    setLocationAccData((prev) =>
+      prev.map((r) =>
+        selectedIds.has(r.id)
+          ? {
+              ...r,
+              implementationTimestampUtc: nowIsoUtc,
+              implementationTimestamp: nowIsoUtc,
+              IsImplementationDone: "1",
+            }
+          : r
+      )
+    );
+  },
+  [username]
+);
   const saveTimestamp = useCallback(
     async (rowId, isoUtc, row) => {
       try {
@@ -493,89 +720,89 @@ const Implementation = () => {
   /* =======================
      BULK SAVE TIMESTAMP
      ======================= */
-  const handleBulkSaveTimestamp = useCallback(async () => {
-    try {
-      setError(null);
+  // const handleBulkSaveTimestamp = useCallback(async () => {
+  //   try {
+  //     setError(null);
 
-      if (!bulkTimestamp) {
-        triggerTopToast("Please select bulk implementation timestamp", "danger");
-        return;
-      }
+  //     if (!bulkTimestamp) {
+  //       triggerTopToast("Please select bulk implementation timestamp", "danger");
+  //       return;
+  //     }
 
-      const selected = getSelectedExactRows();
+  //     const selected = getSelectedExactRows();
 
-      if (!selected.length) {
-        triggerTopToast("Please select at least one row", "danger");
-        return;
-      }
+  //     if (!selected.length) {
+  //       triggerTopToast("Please select at least one row", "danger");
+  //       return;
+  //     }
 
-      const unlockedRows = selected.filter((row) => {
-        const locked =
-          !!row?.implementationTimestampUtc ||
-          !!row?.ImplementationTimestampUtc ||
-          !!row?.implementationTimestamp ||
-          !!row?.ImplementationTimestamp;
-        return !locked;
-      });
+  //     const unlockedRows = selected.filter((row) => {
+  //       const locked =
+  //         !!row?.implementationTimestampUtc ||
+  //         !!row?.ImplementationTimestampUtc ||
+  //         !!row?.implementationTimestamp ||
+  //         !!row?.ImplementationTimestamp;
+  //       return !locked;
+  //     });
 
-      if (!unlockedRows.length) {
-        triggerTopToast("All selected rows already have timestamp locked", "warning");
-        return;
-      }
+  //     if (!unlockedRows.length) {
+  //       triggerTopToast("All selected rows already have timestamp locked", "warning");
+  //       return;
+  //     }
 
-      setBulkSaving(true);
+  //     setBulkSaving(true);
 
-      const isoUtc = bulkTimestamp.toISOString();
-      const selectedIds = new Set(unlockedRows.map((x) => x.id));
+  //     const isoUtc = bulkTimestamp.toISOString();
+  //     const selectedIds = new Set(unlockedRows.map((x) => x.id));
 
-      setRowTimestamps((prev) => {
-        const updated = { ...prev };
-        unlockedRows.forEach((row) => {
-          updated[row.id] = isoUtc;
-        });
-        return updated;
-      });
+  //     setRowTimestamps((prev) => {
+  //       const updated = { ...prev };
+  //       unlockedRows.forEach((row) => {
+  //         updated[row.id] = isoUtc;
+  //       });
+  //       return updated;
+  //     });
 
-      await Promise.all(
-        unlockedRows.map((row) =>
-          axios.post(config.Implementation.URL.UpdateTimestamp, {
-            id: row.id,
-            timestampUtc: isoUtc,
-            updatedBy: username,
-          })
-        )
-      );
+  //     await Promise.all(
+  //       unlockedRows.map((row) =>
+  //         axios.post(config.Implementation.URL.UpdateTimestamp, {
+  //           id: row.id,
+  //           timestampUtc: isoUtc,
+  //           updatedBy: username,
+  //         })
+  //       )
+  //     );
 
-      setLocationAccData((prev) =>
-        prev.map((r) =>
-          selectedIds.has(r.id)
-            ? {
-                ...r,
-                implementationTimestampUtc: isoUtc,
-                implementationTimestamp: isoUtc,
-              }
-            : r
-        )
-      );
+  //     setLocationAccData((prev) =>
+  //       prev.map((r) =>
+  //         selectedIds.has(r.id)
+  //           ? {
+  //               ...r,
+  //               implementationTimestampUtc: isoUtc,
+  //               implementationTimestamp: isoUtc,
+  //             }
+  //           : r
+  //       )
+  //     );
 
-      setNotificationMessage(
-        `Implementation timestamp saved for ${unlockedRows.length} selected row(s)`
-      );
-      setShowNotification(true);
-      setBulkTimestamp(null);
+  //     setNotificationMessage(
+  //       `Implementation timestamp saved for ${unlockedRows.length} selected row(s)`
+  //     );
+  //     setShowNotification(true);
+  //     setBulkTimestamp(null);
 
-      setTimeout(() => {
-        gridRef.current?.api?.refreshCells({ force: true });
-      }, 0);
-    } catch (e) {
-      console.error(e);
-      setError(
-        e?.response?.data?.toString?.() || "Failed to bulk save timestamp"
-      );
-    } finally {
-      setBulkSaving(false);
-    }
-  }, [bulkTimestamp, username, getSelectedExactRows, triggerTopToast]);
+  //     setTimeout(() => {
+  //       gridRef.current?.api?.refreshCells({ force: true });
+  //     }, 0);
+  //   } catch (e) {
+  //     console.error(e);
+  //     setError(
+  //       e?.response?.data?.toString?.() || "Failed to bulk save timestamp"
+  //     );
+  //   } finally {
+  //     setBulkSaving(false);
+  //   }
+  // }, [bulkTimestamp, username, getSelectedExactRows, triggerTopToast]);
 
 
   const fetchCustomerDetails = useCallback(async () => {
@@ -673,53 +900,60 @@ const Implementation = () => {
   /* =======================
      Fetch grid rows
      ======================= */
-  const fetchImplementationAccToLocation = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
+ const fetchImplementationAccToLocation = useCallback(async () => {
+  try {
+    setLoading(true);
+    setError(null);
 
-      statusCacheRef.current.clear();
+    statusCacheRef.current.clear();
 
-      const payload = { locationId, username };
-      const res = await axios.post(
-        config.Implementation.URL.GetAllImplementationAccToLocation,
-        payload
-      );
+    const payload = { locationId, username };
+    const res = await axios.post(
+      config.Implementation.URL.GetAllImplementationAccToLocation,
+      payload
+    );
 
-      const rows = res.data || [];
-      setLocationAccData(rows);
+    const rows = (res.data || []).map((row, index) => ({
+      ...row,
+      __rowKey: `${row.id || row.implementationid || row.jobNo || "row"}-${index}`,
+    }));
 
-      const map = {};
-      rows.forEach((r) => {
-        if (!r?.id) return;
+    setLocationAccData(rows);
+    setSelectedRows([]);
 
-        const iso =
-          r.implementationTimestampUtc ||
-          r.ImplementationTimestampUtc ||
-          r.implementationTimestamp ||
-          r.ImplementationTimestamp ||
-          "";
+    const map = {};
+    rows.forEach((r) => {
+      if (!r?.id) return;
 
-        if (iso) map[r.id] = iso;
-      });
-      setRowTimestamps(map);
+      const iso =
+        r.implementationTimestampUtc ||
+        r.ImplementationTimestampUtc ||
+        r.implementationTimestamp ||
+        r.ImplementationTimestamp ||
+        "";
 
-      const totals = rows.reduce(
-        (acc, row) => {
-          acc.width += parseFloat(row.width || 0);
-          acc.height += parseFloat(row.height || 0);
-          return acc;
-        },
-        { width: 0, height: 0 }
-      );
-      setTotalValues(totals);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to fetch implementation data");
-    } finally {
-      setLoading(false);
-    }
-  }, [locationId, username]);
+      if (iso) map[r.id] = iso;
+    });
+
+    setRowTimestamps(map);
+
+    const totals = rows.reduce(
+      (acc, row) => {
+        acc.width += parseFloat(row.width || 0);
+        acc.height += parseFloat(row.height || 0);
+        return acc;
+      },
+      { width: 0, height: 0 }
+    );
+
+    setTotalValues(totals);
+  } catch (err) {
+    console.error(err);
+    setError("Failed to fetch implementation data");
+  } finally {
+    setLoading(false);
+  }
+}, [locationId, username]); 
 
 
 
@@ -732,12 +966,11 @@ useEffect(() => {
 
 
 
-  const handleCreateImplementationChallan = async () => {
+const handleCreateImplementationChallan = async () => {
   try {
     if (!validateImplementationChallanForm()) return;
 
-    const selectedData = getSelectedExactRows();
-    const effectiveSelectedData = selectedData.length ? selectedData : selectedRows;
+ const effectiveSelectedData = getSelectedExactRows();
 
     if (!effectiveSelectedData.length) {
       triggerTopToast("Please select at least one row", "danger");
@@ -759,20 +992,16 @@ useEffect(() => {
     const branchDetails = getCompanyBranchDetails(
       firstRow.region || firstRow.productionLocation
     );
+
     const customerName =
       customer?.customeR_NAME ||
       firstRow.customerName ||
       firstRow.customername ||
-      firstRow.subClient ||
       firstRow.clientName ||
       firstRow.client ||
+      firstRow.subClient ||
       "";
-    const contactPersonName =
-      firstRow.contactPersonName ||
-      firstRow.contactPerson ||
-      firstRow.contactperson ||
-      customer?.contacT_PERSON ||
-      "";
+
     const contactPersonPhone =
       firstRow.contactPersonPhone ||
       firstRow.contactPhone ||
@@ -783,7 +1012,7 @@ useEffect(() => {
       "";
 
     const challanPayload = {
-      challanDate: moment().format("DD-MM-YYYY"),
+      challanDate: formatDateDDMMYYYY(),
 
       companyName: branchDetails.companyName,
       companyAddress: branchDetails.companyAddress,
@@ -821,6 +1050,7 @@ useEffect(() => {
 
       items: challanForm.items.map((item) => ({
         ...item,
+        csId: item.csId || item.rowId,
         hsnCode: item.hsnCode || "",
         unitPrice: Number(item.unitPrice || 0),
         lineJobValue: Number(item.lineJobValue || 0),
@@ -828,91 +1058,76 @@ useEffect(() => {
     };
 
     const response = await axios.post(
-     config.Implementation.URL.CreateImplementationChallan,
+      config.Implementation.URL.CreateImplementationChallan,
       challanPayload,
       { headers: { "Content-Type": "application/json" } }
     );
 
-   const savedChallan = response.data;
+    const savedChallan = response.data;
+    const savedItems = savedChallan.items || savedChallan.Items || [];
+    const previewItems = (Array.isArray(savedItems) && savedItems.length ? savedItems : challanPayload.items || []).map(
+      (item, index) => ({
+        ...(challanPayload.items?.[index] || {}),
+        ...item,
+        hsnCode: item.hsnCode || item.HsnCode || challanPayload.items?.[index]?.hsnCode || "",
+        unitPrice: item.unitPrice ?? item.UnitPrice ?? challanPayload.items?.[index]?.unitPrice ?? 0,
+        totalSqFt: item.totalSqFt ?? item.TotalSqFt ?? challanPayload.items?.[index]?.totalSqFt ?? 0,
+        lineJobValue:
+          item.lineJobValue ??
+          item.LineJobValue ??
+          item.jobValue ??
+          item.JobValue ??
+          challanPayload.items?.[index]?.lineJobValue ??
+          0,
+      })
+    );
 
-// optional local preview data, same idea as packing screen
-localStorage.setItem(
-  "challanPreviewData",
-  JSON.stringify({
-    companyName:
-      challanPayload.companyName || savedChallan.companyName || savedChallan.CompanyName,
-    companyAddress:
-      challanPayload.companyAddress ||
-      savedChallan.companyAddress ||
-      savedChallan.CompanyAddress,
-    companyPhone:
-      challanPayload.companyPhone || savedChallan.companyPhone || savedChallan.CompanyPhone,
-    companyGst:
-      challanPayload.companyGst || savedChallan.companyGst || savedChallan.CompanyGst,
-    companyLogo:
-      challanPayload.companyLogo || savedChallan.companyLogo || savedChallan.CompanyLogo,
-    name:
-      challanPayload.customerName ||
-      savedChallan.customerName ||
-      savedChallan.CustomerName,
-    address:
-      challanPayload.customerAddress ||
-      savedChallan.customerAddress ||
-      savedChallan.CustomerAddress,
-    gstNo:
-      challanPayload.customerGstNo ||
-      savedChallan.customerGstNo ||
-      savedChallan.CustomerGstNo,
-    projectName:
-      challanPayload.projectName ||
-      savedChallan.projectName ||
-      savedChallan.ProjectName,
-    cpName: challanPayload.cpName || savedChallan.cpName || savedChallan.CpName,
-    contactPersonPhone:
-      challanPayload.contactPersonPhone ||
-      savedChallan.contactPersonPhone ||
-      savedChallan.ContactPersonPhone,
-    challanNo: savedChallan.challanNo || savedChallan.ChallanNo,
-    challanDt: savedChallan.challanDate || savedChallan.ChallanDate,
-    jobNo: challanPayload.jobNo || savedChallan.jobNo || savedChallan.JobNo,
-    jobValue: challanPayload.jobValue || savedChallan.jobValue || savedChallan.JobValue,
-    poNo: challanPayload.poNo || savedChallan.poNo || savedChallan.PoNo,
-    poDate: challanPayload.poDate || savedChallan.poDate || savedChallan.PoDate,
-    storeName:
-      challanPayload.storeName || savedChallan.storeName || savedChallan.StoreName,
-    storeAddress:
-      challanPayload.storeAddress ||
-      savedChallan.storeAddress ||
-      savedChallan.StoreAddress,
-    productionLocation:
-      challanPayload.productionLocation ||
-      savedChallan.productionLocation ||
-      savedChallan.ProductionLocation,
-    dispatchAddress:
-      challanPayload.dispatchAddress ||
-      savedChallan.dispatchAddress ||
-      savedChallan.DispatchAddress,
-    remarks: challanPayload.remarks || savedChallan.remarks || savedChallan.Remarks,
-    preparedBy:
-      challanPayload.preparedBy || savedChallan.preparedBy || savedChallan.PreparedBy,
-    receivedBy: savedChallan.receivedBy || savedChallan.ReceivedBy,
-    receivedDate: savedChallan.receivedDate || savedChallan.ReceivedDate,
-    items: challanPayload.items || savedChallan.items || savedChallan.Items || [],
-  })
-);
+    localStorage.setItem(
+      "challanPreviewData",
+      JSON.stringify({
+        companyName: savedChallan.companyName || savedChallan.CompanyName || challanPayload.companyName,
+        companyAddress: savedChallan.companyAddress || savedChallan.CompanyAddress || challanPayload.companyAddress,
+        companyPhone: savedChallan.companyPhone || savedChallan.CompanyPhone || challanPayload.companyPhone,
+        companyGst: savedChallan.companyGst || savedChallan.CompanyGst || challanPayload.companyGst,
+        companyLogo: savedChallan.companyLogo || savedChallan.CompanyLogo || challanPayload.companyLogo,
+        name: savedChallan.customerName || savedChallan.CustomerName || challanPayload.customerName,
+        address: savedChallan.customerAddress || savedChallan.CustomerAddress || challanPayload.customerAddress,
+        gstNo: savedChallan.customerGstNo || savedChallan.CustomerGstNo || challanPayload.customerGstNo,
+        projectName: savedChallan.projectName || savedChallan.ProjectName || challanPayload.projectName,
+        cpName: savedChallan.cpName || savedChallan.CpName || challanPayload.cpName,
+        contactPersonPhone: savedChallan.contactPersonPhone || savedChallan.ContactPersonPhone || challanPayload.contactPersonPhone,
+        challanNo: savedChallan.challanNo || savedChallan.ChallanNo,
+        challanDt: savedChallan.challanDate || savedChallan.ChallanDate,
+        jobNo: savedChallan.jobNo || savedChallan.JobNo || challanPayload.jobNo,
+        jobValue: savedChallan.jobValue || savedChallan.JobValue || challanPayload.jobValue,
+        poNo: savedChallan.poNo || savedChallan.PoNo || challanPayload.poNo,
+        poDate: savedChallan.poDate || savedChallan.PoDate || challanPayload.poDate,
+        storeName: savedChallan.storeName || savedChallan.StoreName || challanPayload.storeName,
+        storeAddress: savedChallan.storeAddress || savedChallan.StoreAddress || challanPayload.storeAddress,
+        productionLocation: savedChallan.productionLocation || savedChallan.ProductionLocation || challanPayload.productionLocation,
+        dispatchAddress: savedChallan.dispatchAddress || savedChallan.DispatchAddress || challanPayload.dispatchAddress,
+        remarks: savedChallan.remarks || savedChallan.Remarks || challanPayload.remarks,
+        preparedBy: savedChallan.preparedBy || savedChallan.PreparedBy || challanPayload.preparedBy,
+        receivedBy: savedChallan.receivedBy || savedChallan.ReceivedBy,
+        receivedDate: savedChallan.receivedDate || savedChallan.ReceivedDate,
+        items: previewItems,
+      })
+    );
 
-setShowChallanModal(false);
-await fetchImplementationAccToLocation();
+    setShowChallanModal(false);
+    await fetchImplementationAccToLocation();
+    window.open(`/implementationchallan/`, "_blank");
 
-   window.open(`/implementationchallan/`, '_blank');
-
-triggerTopToast(
-  `Implementation challan created: ${savedChallan.challanNo || savedChallan.ChallanNo}`,
-  "success"
-);
+    triggerTopToast(
+      `Implementation challan created: ${savedChallan.challanNo || savedChallan.ChallanNo}`,
+      "success"
+    );
   } catch (error) {
     console.error("Error creating implementation challan:", error);
-    triggerTopToast("Failed to create implementation challan", "danger");
+    triggerTopToast(
+      error?.response?.data || error?.message || "Failed to create implementation challan",
+      "danger"
+    );
   }
 };
 
@@ -1129,6 +1344,27 @@ triggerTopToast(
         filter: false,
         suppressMenu: true,
       },
+      {
+        headerName: "Implementation Challan",
+        minWidth: 210,
+        filter: false,
+        sortable: false,
+        cellRenderer: (params) => {
+          const meta = getImplementationChallanMeta(params.data);
+
+          if (!meta.isCreated) return "-";
+
+          return (
+            <button
+              type="button"
+              className="btn btn-sm btn-primary"
+              onClick={() => openImplementationChallanFromRow(params.data)}
+            >
+              {meta.no || "View Challan"}
+            </button>
+          );
+        },
+      },
 
       {
         headerName: "Actions",
@@ -1162,7 +1398,7 @@ triggerTopToast(
         flex: 0,
       },
     ],
-    [firstRowIdByJob]
+    [firstRowIdByJob, openImplementationChallanFromRow]
   );
 
   const defaultColDef = useMemo(
@@ -1287,46 +1523,25 @@ triggerTopToast(
           <Button onClick={handleExportCSV}>Export CSV</Button>
         </Col>
       </Row>
+<Row className="mb-3 align-items-end" style={{ marginLeft: "15rem", width: "86%" }}>
+  <Col md={12} className="d-flex gap-2 flex-wrap">
+    <Button variant="secondary" onClick={handleSelectFilteredRows}>
+      Select Filtered Rows
+    </Button>
 
-      <Row className="mb-3 align-items-end" style={{ marginLeft: "15rem", width: "86%" }}>
-        <Col md={4}>
-          <Form.Label>Bulk Implementation Timestamp</Form.Label>
-          <DatePicker
-            selected={bulkTimestamp}
-            onChange={(date) => setBulkTimestamp(date)}
-            showTimeSelect
-            timeIntervals={15}
-            timeCaption="Time"
-            dateFormat="yyyy-MM-dd HH:mm"
-            placeholderText="Pick one timestamp for selected rows"
-            className="form-control"
-            popperPlacement="bottom-start"
-            popperContainer={({ children }) => createPortal(children, document.body)}
-          />
-        </Col>
+    <Button variant="outline-secondary" onClick={handleClearSelection}>
+      Clear Selection
+    </Button>
 
-        <Col md={8} className="d-flex gap-2 flex-wrap">
-          <Button variant="secondary" onClick={handleSelectFilteredRows}>
-            Select Filtered Rows
-          </Button>
+    <Button variant="primary" onClick={handleOpenImplementationChallanModal}>
+      Create Challan
+    </Button>
 
-          <Button variant="outline-secondary" onClick={handleClearSelection}>
-            Clear Selection
-          </Button>
-
-          <Button
-            variant="primary"
-            onClick={handleBulkSaveTimestamp}
-            disabled={bulkSaving}
-          >
-            {bulkSaving ? "Saving..." : `Bulk Save Timestamp (${selectedRows.length})`}
-          </Button>
-
-          <Button variant="primary" onClick={handleOpenImplementationChallanModal}>
-            Create Challan
-          </Button>
-        </Col>
-      </Row>
+    <Button variant="success" onClick={handleOpenInvoicePreview}>
+      Invoice Preview
+    </Button>
+  </Col>
+</Row>
 
       {loading && <Spinner animation="border" />}
       {error && <Alert variant="danger">{error}</Alert>}
@@ -1340,7 +1555,7 @@ triggerTopToast(
           rowData={filteredRows}
           columnDefs={columnDefs}
           immutableData={true}
-          getRowId={(params) => String(params.data.id)}
+          getRowId={(params) => params.data.__rowKey}
           defaultColDef={defaultColDef}
           pagination={true}
           paginationPageSize={25}
@@ -1351,7 +1566,7 @@ triggerTopToast(
           context={{
             rowTimestamps,
             setRowTimestamps,
-            saveTimestamp,
+            // saveTimestamp,
           }}
           onFirstDataRendered={() => {
             setTimeout(() => loadStatusesForIds(getCurrentPageRowIds()), 0);
@@ -1484,13 +1699,13 @@ triggerTopToast(
                     <Form.Control value={item.jobNo} readOnly />
                   </Form.Group>
                 </Col>
-                <Col md={8}>
+                <Col md={7}>
                   <Form.Group>
                     <Form.Label>Details</Form.Label>
                     <Form.Control as="textarea" rows={4} value={item.details} readOnly />
                   </Form.Group>
                 </Col>
-                <Col md={2}>
+                <Col md={3}>
                   <Form.Group>
                     <Form.Label>HSN</Form.Label>
                     <Form.Control

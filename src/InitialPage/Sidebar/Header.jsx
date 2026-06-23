@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import FeatherIcon from "feather-icons-react";
-import ImageWithBasePath from "../../core/img/imagewithbasebath";
-import { Search, Settings, User, XCircle } from "react-feather";
+import { LogOut, Search, Settings, User, XCircle } from "react-feather";
 import { all_routes } from "../../Router/all_routes";
 
 const Header = () => {
@@ -96,6 +95,8 @@ const Header = () => {
     }
   }, []);
 
+  const userInitial = username ? username.charAt(0).toUpperCase() : "U";
+
   const exclusionArray = [
     "/reactjs/template/dream-pos/index-three",
     "/reactjs/template/dream-pos/index-one",
@@ -148,10 +149,10 @@ const Header = () => {
             <h1>Comart</h1>
           </Link>
           <Link to="/dashboard" className="logo logo-white">
-            <ImageWithBasePath src="assets/img/logo-comart.png" alt="img" />
+            <h1>Comart</h1>
           </Link>
           <Link to="/dashboard" className="logo-small">
-            <ImageWithBasePath src="assets/img/logo-small.png" alt="img" />
+            <span className="user-letter">C</span>
           </Link>
           <Link
             id="toggle_btn"
@@ -251,31 +252,19 @@ const Header = () => {
                       <li>
                         <Link to="#">
                           Aron Varu
-                          <ImageWithBasePath
-                            src="assets/img/profiles/avator1.jpg"
-                            alt
-                            className="img-fluid"
-                          />
+                          <span className="user-letter">A</span>
                         </Link>
                       </li>
                       <li>
                         <Link to="#">
                           Jonita
-                          <ImageWithBasePath
-                            src="assets/img/profiles/avatar-01.jpg"
-                            alt
-                            className="img-fluid"
-                          />
+                          <span className="user-letter">J</span>
                         </Link>
                       </li>
                       <li>
                         <Link to="#">
                           Aaron
-                          <ImageWithBasePath
-                            src="assets/img/profiles/avatar-10.jpg"
-                            alt
-                            className="img-fluid"
-                          />
+                          <span className="user-letter">A</span>
                         </Link>
                       </li>
                     </ul>
@@ -588,11 +577,7 @@ const Header = () => {
             >
               <span className="user-info">
                 <span className="user-letter">
-                  <ImageWithBasePath
-                    src="assets/img/profiles/avator1.jpg"
-                    alt="img"
-                    className="img-fluid"
-                  />
+                  {userInitial}
                 </span>
                 <span className="user-detail">
                   <span className="user-name"></span>
@@ -604,10 +589,7 @@ const Header = () => {
               <div className="profilename">
                 <div className="profileset">
                   <span className="user-img">
-                    <ImageWithBasePath
-                      src="assets/img/profiles/avator1.jpg"
-                      alt="img"
-                    />
+                    <span className="user-letter">{userInitial}</span>
                     <span className="status online" />
                   </span>
                   <div className="profilesets">
@@ -624,11 +606,7 @@ const Header = () => {
                 </Link>
                 <hr className="m-0" />
                 <Link className="dropdown-item logout pb-0" to="/signin">
-                  <ImageWithBasePath
-                    src="assets/img/icons/log-out.svg"
-                    alt="img"
-                    className="me-2"
-                  />
+                  <LogOut className="me-2" />
                   Logout
                 </Link>
               </div>

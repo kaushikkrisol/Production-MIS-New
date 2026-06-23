@@ -1,17 +1,13 @@
 // https://production.comart.in
 
+// let BaseURL = "https://localhost:7035"; 
+let BaseURL = "https://productionapi.comart.in";                                                                                                                                                        
 
-    
-// let BaseURL = "https://localhost:7035";  
-
-    let BaseURL ='https://productionapi.comart.in';
-  
-    let BaseURL1="https://stores.comart.in:3001";   
-
-    let BaseURL2="https://kerp.comart.in:3008";
-    // let BaseURL2="http://localhost:3008";
-    // let BaseURL1="http://localhost:3001/api/get-orders"s
-    // let BaseURL ='https://testproductionAPI.comart.in';
+// let BaseURL = "https://testproductionapi.comart.in";
+let BaseURL1 = "https://stores.comart.in:3001";
+let BaseURL2 = BaseURL;
+// let BaseURL2 = "http://localhost:3008";
+// let BaseURL1 = "http://localhost:3001/api/get-orders";
 
 const config ={    
     User: {
@@ -27,7 +23,7 @@ const config ={
             Getalljob: BaseURL + '/api/JobSummary/Getalljob',
             TotalJobcount: BaseURL + '/api/JobSummary/TotalJobcount',
             Getallcustomer: BaseURL + '/api/JobSummary/Getallcustomer',
-           AddreprintData : BaseURL +'/api/JobSummary/AddreprintData',
+            AddreprintData : BaseURL +'/api/JobSummary/AddreprintData',
             GetJobsWithoutExcelUpload: BaseURL + '/api/JobSummary/GetJobsWithoutExcelUpload',
             GetAllJobsFromSql: BaseURL + '/api/JobSummary/GetAllJobsFromSql',
             DeleteSelectedJobs:BaseURL+'/api/JobSummary/DeleteSelectedJobsById',
@@ -73,7 +69,25 @@ const config ={
             AddPrintingStop: BaseURL + '/api/Printing/Addprintingstop',
             TotalPrintingJobcount: BaseURL + '/api/Printing/TotalPrintingJobcount',
             GetCompletedPrinting: BaseURL + '/api/Printing/GetCompletedPrinting',
-            TotalSQFT:"/api/Printing/TotalSQFT"
+            TotalSQFT: BaseURL + "/api/Printing/TotalSQFT"
+        }
+    },
+        RetailCustomer: {
+        URL: {
+            GetAll: BaseURL + '/api/RetailCustomer/GetAll',
+            GetById: (id) => BaseURL + `/api/RetailCustomer/GetById/${id}`,
+            Add: BaseURL + '/api/RetailCustomer/Add',
+            Update: BaseURL + '/api/RetailCustomer/Update',
+            Delete: BaseURL + '/api/RetailCustomer/Delete',
+        }
+    },
+        Recce: {
+        URL: {
+            GetAll: BaseURL + '/api/Recce/GetAll',
+            GetById: (id) => BaseURL + `/api/Recce/GetById/${id}`,
+            Add: BaseURL + '/api/Recce/Add',
+            Update: BaseURL + '/api/Recce/Update',
+            Delete: BaseURL + '/api/Recce/Delete',
         }
     },
     Delivery: {
@@ -114,6 +128,47 @@ const config ={
             Upload : BaseURL + '/api/ImplementationUpload/Upload',
             GetPdfDataByCsId: BaseURL + '/api/ImplementationUpload/GetPdfDataByCsId',
              ImageStatusById: BaseURL + '/api/ImplementationUpload/ImageStatusById/',
+            GetByJobNoAndStoreName: BaseURL + '/api/ImplementationUpload/GetByJobNoAndStoreName',
+        }
+    },
+    DesignJobs: {
+        URL: {
+            GetDesignJobsByJobNumber: BaseURL + '/api/DesignJobs/get-by-job/',
+            // GetAllDesignJobs: BaseURL + '/api/DesignJobs/GetAll',
+            AddDesignJob: BaseURL + '/api/DesignJobs/Add',
+            UpdateDesignJob: BaseURL + '/api/DesignJobs/Update',
+            DeleteDesignJob: BaseURL + '/api/DesignJobs/Delete',
+            GetAllDesignJobs: BaseURL + '/api/DesignJobs/GetAllDesignJobs',
+        }
+    },
+    ProductMediaRateMaster: {
+        URL: {
+            GetAll: BaseURL + '/api/ProductMediaRateMaster/GetAll',
+            GetById: (id) => BaseURL + `/api/ProductMediaRateMaster/GetById/${id}`,
+            Add: BaseURL + '/api/ProductMediaRateMaster/Add',
+            Update: BaseURL + '/api/ProductMediaRateMaster/Update',
+            Delete: BaseURL + '/api/ProductMediaRateMaster/Delete',
+            GetByCustomerAndMedia: (customerId, media) =>
+                BaseURL + `/api/ProductMediaRateMaster/GetByCustomerAndMedia?customerId=${encodeURIComponent(customerId || '')}&media=${encodeURIComponent(media || '')}`,
+        }
+    },
+    ElementGroupMaster: {
+        URL: {
+            GetAll: BaseURL + '/api/ElementGroupMaster/GetAll',
+            GetById: (id) => BaseURL + `/api/ElementGroupMaster/GetById/${id}`,
+            Add: BaseURL + '/api/ElementGroupMaster/Add',
+            Update: BaseURL + '/api/ElementGroupMaster/Update',
+            Delete: BaseURL + '/api/ElementGroupMaster/Delete',
+        }
+    },
+    SalesInvoice: {
+        URL: {
+            Save: BaseURL + '/api/SalesInvoice/Save',
+            GetAll: BaseURL + '/api/SalesInvoice/GetAll',
+            GetByInvoiceNo: (invoiceNo) => BaseURL + `/api/SalesInvoice/GetByInvoiceNo/${encodeURIComponent(invoiceNo || '')}`,
+            Delete: BaseURL + '/api/SalesInvoice/Delete',
+            SaveMultiLocationInvoice: BaseURL + '/api/SalesInvoice/SaveMultiLocationInvoice',
+            CreateCreditNote: BaseURL + '/api/SalesInvoice/CreateCreditNote',
         }
     },
     MyPriority: {
@@ -157,7 +212,26 @@ const config ={
             GetDeliveryChallanById:BaseURL+'/api/Packing/GetDeliveryChallanById/',
 
         }
-    }
+    },
+    JobProgressAlert: {
+        URL: {
+            SaveBulk: BaseURL + '/api/JobProgressAlert/SaveBulk',
+            GetActive: BaseURL + '/api/JobProgressAlert/GetActive',
+        }
+    },
+    
 }
+
+
+
+// Store API endpoints
+config.Store = {
+    URL: {
+        Add: BaseURL + '/api/Store/add',
+        List: BaseURL + '/api/Store/list',
+        Update: BaseURL + '/api/Store/update',
+        Delete: BaseURL + '/api/Store/delete',
+    }
+};
 
 export default config;

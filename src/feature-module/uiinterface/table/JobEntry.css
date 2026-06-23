@@ -11,10 +11,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 50px;
-  padding: 9px 28px;
+  min-height: 48px;
+  margin: 0 0 12px;
+  padding: 8px;
   background: #ffffff;
-  border-bottom: 1px solid #d8dde6;
+  border: 1px solid #d8dde6;
+  border-radius: 7px;
 }
 
 .job-entry-tab {
@@ -23,8 +25,11 @@
   gap: 7px;
   min-height: 32px;
   padding: 7px 12px;
+  border: 1px solid transparent;
   border-radius: 5px;
+  background: transparent;
   color: #667085;
+  cursor: pointer;
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
@@ -36,6 +41,7 @@
 
 .job-entry-tab.active {
   background: #2f5ed9;
+  border-color: #2f5ed9;
   color: #ffffff;
 }
 
@@ -106,6 +112,69 @@
   font-size: 19px;
   font-weight: 700;
   line-height: 1.15;
+}
+
+
+.job-lines-wrap {
+  width: 100%;
+  overflow: hidden;
+}
+
+.job-lines-scroll {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: auto;
+  max-height: calc(100vh - 280px);
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior: contain;
+  scrollbar-width: auto;
+}
+
+.job-lines-table {
+  min-width: 2600px;
+  width: max-content;
+  border-collapse: collapse;
+}
+
+.job-lines-scroll::-webkit-scrollbar {
+  height: 12px;
+  width: 12px;
+}
+
+.job-lines-scroll::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 8px;
+}
+
+.job-lines-scroll::-webkit-scrollbar-track {
+  background: #e5e7eb;
+}
+
+.job-lines-table th,
+.job-lines-table td {
+  white-space: nowrap;
+}
+
+.job-lines-table input,
+.job-lines-table select,
+.job-lines-table textarea {
+  touch-action: manipulation;
+}
+
+@media (pointer: coarse) {
+  .job-lines-scroll {
+    overflow-x: scroll;
+    overflow-y: auto;
+    padding-bottom: 14px;
+  }
+
+  .job-lines-table input,
+  .job-lines-table select,
+  .job-lines-table button {
+    min-height: 38px;
+  }
 }
 
 .job-primary-btn,
@@ -185,6 +254,26 @@
   gap: 10px;
   padding: 11px 0 21px;
   border-top: 1px solid #d8dde6;
+}
+
+.job-new-job-grid {
+  padding-bottom: 16px;
+  border-bottom: 1px solid #d8dde6;
+}
+
+.job-existing-job-grid {
+  grid-template-columns: minmax(280px, 520px) minmax(170px, 230px);
+  padding-bottom: 14px;
+}
+
+.job-new-job-submit {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.job-create-job-btn {
+  min-width: 142px;
 }
 
 .job-entry-form-grid label {
@@ -365,11 +454,15 @@
 
 .job-lines-scroll {
   width: 100%;
-  overflow-x: auto;
+  max-height: calc(100vh - 330px);
+  min-height: 220px;
+  overflow: auto;
+  overscroll-behavior: contain;
   padding-bottom: 3px;
 }
 
 .job-lines-scroll::-webkit-scrollbar {
+  width: 11px;
   height: 11px;
 }
 
@@ -406,10 +499,6 @@
 
 .job-col-branding {
   width: 220px;
-}
-
-.job-col-sequence {
-  width: 210px;
 }
 
 .job-col-small {
@@ -458,6 +547,9 @@
 }
 
 .job-lines-table th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
   height: 33px;
   padding: 0 9px;
   border-right: 1px solid #dfe4ec;
@@ -472,10 +564,16 @@
 }
 
 .job-lines-table .job-group-row th {
+  top: 0;
+  z-index: 4;
   height: 24px;
   background: #f2f5f9;
   font-size: 9px;
   letter-spacing: 0.8px;
+}
+
+.job-lines-table thead tr:nth-child(2) th {
+  top: 24px;
 }
 
 .job-lines-table td {
@@ -501,17 +599,22 @@
   cursor: not-allowed;
 }
 
-.job-lines-table td:nth-child(12) input,
 .job-lines-table td:nth-child(13) input,
 .job-lines-table td:nth-child(14) input,
-.job-lines-table td:nth-child(15) input {
+.job-lines-table td:nth-child(15) input,
+.job-lines-table td:nth-child(16) input,
+.job-lines-table td:nth-child(17) input,
+.job-lines-table td:nth-child(18) input {
   font-weight: 700;
   text-align: right;
 }
 
 .job-lines-table td:nth-child(13) input,
 .job-lines-table td:nth-child(14) input,
-.job-lines-table td:nth-child(15) input {
+.job-lines-table td:nth-child(15) input,
+.job-lines-table td:nth-child(16) input,
+.job-lines-table td:nth-child(17) input,
+.job-lines-table td:nth-child(18) input {
   color: #111827;
   background: #fbfdff;
 }

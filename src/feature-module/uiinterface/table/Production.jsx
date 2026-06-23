@@ -1,45 +1,59 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { Suspense, lazy, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Link } from "react-router-dom";
-import { Table, Form, Button, Row, Col, Alert, Spinner, InputGroup } from 'react-bootstrap';
+import { Form, Button, Row, Col, Alert, Spinner } from 'react-bootstrap';
 import axios from 'axios';
-import * as XLSX from 'xlsx';
 import { Modal, ModalBody, ModalHeader, ModalFooter, Table as ExcelTable } from 'reactstrap';
 import config from '../../../config';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { all_routes } from "../../../Router/all_routes";
 import './Production.css';
-import { FaSyncAlt, FaSearch } from 'react-icons/fa';
-import CompletedPrinting from './CompletedPrinting';
+import { FaSyncAlt } from 'react-icons/fa';
 import Notification from '../../Notification/Notification';
-import Sort from "../ui/Sort";
 import Notification2 from '../../Notification/Notification2';
 import { AgGridReact } from 'ag-grid-react';
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import moment from 'moment';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+
+const CompletedPrinting = lazy(() => import('./CompletedPrinting'));
+
+const formatDateTime = (value) => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleString('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+};
+
+const formatJobDate = (value) => {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  }).replace(/ /g, '/');
+};
 
 const Production = () => {
   const [BulkAdd, setBulkAdd] = useState(false);
   const [headers, setHeaders] = useState([]);
   const [selectedTotals, setSelectedTotals] = useState({ qty: 0, width: 0, length: 0, totalSqFt: 0 });
   const [data, setData] = useState([]);
-  const [gangData, setGangData] = useState([]);
 
   const [open, setOpen] = useState(false);
   const toggle = () => setOpen(!open);
 
-  const [csJobs, setcsJobs] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [mediaSearchTerm, setMediaSearchTerm] = useState('');
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [totalValues, setTotalValues] = useState({ width: 0, length: 0, totalSqFt: 0 });
 
-  const [userId, setUserId] = useState(null);
   const [username, setUsername] = useState('');
-  const [rolenamedata, setrolenamedata] = useState('');
+  const [locationId, setLocationId] = useState(null);
 
   const [showLength, setShowLength] = useState(false);
 
@@ -47,7 +61,6 @@ const Production = () => {
   const selectedRowsArr = Object.keys(selectedRows);
   const [isJobRunning, setIsJobRunning] = useState(true);
 
-  const [printerName, setPrinterNames] = useState([]);
   const [selectedPrinter, setSelectedPrinter] = useState([]);
   const [mediaWidth, setMediaWidth] = useState('');
   const gridRef = useRef(null);
@@ -56,27 +69,18 @@ const Production = () => {
   const [mediaLength, setMediaLength] = useState('');
   const [mediaSqFt, setMediaSqFt] = useState(0);
 
-  const [actualWidth, setActualWidth] = useState('');
-  const [actualLength, setActualLength] = useState('');
   const [actualSqFt, setActualSqFt] = useState(0);
 
-  const [wasteagePer, setWasteagePer] = useState('');
-  const [wasteagePerData, setWasteagePerData] = useState([]);
   const [wastePercentage, setWastePercentage] = useState([]);
   const [wasteageDataFetched, setWasteageDataFetched] = useState(false);
 
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState([]); // is array
 
-  const [showNotification2, setShowNotification2] = useState(false);
-  const [notificationMessage2, setNotificationMessage2] = useState([]); // is array
-
   const [showDeadlineWarning, setShowDeadlineWarning] = useState(false);
   const [deadlineWarningMessages, setDeadlineWarningMessages] = useState([]);
   const [showDeadlineMissed, setShowDeadlineMissed] = useState(false);
   const [deadlineMissedMessages, setDeadlineMissedMessages] = useState([]);
-
-  const [sortConfig, setSortConfig] = useState({ key: '', direction: 'ascending' });
 
   // ✅ Keep this as an array because Notification does message.map(...)
   const [showWastePopup, setShowWastePopup] = useState(false);
@@ -99,9 +103,35 @@ const Production = () => {
     const n = Number.parseFloat(String(v).replace(/[^0-9.\-eE]/g, ''));
     return Number.isFinite(n) ? n : 0;
   };
+  const formatNumber = (value, digits = 2) => {
+    const n = toNum(value);
+    return Number.isFinite(n) ? n.toFixed(digits) : '0.00';
+  };
+  const getRowValue = (row, keys) => {
+    if (!row) return undefined;
+    const matchedKey = keys.find(key => row[key] != null && String(row[key]).trim() !== '');
+    return matchedKey ? row[matchedKey] : undefined;
+  };
   const calcMediaSqFt = (w, l) => {
     const W = toNum(w), L = toNum(l);
     return (W > 0 && L > 0) ? (W * L) / 144 : 0;
+  };
+  const getPrintLength = (row) => {
+    const height = getRowValue(row, ['height', 'Height', 'HEIGHT']);
+    return height != null && String(height).trim() !== ''
+      ? height
+      : getRowValue(row, ['length', 'Length', 'LENGTH']);
+  };
+  const calcActualSqFt = (row) => {
+    const width = toNum(getRowValue(row, ['width', 'Width', 'WIDTH']));
+    const length = toNum(getPrintLength(row));
+    const qty = toNum(getRowValue(row, ['qty', 'Qty', 'QTY']));
+
+    if (width > 0 && length > 0 && qty > 0) {
+      return (width * length * qty) / 144;
+    }
+
+    return toNum(getRowValue(row, ['totalSqFt', 'TotalSqFt', 'Total SQ.Ft.', 'Total Sq.ft', 'Total Sq.f']));
   };
 
   // compute wastage / show red popup when invalid
@@ -137,25 +167,25 @@ const Production = () => {
     }
   }, [mediaWidth, mediaLength, actualSqFt, selectedRows]);
 
-  let location_id = 1;
   useEffect(() => {
     const users = localStorage.getItem('users');
     const userObj = JSON.parse(users || '{}');
-    const userId = userObj?.message?.user_id;
-    location_id = userObj?.message?.location_id;
+    const userLocationId = userObj?.message?.location_id;
     const userName = userObj?.message?.username;
-    const rolename = userObj?.message?.rolE_NAME;
 
-    if (userId) setUserId(userId);
+    setLocationId(userLocationId || 1);
     if (userName) setUsername(userName);
-    if (rolename) setrolenamedata(rolename);
   }, []);
 
-  const exportToExcel = () => {
+  const exportToExcel = async () => {
     if (!gridRef.current) return;
+    const XLSX = await import('xlsx');
     const visibleRows = [];
     gridRef.current.api.forEachNodeAfterFilterAndSort(node => {
-      visibleRows.push(node.data);
+      visibleRows.push({
+        ...node.data,
+        totalSqFt: formatNumber(calcActualSqFt(node.data)),
+      });
     });
     if (visibleRows.length === 0) {
       alert("No data to export.");
@@ -175,7 +205,11 @@ const Production = () => {
     XLSX.writeFile(workbook, "FilteredPrintingJobs.xlsx");
   };
 
-  const exportToPDF = () => {
+  const exportToPDF = async () => {
+    const [{ default: jsPDF }] = await Promise.all([
+      import('jspdf'),
+      import('jspdf-autotable')
+    ]);
     const doc = new jsPDF({ orientation: 'landscape', unit: 'pt', format: 'A1' });
     doc.setFontSize(12);
     doc.text("Printing Jobs", 40, 30);
@@ -184,7 +218,7 @@ const Production = () => {
       .filter(col => col.field && col.headerName)
       .map(col => ({ header: col.headerName, dataKey: col.field }));
 
-    const rows = sortedData.map(row => {
+    const rows = filteredData1.map(row => {
       const formattedRow = {};
       columns.forEach(col => {
         let value = row[col.dataKey];
@@ -232,52 +266,29 @@ const wastePopupBottomStyle = {
 };
 
 
-  const fetchPrinting = async () => {
+  const fetchPrinting = useCallback(async () => {
+    if (!locationId) return;
     setLoading(true);
     try {
-      const payload = { location_id };
+      const payload = { location_id: locationId };
       const response = await axios.post(config.Printing.URL.Getallprinting, payload, {
         timeout: 10000,
         headers: { 'Content-Type': 'application/json' }
       });
-      if (Array.isArray(response.data) && response.data.length > 0) {
-        setData(response.data);
-        setPrinterNames(response.data.printerName || []);
-      }
+      setData(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Error fetching job data:", error.response ? error.response.data : error.message);
     } finally {
       setLoading(false);
     }
-  };
+  }, [locationId]);
 
-  useEffect(() => { fetchPrinting(); }, []);
-  useEffect(() => { setData(data); }, [data]);
+  useEffect(() => { fetchPrinting(); }, [fetchPrinting]);
 
-  useEffect(() => {
-    if (Array.isArray(data)) {
-      const totals = data.reduce((acc, row) => {
-        acc.width += parseInt(row.width) || 0;
-        acc.height += parseInt(row.height) || 0;
-        acc.totalSqFt += parseInt(row.totalSqFt) || 0;
-        return acc;
-      }, { width: 0, height: 0, totalSqFt: 0 });
-      setTotalValues(totals);
-    }
-  }, [data]);
-
-  const filteredData1 = Array.isArray(data) && (mediaSearchTerm.trim().length > 0 || searchTerm.trim().length > 0)
-    ? data.filter(row => {
-        const matchesMedia = mediaSearchTerm.trim().length > 0 && row.media && row.media.toLowerCase().includes(mediaSearchTerm.trim().toLowerCase());
-        const matchesJobNo = searchTerm.trim().length > 0 && row.jobNo && row.jobNo.toLowerCase().includes(searchTerm.trim().toLowerCase());
-        return matchesMedia || matchesJobNo;
-      })
-    : data;
+  const filteredData1 = data;
 
   const resetForm = () => {
-    setUserId('');
-    setUsername('');
-    setPrinterNames('');
+    setSelectedPrinter('');
   };
 
   const toggleBulkAdd = useCallback(() => {
@@ -289,28 +300,11 @@ const wastePopupBottomStyle = {
     }
   }, [BulkAdd]);
 
-  const sortedData = useMemo(() => {
-    let sortableItems = [...filteredData1];
-    if (sortConfig !== null) {
-      sortableItems.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) return sortConfig.direction === 'ascending' ? -1 : 1;
-        if (a[sortConfig.key] > b[sortConfig.key]) return sortConfig.direction === 'ascending' ? 1 : -1;
-        return 0;
-      });
-    }
-    return sortableItems;
-  }, [filteredData1, sortConfig]);
-
-  const requestSort = (key) => {
-    let direction = 'ascending';
-    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') direction = 'descending';
-    setSortConfig({ key, direction });
-  };
-
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
+      const XLSX = await import('xlsx');
       const resp = e.target.result;
       const workbook = XLSX.read(resp, { type: 'binary' });
       const sheetName = workbook.SheetNames[0];
@@ -378,54 +372,57 @@ const wastePopupBottomStyle = {
 
     const selectedJobs = filteredData1
       .filter(row => selectedRows[row.id])
-      .map(row => ({
-        id: row.id,
-        jobNo: row.jobNo,
-        client: row.client,
-        subClient: row.subClient,
-        date: row.date,
-        userName: username,
-        region: row.region,
-        visualCode: row.visualCode,
-        nameSubCode: row.nameSubCode,
-        city: row.city,
-        qty: row.qty,
-        media: row.media,
-        mediaWidth: mediaWidth,
-        mediaLength: mediaLength,
-        printerName: selectedPrinter,
-        installation: row.installation,
-        deadline: row.deadline,
-        lamination: row.lamination,
-        mounting: row.mounting,
-        implementation: row.implementation,
-        salonAddress: row.salonAddress,
-        dispatchAddress: row.dispatchAddress,
-        remarks: row.remarks,
-        actualCompleteTime: row.actCompleteTime,
-        onTimeDelayed: row.onTimeDelayed,
-        enteredBy: row.enteredby,
-        enteredDate: row.enteredDate,
-        lastUpdatedBy: user,
-        width: row.width,
-        length: row.height,
-        actualSqFt: row.actualSqFt,
-        totalSqFt: row.totalSqFt,
-        startdate: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        ActualSqFt: actualSqFt,
-        MediaWidth: mediaWidth,
-        MediaLength: mediaLength,
-        PrinterName: selectedPrinter,
-        entereddt: row.entereddt
-      }));
+      .map(row => {
+        const rowActualSqFt = calcActualSqFt(row).toFixed(2);
+
+        return {
+          id: row.id,
+          jobNo: row.jobNo,
+          client: row.client,
+          subClient: row.subClient,
+          date: row.date,
+          userName: username,
+          region: row.region,
+          visualCode: row.visualCode,
+          nameSubCode: row.nameSubCode,
+          city: row.city,
+          qty: row.qty,
+          media: row.media,
+          mediaWidth: mediaWidth,
+          mediaLength: mediaLength,
+          printerName: selectedPrinter,
+          installation: row.installation,
+          deadline: row.deadline,
+          lamination: row.lamination,
+          mounting: row.mounting,
+          implementation: row.implementation,
+          salonAddress: row.salonAddress,
+          dispatchAddress: row.dispatchAddress,
+          remarks: row.remarks,
+          actualCompleteTime: row.actCompleteTime,
+          onTimeDelayed: row.onTimeDelayed,
+          enteredBy: row.enteredby,
+          enteredDate: row.enteredDate,
+          lastUpdatedBy: user,
+          width: row.width,
+          length: getPrintLength(row),
+          actualSqFt: rowActualSqFt,
+          totalSqFt: rowActualSqFt,
+          startdate: new Date().toISOString(),
+          lastUpdated: new Date().toISOString(),
+          ActualSqFt: actualSqFt,
+          MediaWidth: mediaWidth,
+          MediaLength: mediaLength,
+          PrinterName: selectedPrinter,
+          entereddt: row.entereddt
+        };
+      });
 
     setLoading(true);
     setIsJobRunning(false);
     try {
       const response = await axios.post(config.Printing.URL.AddPrintingStart, selectedJobs);
       const wastePer = response.data.result;
-      setWasteagePerData(wastePer);
 
       const wasteagePer = wastePer.map(item => item.wasteagePer);
       if (wasteagePer.length > 0) setWastePercentage(wasteagePer[0]);
@@ -501,102 +498,35 @@ const wastePopupBottomStyle = {
     }
   };
 
-  const handleCheckboxChange = (id) => {
-    setSelectedRows(prev => {
-      const newSelectedRows = { ...prev, [id]: !prev[id] };
-      const selectedWasteage = wasteagePerData.find(job => job.jobids.includes(id));
-      if (selectedWasteage) setWasteagePer(selectedWasteage.wasteagePer);
-
-      const selectedTotalSqFt = filteredData1
-        .filter(row => newSelectedRows[row.id])
-        .reduce((total, row) => {
-          const width = parseFloat(row.width) || 0;
-          const height = parseFloat(row.height) || 0;
-          const qty = Number(row.qty) || 0;
-          const area = (width * height * qty) / 144;
-          return total + area;
-        }, 0);
-
-      setActualSqFt(selectedTotalSqFt.toFixed(2));
-      return newSelectedRows;
-    });
-  };
-
-  const handleSelectAllChange = (e) => {
-    const isChecked = e.target.checked;
-    const newSelectedRows = {};
-    filteredData1.forEach(row => {
-      if (!row.isCompleted) newSelectedRows[row.id] = isChecked;
-    });
-
-    const selectedTotalSqFt = filteredData1
-      .filter(row => newSelectedRows[row.id])
-      .reduce((total, row) => {
-        const width = parseFloat(row.width) || 0;
-        const height = parseFloat(row.height) || 0;
-        const qty = parseFloat(row.qty) || 0;
-        const area = (width * height * qty) / 144;
-        return total + area;
-      }, 0);
-
-    setActualSqFt(selectedTotalSqFt.toFixed(2));
-
-    const selectedWasteages = filteredData1
-      .filter(row => newSelectedRows[row.id])
-      .map(row => {
-        const wasteageData = wasteagePerData.find(job => job.jobids.includes(row.id));
-        return wasteageData ? wasteageData.wasteagePer : 0;
-      });
-
-    const totalWasteagePer = selectedWasteages.reduce((total, w) => total + w, 0);
-    setWasteagePer(totalWasteagePer);
-    setSelectedRows(newSelectedRows);
-  };
-
-  const isSelectAllChecked = filteredData1.length > 0 && filteredData1.every(row => row.isCompleted || selectedRows[row.id]);
-
   const handlePrinterChange = (e) => setSelectedPrinter(e.target.value);
 
-  const printerNameSelect = (data.map(d => d.printerName));
-  const filteredPrinterNames = printerNameSelect.filter(arr => Array.isArray(arr) && arr.length > 0);
+  const filteredPrinterNames = useMemo(
+    () => data.map(d => d.printerName).filter(arr => Array.isArray(arr) && arr.length > 0),
+    [data]
+  );
 
   useEffect(() => {
+    if (!data.length) return undefined;
+
     const checkDeadlines = () => {
       const now = new Date();
-      const message = [];
-      data.forEach(job => {
-        const printingDeadline = new Date(job.printerDeadline);
-        const printerName = job.printerPrintingName;
-        const deadlineDuration = now - printingDeadline;
-        if (!job.isCompleted && now > printingDeadline) {
-          const totalHours = Math.floor(deadlineDuration / (1000 * 60 * 60));
-          const days = Math.floor(totalHours / 24);
-          const hours = totalHours % 24;
-          message.push(`Job No: ${job.jobNo},Job Date: ${job.date}, Client name: ${job.client}, Printer Name: ${printerName} has missed its deadline! Time passed: ${days}d ${hours}h`);
-        }
-      });
-      if (message.length > 0) {
-        setNotificationMessage(message);
-        setShowNotification(true);
-      }
-    };
-    checkDeadlines();
-    const interval = setInterval(checkDeadlines, 300000);
-    return () => clearInterval(interval);
-  }, [data]);
-
-  const handleCloseNotification = () => setShowNotification(false);
-
-  useEffect(() => {
-    const checkJobDeadlines = () => {
-      const now = new Date();
+      const printerMessages = [];
       const warningMessages = [];
       const missedMessages = [];
 
       data.forEach(job => {
+        const printingDeadline = new Date(job.printerDeadline);
+        if (!job.isCompleted && !Number.isNaN(printingDeadline.getTime()) && now > printingDeadline) {
+          const deadlineDuration = now - printingDeadline;
+          const totalHours = Math.floor(deadlineDuration / (1000 * 60 * 60));
+          const days = Math.floor(totalHours / 24);
+          const hours = totalHours % 24;
+          printerMessages.push(`Job No: ${job.jobNo}, Job Date: ${job.date}, Client name: ${job.client}, Printer Name: ${job.printerPrintingName} has missed its deadline! Time passed: ${days}d ${hours}h`);
+        }
+
         if (!job.deadline) return;
         const jobDeadline = new Date(job.deadline);
-        if (!jobDeadline || Number.isNaN(jobDeadline.getTime())) return;
+        if (Number.isNaN(jobDeadline.getTime())) return;
 
         const diffMs = jobDeadline - now;
         const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -604,7 +534,7 @@ const wastePopupBottomStyle = {
 
         if (!job.isCompleted && diffMs > 0 && diffMs <= 6 * 60 * 60 * 1000) {
           warningMessages.push(
-            `Job No: ${job.jobNo} is due in ${diffHours}h ${diffMinutes}m (Deadline: ${moment(jobDeadline).format('DD/MM/YYYY HH:mm')})`
+            `Job No: ${job.jobNo} is due in ${diffHours}h ${diffMinutes}m (Deadline: ${formatDateTime(jobDeadline)})`
           );
         }
 
@@ -612,76 +542,82 @@ const wastePopupBottomStyle = {
           const passedHours = Math.abs(Math.floor(diffMs / (1000 * 60 * 60)));
           const passedMinutes = Math.abs(Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60)));
           missedMessages.push(
-            `Job No: ${job.jobNo} missed the deadline by ${passedHours}h ${passedMinutes}m (Deadline: ${moment(jobDeadline).format('DD/MM/YYYY HH:mm')})`
+            `Job No: ${job.jobNo} missed the deadline by ${passedHours}h ${passedMinutes}m (Deadline: ${formatDateTime(jobDeadline)})`
           );
         }
       });
 
+      setNotificationMessage(printerMessages);
+      setShowNotification(printerMessages.length > 0);
       setDeadlineWarningMessages(warningMessages);
       setShowDeadlineWarning(warningMessages.length > 0);
       setDeadlineMissedMessages(missedMessages);
       setShowDeadlineMissed(missedMessages.length > 0);
     };
 
-    checkJobDeadlines();
-    const interval = setInterval(checkJobDeadlines, 60000);
-    return () => clearInterval(interval);
+    const timeout = setTimeout(checkDeadlines, 1500);
+    const interval = setInterval(checkDeadlines, 300000);
+    return () => {
+      clearTimeout(timeout);
+      clearInterval(interval);
+    };
   }, [data]);
 
-  useEffect(() => {
-    const checkDeadlines2 = () => {
-      const now = new Date();
-      const message = [];
-      csJobs.forEach(csJob => {
-        const Deadline = new Date(csJob.deadline);
-        const csName = csJob.userName;
-        const timeUntilDeadline = Deadline - now;
-        if (!csJob.isCompleted && timeUntilDeadline > 0 && timeUntilDeadline <= 8 * 60 * 60 * 1000) {
-          const totalHours = Math.floor(timeUntilDeadline / (1000 * 60 * 60));
-          const totalMinutes = Math.floor((timeUntilDeadline % (1000 * 60 * 60)) / (1000 * 60));
-          const totalSeconds = Math.floor((timeUntilDeadline % (1000 * 60)) / 1000);
-          message.push(`Job No: ${csJob.jobNo}, CS Name: ${csName}'s deadline is approaching in: ${totalHours}h ${totalMinutes}m ${totalSeconds}s`);
-        }
-      });
-      if (message.length > 0) {
-        setNotificationMessage2(message);
-        setShowNotification2(true);
-      }
-    };
-    checkDeadlines2();
-    const interval = setInterval(checkDeadlines2, 500000);
-    return () => clearInterval(interval);
-  }, [csJobs]);
-
-  const handleCloseNotification2 = () => setShowNotification2(false);
-
   const columnDefs = useMemo(() => [
-    { headerName: '', checkboxSelection: true, headerCheckboxSelection: true, width: 50, filter: false },
+    {
+      headerName: '',
+      checkboxSelection: true,
+      headerCheckboxSelection: true,
+      headerCheckboxSelectionCurrentPageOnly: true,
+      headerCheckboxSelectionFilteredOnly: true,
+      width: 50,
+      filter: false
+    },
     {
       headerName: 'Job Date',
       minWidth: 130,
-      valueGetter: params => {
-        const { date, entereddt, lstupdatedt } = params.data;
-        const finalDate = date || entereddt || lstupdatedt;
-        const parsedDate = moment(finalDate, [
-          "DD/MMM/YYYY",
-          "YYYY-MM-DDTHH:mm:ss.SSSZ",
-          "DD/MM/YYYY HH:mm:ss",
-          moment.ISO_8601
-        ]);
-        return parsedDate.isValid() ? parsedDate.format("DD/MMM/YYYY") : '-';
-      },
-      comparator: (valueA, valueB) => {
-        const parseDate = str => moment(str, "DD/MMM/YYYY").valueOf();
-        return parseDate(valueA) - parseDate(valueB);
-      }
+     valueGetter: params => {
+  const { date, entereddt, lstupdatedt } = params.data;
+  const finalDate = date || entereddt || lstupdatedt;
+  return formatJobDate(finalDate);
+}
     },
     { headerName: 'Job ID', field: 'jobNo', minWidth: 140 },
     { headerName: 'Printer Name', field: 'printerPrintingName', minWidth: 180 },
-    { headerName: 'Qty', field: 'qty', minWidth: 110 },
-    { headerName: 'Print W.', field: 'width', valueFormatter: params => parseFloat(params.value).toFixed(2), minWidth: 130 },
-    { headerName: 'Print L.', field: showLength ? 'length' : 'height', valueFormatter: params => parseFloat(params.value).toFixed(2), minWidth: 130 },
-    { headerName: 'Print SQ.Ft.', field: 'totalSqFt', valueFormatter: params => parseFloat(params.value).toFixed(2), minWidth: 140 },
+    {
+      headerName: 'Qty',
+      field: 'qty',
+      valueGetter: params => getRowValue(params.data, ['qty', 'Qty', 'QTY']),
+      minWidth: 110
+    },
+    {
+      headerName: 'Print W.',
+      field: 'width',
+      valueGetter: params => getRowValue(params.data, ['width', 'Width', 'WIDTH']),
+      valueFormatter: params => formatNumber(params.value),
+      minWidth: 130
+    },
+    {
+      headerName: 'Print L.',
+      field: showLength ? 'length' : 'height',
+      valueGetter: params => {
+        if (params.node?.rowPinned) {
+          return params.data?.[showLength ? 'length' : 'height'];
+        }
+        return showLength
+          ? getRowValue(params.data, ['length', 'Length', 'LENGTH']) || getPrintLength(params.data)
+          : getPrintLength(params.data);
+      },
+      valueFormatter: params => formatNumber(params.value),
+      minWidth: 130
+    },
+    {
+      headerName: 'Print SQ.Ft.',
+      field: 'totalSqFt',
+      valueGetter: params => params.node?.rowPinned ? params.data?.totalSqFt : calcActualSqFt(params.data),
+      valueFormatter: params => formatNumber(params.value),
+      minWidth: 140
+    },
     { headerName: 'Media', field: 'media', minWidth: 180 },
     { headerName: 'Implementation', field: 'implementation', minWidth: 150 },
     { headerName: 'Job Deadline', field: 'deadline', minWidth: 170 },
@@ -701,20 +637,41 @@ const wastePopupBottomStyle = {
   ], [showLength]);
 
   const defaultColDef = useMemo(() => ({
-    sortable: true, filter: true, resizable: true, wrapText: true, autoHeight: true,
+    sortable: true, filter: true, resizable: true, wrapText: true,
   }), []);
 
+  const getCurrentPageSelectedRows = () => {
+    const api = gridRef.current?.api;
+    if (!api) return [];
+
+    const displayedCount = api.getDisplayedRowCount();
+    const currentPage = api.paginationGetCurrentPage?.() || 0;
+    const pageSize = api.paginationGetPageSize?.() || displayedCount;
+    const startIndex = currentPage * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, displayedCount);
+    const rows = [];
+
+    for (let index = startIndex; index < endIndex; index += 1) {
+      const node = api.getDisplayedRowAtIndex(index);
+      if (node?.isSelected?.() && node.data) rows.push(node.data);
+    }
+
+    return rows;
+  };
+
   const onSelectionChanged = () => {
-    const selectedNodes = gridRef.current?.api.getSelectedNodes() || [];
-    const visibleRowIndexes = gridRef.current?.api.getRenderedNodes().map(n => n.rowIndex) || [];
-    const selectedVisibleData = selectedNodes.filter(node => visibleRowIndexes.includes(node.rowIndex)).map(node => node.data);
+    const selectedRowsData = getCurrentPageSelectedRows();
 
     let totalQty = 0, totalW = 0, totalL = 0, totalSqFt = 0;
-    selectedVisibleData.forEach(row => {
-      totalQty += parseFloat(row.qty || "0");
-      totalW += parseFloat(row.width || "0");
-      totalL += parseFloat((showLength ? row.length : row.height) || "0");
-      totalSqFt += parseFloat(row.totalSqFt || "0");
+    selectedRowsData.forEach(row => {
+      const qty = toNum(getRowValue(row, ['qty', 'Qty', 'QTY']));
+      const width = toNum(getRowValue(row, ['width', 'Width', 'WIDTH']));
+      const length = toNum(getPrintLength(row));
+
+      totalQty += qty;
+      totalW += width * qty;
+      totalL += length * qty;
+      totalSqFt += calcActualSqFt(row);
     });
 
     setSelectedTotals({
@@ -725,7 +682,7 @@ const wastePopupBottomStyle = {
     });
 
     const selectedMap = {};
-    selectedVisibleData.forEach(row => {
+    selectedRowsData.forEach(row => {
       if (row.id) selectedMap[row.id] = true;
     });
     setSelectedRows(selectedMap);
@@ -733,7 +690,7 @@ const wastePopupBottomStyle = {
   };
 
   const pinnedBottomRowData = useMemo(() => [{
-    jobNo: 'Selected Total',
+    jobNo: 'Visible Selected Total',
     qty: selectedTotals.qty,
     width: selectedTotals.width,
     [showLength ? 'length' : 'height']: selectedTotals.length,
@@ -935,7 +892,11 @@ const wastePopupBottomStyle = {
                       </Form>
                   
                     <Modal isOpen={open} className="completed-printing-modal">
-                      <ModalBody ><CompletedPrinting /></ModalBody>
+                      <ModalBody>
+                        <Suspense fallback={<div className="p-3 text-center">Loading...</div>}>
+                          <CompletedPrinting />
+                        </Suspense>
+                      </ModalBody>
                       <ModalFooter>
                         <Button color="primary" onClick={() => { toggle(); window.location.reload(); }}>Close</Button>
                       </ModalFooter>
@@ -949,15 +910,17 @@ const wastePopupBottomStyle = {
                   <div className="ag-theme-alpine custom-ag-grid" style={{ height: '600px', width: '100%' }}>
                     <AgGridReact
                       ref={gridRef}
-                      rowData={sortedData}
+                      rowData={filteredData1}
                       columnDefs={columnDefs}
                       defaultColDef={defaultColDef}
                       getRowHeight={() => 40}
-                      domLayout="autoHeight"
                       getRowNodeId={row => row.id}
                       suppressRowClickSelection={true}
                       rowSelection="multiple"
                       onSelectionChanged={onSelectionChanged}
+                      onPaginationChanged={onSelectionChanged}
+                      onFilterChanged={onSelectionChanged}
+                      onSortChanged={onSelectionChanged}
                       pagination
                       paginationPageSize={50}
                       pinnedBottomRowData={pinnedBottomRowData}
@@ -1000,18 +963,6 @@ const wastePopupBottomStyle = {
                       containerBg="rgba(231, 116, 116, 0.445)"
                       bgColor="red"
                       headerColor="#ff5b68"
-                    />
-                  )}
-
-                  {showNotification2 && (
-                    <Notification2
-                      headline="Deadline Alert!"
-                      message={notificationMessage2}
-                      onClose={() => setShowNotification2(false)}
-                      show={showNotification2}
-                      containerBg="rgba(116, 143, 231, 0.445)"
-                      bgColor="blue"
-                      headerColor="#5b79ff"
                     />
                   )}
 

@@ -53,7 +53,7 @@ const Printlaminpacking = ({ location_id }) => {
 
   const fetchPrinting = async (location_id) => {
     try {
-      const payload = { location_id: location_id };
+      const payload = { locationId: location_id };
       const response = await axios.post(config.Packing.URL.GetAllPacking, payload, {
         timeout: 10000,
         headers: { 'Content-Type': 'application/json' },

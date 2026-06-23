@@ -10,6 +10,35 @@ import Select from "react-select";
 import { getCompanyBranchDetails } from "./companyBranches";
 
 const GST_RATE = 18;
+const INVOICE_STATUS_STORAGE_KEY = "invoiceStatusByNo";
+const LEGACY_FINAL_INVOICE_STORAGE_KEY = "finalInvoiceNos";
+const READ_ONLY_ITEM_FIELDS = new Set(["invoiceAmount", "InvoiceAmount", "taxableValue", "TaxableValue"]);
+
+const rememberInvoiceStatus = (invoiceNo, status) => {
+  const normalizedInvoiceNo = String(invoiceNo || "").trim();
+  const normalizedStatus = String(status || "").trim();
+
+  if (!normalizedInvoiceNo || !normalizedStatus) return;
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem(INVOICE_STATUS_STORAGE_KEY) || "{}");
+    const statusByInvoiceNo = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    statusByInvoiceNo[normalizedInvoiceNo] = normalizedStatus;
+    localStorage.setItem(INVOICE_STATUS_STORAGE_KEY, JSON.stringify(statusByInvoiceNo));
+
+    if (normalizedStatus.toLowerCase() !== "final") {
+      const legacyParsed = JSON.parse(localStorage.getItem(LEGACY_FINAL_INVOICE_STORAGE_KEY) || "[]");
+      if (Array.isArray(legacyParsed)) {
+        const updated = legacyParsed.filter(
+          (value) => String(value || "").trim().toLowerCase() !== normalizedInvoiceNo.toLowerCase()
+        );
+        localStorage.setItem(LEGACY_FINAL_INVOICE_STORAGE_KEY, JSON.stringify(updated));
+      }
+    }
+  } catch (error) {
+    console.warn("Could not remember invoice status locally", error);
+  }
+};
 
 const uid = (prefix) => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -35,7 +64,7 @@ const groupByKey = (items, keyName) => {
 };
 
 const calculateInvoiceTotals = (items) => {
-  const subTotal = items.reduce((sum, item) => sum + toNumber(item.Amount), 0);
+  const subTotal = items.reduce((sum, item) => sum + calculatePersistedItemAmount(item), 0);
   const gstTotal = (subTotal * GST_RATE) / 100;
 
   return {
@@ -44,6 +73,32 @@ const calculateInvoiceTotals = (items) => {
     GstTotal: gstTotal,
     GrandTotal: subTotal + gstTotal,
   };
+};
+
+const calculatePersistedItemAmount = (item) => {
+  const savedAmount = toNumber(
+    item.InvoiceAmount ??
+      item.invoiceAmount ??
+      item.InvoiceTaxableValue ??
+      item.invoiceTaxableValue ??
+      item.TaxableValue ??
+      item.taxableValue ??
+      item.Amount ??
+      item.amount
+  );
+
+  if (savedAmount) return savedAmount;
+
+  const qty = toNumber(item.InvoiceQty ?? item.invoiceQty ?? item.Qty ?? item.qty) || 1;
+  const width = toNumber(item.InvoiceWidth ?? item.invoiceWidth ?? item.Width ?? item.width);
+  const height = toNumber(item.InvoiceHeight ?? item.invoiceHeight ?? item.Height ?? item.height ?? item.Length ?? item.length);
+  const rate = toNumber(item.InvoiceRate ?? item.invoiceRate ?? item.Rate ?? item.rate);
+  const totalSqFt = toNumber(item.InvoiceTotalSqFt ?? item.invoiceTotalSqFt ?? item.TotalSqFt ?? item.totalSqFt);
+  const lineType = String(item.Type ?? item.type ?? item.lineType ?? "").toLowerCase();
+  const sqft = totalSqFt || (width && height ? (width * height * qty) / 144 : 0);
+
+  if ((lineType === "transportation" || lineType === "implementation") && !sqft) return qty * rate;
+  return sqft * rate;
 };
 
 const mapInvoiceAddress = (addresses) =>
@@ -86,12 +141,22 @@ const isDifferentProductionBillingLocation = (item) => {
 };
 
 const getRowJobNo = (row) => getRowValue(row, "jobNo", "JobNo", "JOB NO", "Job No");
-const getRowClient = (row) => getRowValue(row, "client", "Client", "customerName", "subClient", "SubClient");
+const getRowClient = (row) => getRowValue(row, "client", "Client", "customerName", "CustomerName", "subClient", "SubClient");
 const getRowStore = (row) => getRowValue(row, "store", "storeName", "StoreName", "salonAddress", "SalonAddress", "city", "City");
 const getRowAddress = (row) =>
-  getRowValue(row, "dispatchAddress", "DispatchAddress", "salonAddress", "SalonAddress", "storeAddress", "StoreAddress");
+  getRowValue(
+    row,
+    "dispatchAddress",
+    "DispatchAddress",
+    "customerAddress",
+    "CustomerAddress",
+    "salonAddress",
+    "SalonAddress",
+    "storeAddress",
+    "StoreAddress"
+  );
 const getRowDescription = (row) =>
-  getRowValue(row, "externalMedia", "ExternalMedia", "nameSubCode", "NameSubCode", "visualCode", "VisualCode", "media", "Media") ||
+  getRowValue(row, "externalMedia", "ExternalMedia", "details", "Details", "nameSubCode", "NameSubCode", "visualCode", "VisualCode", "media", "Media") ||
   "Media";
 const getRowMedia = (row) => getRowValue(row, "media", "Media", "externalMedia", "ExternalMedia", "internalMedia", "InternalMedia");
 const getRowRegion = (row) => getRowValue(row, "region", "Region", "productionLocation", "ProductionLocation");
@@ -149,7 +214,95 @@ const getResponseRows = (data) => {
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.message)) return data.message;
+  if (Array.isArray(data?.$values)) return data.$values;
+  if (Array.isArray(data?.data?.$values)) return data.data.$values;
+  if (Array.isArray(data?.result?.$values)) return data.result.$values;
+  if (Array.isArray(data?.message?.$values)) return data.message.$values;
   return [];
+};
+
+const firstNonEmpty = (...values) => {
+  for (const value of values) {
+    const text = toText(value).trim();
+    if (text) return text;
+  }
+  return "";
+};
+
+const getSavedInvoiceNoFromResponse = (responseData) => {
+  const directInvoiceNo = firstNonEmpty(
+    responseData?.customerInvoiceNo,
+    responseData?.CustomerInvoiceNo,
+    responseData?.invoiceNo,
+    responseData?.InvoiceNo,
+    responseData?.data?.customerInvoiceNo,
+    responseData?.data?.CustomerInvoiceNo,
+    responseData?.data?.invoiceNo,
+    responseData?.data?.InvoiceNo,
+    responseData?.customerInvoice?.invoiceNo,
+    responseData?.customerInvoice?.InvoiceNo,
+    responseData?.CustomerInvoice?.invoiceNo,
+    responseData?.CustomerInvoice?.InvoiceNo,
+    responseData?.data?.customerInvoice?.invoiceNo,
+    responseData?.data?.customerInvoice?.InvoiceNo,
+    responseData?.data?.CustomerInvoice?.invoiceNo,
+    responseData?.data?.CustomerInvoice?.InvoiceNo,
+    typeof responseData === "string" ? responseData : ""
+  );
+
+  return directInvoiceNo;
+};
+
+const addInvoiceNoToPreviewPayload = (previewPayload, invoiceNo) => ({
+  ...previewPayload,
+  invoiceNo,
+  InvoiceNo: invoiceNo,
+  CustomerInvoiceNo: invoiceNo,
+  _invoiceNo: invoiceNo,
+});
+
+const getInvoiceUpdatedTime = (invoice) => {
+  const dateValue =
+    invoice?.Lstupdatedt ||
+    invoice?.lstupdatedt ||
+    invoice?.Entereddat ||
+    invoice?.entereddat ||
+    invoice?.InvoiceDate ||
+    invoice?.invoiceDate;
+  const time = new Date(dateValue).getTime();
+  return Number.isFinite(time) ? time : 0;
+};
+
+const findSavedCustomerInvoiceNo = async ({ jobCardNo, clientName, grandTotal }) => {
+  const response = await axios.post(
+    config.SalesInvoice.URL.GetAll,
+    {},
+    {
+      timeout: 10000,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+  const normalizedJobNo = normalizeCompare(jobCardNo);
+  const normalizedClient = normalizeCompare(clientName);
+  const rows = getResponseRows(response.data);
+
+  const matches = rows.filter((row) => {
+    const invoiceType = normalizeCompare(row?.InvoiceType || row?.invoiceType);
+    const rowJobNo = normalizeCompare(row?.JobCards || row?.jobCards);
+    const rowClient = normalizeCompare(row?.ClientBillAs || row?.clientBillAs);
+    const rowGrandTotal = toNumber(row?.GrandTotal || row?.grandTotal);
+
+    return (
+      invoiceType === "billingtocustomer" &&
+      (!normalizedJobNo || rowJobNo === normalizedJobNo) &&
+      (!normalizedClient || rowClient === normalizedClient) &&
+      (!grandTotal || Math.abs(rowGrandTotal - grandTotal) < 0.01)
+    );
+  });
+
+  const matched = matches.sort((left, right) => getInvoiceUpdatedTime(right) - getInvoiceUpdatedTime(left))[0];
+  return firstNonEmpty(matched?.InvoiceNo, matched?.invoiceNo, matched?.CustomerInvoiceNo, matched?.customerInvoiceNo);
 };
 
 const createEmptyAddress = (label) => ({
@@ -173,6 +326,7 @@ const createEmptyItem = (lineType = "media") => ({
   width: "",
   height: "",
   rate: "",
+  manualAmount: "",
 });
 
 const createInitialData = () => ({
@@ -189,6 +343,21 @@ const createInitialData = () => ({
   groupByDescription: false,
 });
 const calculateItemAmount = (item) => {
+  const manualAmount = String(item.manualAmount ?? "").trim();
+  if (manualAmount !== "") return toNumber(manualAmount);
+
+  const savedAmount = toNumber(
+    item.invoiceAmount ??
+      item.InvoiceAmount ??
+      item.invoiceTaxableValue ??
+      item.InvoiceTaxableValue ??
+      item.taxableValue ??
+      item.TaxableValue ??
+      item.amount ??
+      item.Amount
+  );
+  if (savedAmount > 0) return savedAmount;
+
   const qty = toNumber(item.qty);
   const width = toNumber(item.width);
   const height = toNumber(item.height);
@@ -226,6 +395,18 @@ const rowToLineItem = (row) => {
   const qty = toNumber(getRowValue(row, "qty", "Qty", "quantity", "Quantity")) || toNumber(pricing.quantity) || 1;
   const width = toNumber(getRowValue(row, "width", "Width"));
   const height = toNumber(getRowValue(row, "height", "Height", "length", "Length"));
+  const sourceAmount = getRowValue(
+    row,
+    "manualAmount",
+    "amount",
+    "Amount",
+    "taxableValue",
+    "TaxableValue",
+    "invoiceAmount",
+    "InvoiceAmount",
+    "lineJobValue",
+    "LineJobValue"
+  );
 
   return {
     id: uid("item"),
@@ -236,12 +417,13 @@ const rowToLineItem = (row) => {
     storeName: getRowStore(row),
     city: getRowValue(row, "city", "City"),
     description: getRowDescription(row),
-    media: getRowMedia(row),
+    media: getRowMedia(row) || pricing.media,
     hsnCode: pricing.hsnCode || getRowValue(row, "hsnCode", "HsnCode", "HSNCode", "hsn", "HSN"),
     qty,
     width,
     height,
     rate: pricing.unitPrice || getRowValue(row, "rate", "Rate", "unitPrice", "UnitPrice"),
+    manualAmount: toNumber(sourceAmount) > 0 ? sourceAmount : "",
     source: row,
   };
 };
@@ -324,6 +506,73 @@ const enrichRowsWithJobDetails = (rows, allJobRows) => {
   });
 };
 
+const normalizeChallanDashboardRows = (challans) =>
+  getResponseRows(challans).flatMap((challan, challanIndex) => {
+    const challanItems = getResponseRows(challan?.items || challan?.Items);
+    const fallbackItem = {
+      rowId: challan?.id || challan?.Id || `challan-${challanIndex}`,
+      jobNo: challan?.jobNo || challan?.JobNo,
+      details: challan?.remarks || challan?.Remarks || "Challan",
+      hsnCode: challan?.hsnCode || challan?.HsnCode,
+      width: challan?.width || challan?.Width,
+      height: challan?.height || challan?.Height,
+      quantity: challan?.quantity || challan?.Quantity || 1,
+      unitPrice: challan?.unitPrice || challan?.UnitPrice || challan?.jobValue || challan?.JobValue || 0,
+    };
+    const items = challanItems.length ? challanItems : [fallbackItem];
+    const challanType = String(challan?.challanType || challan?.ChallanType || "delivery").trim();
+    const source = challanType.toLowerCase().includes("implementation") ? "implementation" : "delivery";
+
+    return items.map((item, itemIndex) => ({
+      ...challan,
+      ...item,
+      id: item?.rowId || item?.RowId || item?.id || item?.Id || `${challan?.id || challan?.Id || "challan"}-${itemIndex}`,
+      _invoiceSource: source,
+      _fromChallanDashboard: true,
+      challanType,
+      challanId: challan?.id || challan?.Id || challan?.challanId || challan?.ChallanId,
+      ChallanId: challan?.id || challan?.Id || challan?.challanId || challan?.ChallanId,
+      challanNo: challan?.challanNo || challan?.ChallanNo,
+      ChallanNo: challan?.challanNo || challan?.ChallanNo,
+      challanDate: challan?.challanDate || challan?.ChallanDate,
+      ChallanDate: challan?.challanDate || challan?.ChallanDate,
+      customerName: challan?.customerName || challan?.CustomerName,
+      CustomerName: challan?.customerName || challan?.CustomerName,
+      customerAddress: challan?.customerAddress || challan?.CustomerAddress,
+      CustomerAddress: challan?.customerAddress || challan?.CustomerAddress,
+      customerGstNo: challan?.customerGstNo || challan?.CustomerGstNo,
+      CustomerGstNo: challan?.customerGstNo || challan?.CustomerGstNo,
+      jobNo: item?.jobNo || item?.JobNo || challan?.jobNo || challan?.JobNo,
+      JobNo: item?.jobNo || item?.JobNo || challan?.jobNo || challan?.JobNo,
+      projectName: challan?.projectName || challan?.ProjectName,
+      ProjectName: challan?.projectName || challan?.ProjectName,
+      poNo: challan?.poNo || challan?.PoNo,
+      PoNo: challan?.poNo || challan?.PoNo,
+      poDate: challan?.poDate || challan?.PoDate,
+      PoDate: challan?.poDate || challan?.PoDate,
+      storeName: challan?.storeName || challan?.StoreName,
+      StoreName: challan?.storeName || challan?.StoreName,
+      storeAddress: challan?.storeAddress || challan?.StoreAddress,
+      StoreAddress: challan?.storeAddress || challan?.StoreAddress,
+      productionLocation: challan?.productionLocation || challan?.ProductionLocation,
+      ProductionLocation: challan?.productionLocation || challan?.ProductionLocation,
+      dispatchAddress: challan?.dispatchAddress || challan?.DispatchAddress,
+      DispatchAddress: challan?.dispatchAddress || challan?.DispatchAddress,
+      details: item?.details || item?.Details || item?.nameSubCode || item?.NameSubCode,
+      Details: item?.details || item?.Details || item?.nameSubCode || item?.NameSubCode,
+      hsnCode: item?.hsnCode || item?.HsnCode,
+      HsnCode: item?.hsnCode || item?.HsnCode,
+      width: item?.width || item?.Width,
+      Width: item?.width || item?.Width,
+      height: item?.height || item?.Height,
+      Height: item?.height || item?.Height,
+      quantity: item?.quantity || item?.Quantity,
+      Quantity: item?.quantity || item?.Quantity,
+      unitPrice: item?.unitPrice || item?.UnitPrice || item?.lineJobValue || item?.LineJobValue || 0,
+      UnitPrice: item?.unitPrice || item?.UnitPrice || item?.lineJobValue || item?.LineJobValue || 0,
+    }));
+  });
+
 const stripInvoiceHelperFields = (row) => {
   if (!row || typeof row !== "object") return {};
 
@@ -344,7 +593,9 @@ const buildJobCards = (rows, customers) => {
   rows.forEach((row, index) => {
     const source = row._invoiceSource || "job";
     const jobCardNo = getRowJobNo(row) || `Job ${index + 1}`;
-    const key = `${source}|${jobCardNo}`;
+    const challanNo = getChallanMeta(row).no;
+    const storeName = getRowStore(row);
+    const key = [source, jobCardNo, challanNo, storeName].map((value) => String(value || "").trim()).join("|");
     if (!grouped.has(key)) grouped.set(key, []);
     grouped.get(key).push(row);
   });
@@ -403,6 +654,7 @@ const groupInvoiceItems = (items, groupByMedia, groupByStore, groupByCity, group
         selected: false,
         qty: 0,
         jobNo: "",
+        manualAmount: "",
         description: [
           groupByStore ? item.storeName || "Store" : "",
           groupByCity ? item.city || "City" : "",
@@ -414,6 +666,7 @@ const groupInvoiceItems = (items, groupByMedia, groupByStore, groupByCity, group
     const current = grouped.get(key);
     current.qty = toNumber(current.qty) + toNumber(item.qty);
     current.jobNo = joinUnique([current.jobNo, item.jobNo]);
+    current.manualAmount = toText(toNumber(current.manualAmount) + calculateItemAmount(item));
   });
 
   return Array.from(grouped.values());
@@ -423,8 +676,10 @@ const InvoicePreviewBuilder = () => {
   const [data, setData] = useState(createInitialData);
   const [jobCards, setJobCards] = useState([]);
   const [searchText, setSearchText] = useState("");
+  const [queueJobFilterNos, setQueueJobFilterNos] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
   const [message, setMessage] = useState("");
 
   const loadInvoiceJobs = useCallback(async () => {
@@ -455,6 +710,7 @@ const InvoicePreviewBuilder = () => {
         locationId && username
           ? axios.post(config.Implementation.URL.GetAllImplementationAccToLocation, payload)
           : axios.post(config.Implementation.URL.GetallImplementation);
+      const challanDashboardPromise = axios.get(config.Delivery.URL.GetAllChallansDashboard);
       const allJobsPromise =
         locationId && username
           ? axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, allJobsPayload)
@@ -464,11 +720,13 @@ const InvoicePreviewBuilder = () => {
   customerResult,
   deliveryResult,
   implementationResult,
+  challanDashboardResult,
   allJobsResult,
 ] = await Promise.allSettled([
   customerPromise,
   deliveryPromise,
   implementationPromise,
+  challanDashboardPromise,
   allJobsPromise,
 ]);
 
@@ -482,6 +740,9 @@ const implementationResponse =
   implementationResult.status === "fulfilled"
     ? implementationResult.value
     : { data: [] };
+
+const challanDashboardResponse =
+  challanDashboardResult.status === "fulfilled" ? challanDashboardResult.value : { data: [] };
 
 const allJobsResponse =
   allJobsResult.status === "fulfilled" ? allJobsResult.value : { data: [] };
@@ -504,11 +765,17 @@ if (implementationResult.status === "rejected") {
         ...row,
         _invoiceSource: "implementation",
       }));
+      const challanRows = normalizeChallanDashboardRows(challanDashboardResponse.data);
 
       const eligibleRows = enrichRowsWithJobDetails([...deliveryRows, ...implementationRows], jobRows).filter(
         (row) => isDeliveryDone(row) || isImplementationDone(row) || getChallanMeta(row).isCreated
       );
-      const nextCards = buildJobCards(eligibleRows, customers);
+      const cardMap = new Map();
+      buildJobCards(challanRows, customers).forEach((card) => cardMap.set(card.id, card));
+      buildJobCards(eligibleRows, customers).forEach((card) => {
+        if (!cardMap.has(card.id)) cardMap.set(card.id, card);
+      });
+      const nextCards = Array.from(cardMap.values());
 
       setJobCards(nextCards);
       setData((prev) => {
@@ -579,33 +846,59 @@ if (implementationResult.status === "rejected") {
   }, []);
 
   const jobSelectOptions = useMemo(
-  () =>
-    jobCards.map((job) => ({
-      value: job.id,
-      label: `${job.jobCardNo} (${job.clientName || "-"})`,
-      job,
-    })),
-  [jobCards]
-);
+    () =>
+      jobCards
+        .filter((job) => String(job.jobCardNo || "").trim())
+        .map((job) => {
+          const detail = [job.source, job.storeName !== "-" ? job.storeName : "", job.challanNo ? `Challan: ${job.challanNo}` : ""]
+            .filter(Boolean)
+            .join(" | ");
 
-const selectedJobOptions = useMemo(
-  () => jobSelectOptions.filter((option) => data.selectedJobIds.includes(option.value)),
-  [jobSelectOptions, data.selectedJobIds]
-);
+          return {
+            value: job.id,
+            label: detail ? `${job.jobCardNo} - ${detail}` : job.jobCardNo,
+            jobCardNo: job.jobCardNo,
+          };
+        }),
+    [jobCards]
+  );
+
+  const selectedJobOptions = useMemo(
+    () => jobSelectOptions.filter((option) => queueJobFilterNos.includes(option.value)),
+    [jobSelectOptions, queueJobFilterNos]
+  );
 
   const visibleJobCards = useMemo(() => {
-    const query = searchText.trim().toLowerCase();
-    if (!query) return jobCards;
+    if (queueJobFilterNos.length) {
+      const selectedCardIds = new Set(queueJobFilterNos);
+      return jobCards.filter((card) => selectedCardIds.has(card.id));
+    }
 
-    return jobCards.filter((card) => String(card.jobCardNo || "").toLowerCase().includes(query));
-  }, [jobCards, searchText]);
+    if (data.selectedJobIds.length) {
+      const selectedIds = new Set(data.selectedJobIds);
+      return jobCards.filter((card) => selectedIds.has(card.id));
+    }
 
-const visibleItems = useMemo(
-  () => groupInvoiceItems(data.items, data.groupByMedia, data.groupByStore, data.groupByCity, data.groupByDescription),
-  [data.items, data.groupByMedia, data.groupByStore, data.groupByCity, data.groupByDescription]
-); 
- const grandTotal = useMemo(() => visibleItems.reduce((sum, item) => sum + calculateItemAmount(item), 0), [visibleItems]);
+    return [];
+  }, [data.selectedJobIds, jobCards, queueJobFilterNos]);
+
   const selectedItems = useMemo(() => data.items.filter((item) => item.selected), [data.items]);
+  const invoiceItems = useMemo(
+    () => groupInvoiceItems(selectedItems, data.groupByMedia, data.groupByStore, data.groupByCity, data.groupByDescription),
+    [data.groupByCity, data.groupByDescription, data.groupByMedia, data.groupByStore, selectedItems]
+  );
+ const grandTotal = useMemo(() => invoiceItems.reduce((sum, item) => sum + calculateItemAmount(item), 0), [invoiceItems]);
+  const groupedPreviewItems = useMemo(
+    () =>
+      groupInvoiceItems(
+        selectedItems,
+        data.groupByMedia,
+        data.groupByStore,
+        data.groupByCity,
+        data.groupByDescription
+      ),
+    [data.groupByCity, data.groupByDescription, data.groupByMedia, data.groupByStore, selectedItems]
+  );
 
   const handleJobsSelected = useCallback(
     (selectedIds) => {
@@ -654,6 +947,8 @@ const visibleItems = useMemo(
   };
 
   const updateItem = (id, field, value) => {
+    if (READ_ONLY_ITEM_FIELDS.has(field)) return;
+
     setData((prev) => ({
       ...prev,
       items: prev.items.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
@@ -678,30 +973,45 @@ const visibleItems = useMemo(
   const handleCreateGroupBill = () => {
     const count = selectedItems.length;
     const total = selectedItems.reduce((sum, item) => sum + calculateItemAmount(item), 0);
-    setMessage(count ? `Group bill created with ${count} item(s): ${formatMoney(total)}` : "Please select item(s) for group bill.");
+
+    if (!count) {
+      setMessage("Please select item(s) for group bill.");
+      return;
+    }
+
+    setData((prev) => ({
+      ...prev,
+      groupByDescription: true,
+      items: prev.items.map((item) => (item.selected ? { ...item, groupByMedia: true } : item)),
+    }));
+    setMessage(`Group bill preview created with ${count} selected item(s): ${formatMoney(total)}`);
   };
 
   const copyPoDescriptionToItems = () => {
-    const description = String(data.poDescription || data.poNumber || "").trim();
+    if (!selectedItems.length) {
+      setMessage("Please select invoice row(s) before copying description.");
+      return;
+    }
+
+    const description = String(data.poDescription || data.poNumber || selectedItems[0]?.description || "").trim();
     if (!description) {
-      setMessage("Please enter PO description or PO No. before copying to invoice rows.");
+      setMessage("Please enter PO description or add description in the first selected row before copying.");
       return;
     }
 
     setData((prev) => {
-      const hasSelection = prev.items.some((item) => item.selected);
       return {
         ...prev,
         items: prev.items.map((item) =>
-          hasSelection && !item.selected ? item : { ...item, description }
+          item.selected ? { ...item, description } : item
         ),
       };
     });
-    setMessage("PO description copied to invoice line description.");
+    setMessage(`Description copied to ${selectedItems.length} selected invoice row(s).`);
   };
 
   const buildPrintRows = () =>
-    visibleItems.map((item, index) => {
+    invoiceItems.map((item, index) => {
       const taxableValue = calculateItemAmount(item);
       const gstAmount = (taxableValue * GST_RATE) / 100;
       return {
@@ -724,32 +1034,57 @@ const visibleItems = useMemo(
  const handleSave = async (status = "Draft") => {
   const invoiceRows = buildPrintRows();
 
-  if (!data.selectedJobIds.length) {
+  if (!data.selectedJobIds.length && !String(data.jobCardNo || "").trim()) {
     setMessage("Please select at least one job before saving the invoice.");
     return;
   }
 
+  if (!selectedItems.length) {
+    setMessage("Please select invoice row(s) before saving.");
+    return;
+  }
+
   if (!invoiceRows.length) {
-    setMessage("Please add at least one invoice row before saving.");
+    setMessage("Please select at least one invoice row before saving.");
+    return;
+  }
+
+  const invoiceGrandTotal = invoiceRows.reduce((sum, row) => sum + toNumber(row.lineTotal), 0);
+  if (status !== "Draft" && invoiceGrandTotal <= 0) {
+    setMessage("Grand total is 0. Please enter Qty, Width, Height and Rate before saving a final invoice.");
     return;
   }
 
   const userContext = getUserContext();
   const previewPayload = buildInvoicePreviewPayload(data, jobCards, invoiceRows);
 
-  const completeItems = visibleItems.map((item) => {
+  const completeItems = invoiceItems.map((item) => {
     const fullSourceRow = stripInvoiceHelperFields(item.source || {});
 
-    const qty = toNumber(item.qty || fullSourceRow.Qty || fullSourceRow.qty);
-    const width = toNumber(item.width || fullSourceRow.Width || fullSourceRow.width);
-    const height = toNumber(item.height || fullSourceRow.Height || fullSourceRow.height);
-    const rate = toNumber(item.rate || fullSourceRow.Rate || fullSourceRow.rate);
-    const amount = calculateItemAmount(item);
+    const sourceQty = fullSourceRow.Qty ?? fullSourceRow.qty ?? fullSourceRow.Quantity ?? fullSourceRow.quantity ?? "";
+    const sourceWidth = fullSourceRow.Width ?? fullSourceRow.width ?? "";
+    const sourceHeight = fullSourceRow.Height ?? fullSourceRow.height ?? fullSourceRow.Length ?? fullSourceRow.length ?? "";
+    const sourceRate = fullSourceRow.Rate ?? fullSourceRow.rate ?? fullSourceRow.unitPrice ?? fullSourceRow.UnitPrice ?? "";
+    const sourceDescription = fullSourceRow.Description ?? fullSourceRow.description ?? fullSourceRow.NameSubCode ?? fullSourceRow.nameSubCode ?? "";
+    const sourceHsn = fullSourceRow.Hsn ?? fullSourceRow.HsnCode ?? fullSourceRow.HSNCode ?? fullSourceRow.hsnCode ?? fullSourceRow.hsn ?? "";
+    const sourceMedia = fullSourceRow.Media ?? fullSourceRow.media ?? "";
+
+    const invoiceQty = toNumber(item.qty || sourceQty);
+    const invoiceWidth = toNumber(item.width || sourceWidth);
+    const invoiceHeight = toNumber(item.height || sourceHeight);
+    const invoiceRate = toNumber(item.rate || sourceRate);
+    const invoiceAmount = calculateItemAmount(item);
+    const invoiceGstAmount = (invoiceAmount * GST_RATE) / 100;
+    const invoiceLineTotal = invoiceAmount + invoiceGstAmount;
 
     const totalSqFt =
       fullSourceRow.TotalSqFt ??
       fullSourceRow["Total Sq.ft"] ??
-      (width && height ? (width * height * (qty || 1)) / 144 : 0);
+      (toNumber(sourceWidth) && toNumber(sourceHeight)
+        ? (toNumber(sourceWidth) * toNumber(sourceHeight) * (toNumber(sourceQty) || 1)) / 144
+        : 0);
+    const invoiceTotalSqFt =
+      invoiceWidth && invoiceHeight ? (invoiceWidth * invoiceHeight * (invoiceQty || 1)) / 144 : 0;
 
     return {
       CsId: toText(fullSourceRow.CsId || fullSourceRow.csId || fullSourceRow.id || fullSourceRow._id),
@@ -769,39 +1104,66 @@ const visibleItems = useMemo(
       NameSubCode: toText(
         fullSourceRow.NameSubCode ||
           fullSourceRow.nameSubCode ||
-          item.description ||
-          fullSourceRow.Description ||
-          fullSourceRow.description
+          sourceDescription ||
+          item.description
       ),
 
       ProjectName: toText(fullSourceRow.ProjectName || fullSourceRow.projectname || data.projectName),
       Type: toText(item.lineType || fullSourceRow.Type || fullSourceRow.type || "media"),
       ProductCode: toText(fullSourceRow.ProductCode || fullSourceRow.productCode),
 
-      Description: toText(item.description || fullSourceRow.Description || fullSourceRow.description),
-      Hsn: toText(
-        item.hsnCode ||
-          fullSourceRow.Hsn ||
-          fullSourceRow.HsnCode ||
-          fullSourceRow.HSNCode ||
-          fullSourceRow.hsnCode ||
-          fullSourceRow.hsn
-      ),
-
-      Media: toText(item.media || fullSourceRow.Media || fullSourceRow.media),
+Description: toText(item.description || sourceDescription),
+Hsn: toText(item.hsnCode || sourceHsn),
+Media: toText(item.media || sourceMedia),
+Qty: toText(invoiceQty || sourceQty),
+Width: toText(invoiceWidth || sourceWidth),
+Height: toText(invoiceHeight || sourceHeight),
+Rate: toText(invoiceRate || sourceRate),
+description: toText(item.description || sourceDescription),
+hsn: toText(item.hsnCode || sourceHsn),
+media: toText(item.media || sourceMedia),
+qty: toText(invoiceQty || sourceQty),
+width: toText(invoiceWidth || sourceWidth),
+height: toText(invoiceHeight || sourceHeight),
+rate: toText(invoiceRate || sourceRate),
       InternalMedia: toText(fullSourceRow.InternalMedia || fullSourceRow.internalMedia),
       ExternalMedia: toText(fullSourceRow.ExternalMedia || fullSourceRow.externalMedia),
 
-      Qty: toText(qty),
-      Width: toText(width),
-      Height: toText(height),
       TotalSqFt: toText(totalSqFt),
       BillingSqFt: toText(fullSourceRow.BillingSqFt || fullSourceRow.billingSqFt),
       TotalCalcSqFt: toText(fullSourceRow.TotalCalcSqFt || fullSourceRow.totalCalcSqFt),
 
-      Rate: toText(rate),
-      Amount: toText(amount),
-      TaxableValue: toText(amount),
+      Amount: toText(invoiceAmount),
+      amount: toText(invoiceAmount),
+      TaxableValue: toText(invoiceAmount),
+      taxableValue: toText(invoiceAmount),
+      GstRate: toText(GST_RATE),
+      gstRate: toText(GST_RATE),
+      GstAmount: toText(invoiceGstAmount),
+      gstAmount: toText(invoiceGstAmount),
+      LineTotal: toText(invoiceLineTotal),
+      lineTotal: toText(invoiceLineTotal),
+
+      InvoiceDescription: toText(item.description || sourceDescription),
+      invoiceDescription: toText(item.description || sourceDescription),
+      InvoiceMedia: toText(item.media || sourceMedia),
+      invoiceMedia: toText(item.media || sourceMedia),
+      InvoiceHsn: toText(item.hsnCode || sourceHsn),
+      invoiceHsn: toText(item.hsnCode || sourceHsn),
+      InvoiceQty: toText(invoiceQty),
+      invoiceQty: toText(invoiceQty),
+      InvoiceWidth: toText(invoiceWidth),
+      invoiceWidth: toText(invoiceWidth),
+      InvoiceHeight: toText(invoiceHeight),
+      invoiceHeight: toText(invoiceHeight),
+      InvoiceRate: toText(invoiceRate),
+      invoiceRate: toText(invoiceRate),
+      InvoiceTotalSqFt: toText(invoiceTotalSqFt),
+      invoiceTotalSqFt: toText(invoiceTotalSqFt),
+      InvoiceAmount: toText(invoiceAmount),
+      invoiceAmount: toText(invoiceAmount),
+      InvoiceTaxableValue: toText(invoiceAmount),
+      invoiceTaxableValue: toText(invoiceAmount),
 
       Lamination: toText(fullSourceRow.Lamination || fullSourceRow.lamination),
       Mounting: toText(fullSourceRow.Mounting || fullSourceRow.mounting),
@@ -859,7 +1221,7 @@ const visibleItems = useMemo(
     return {
       InvoiceNo: "",
       InvoiceType: "ProductionToBilling",
-      ParentInvoiceNo: "",
+      ParentInvoiceNo: data.invoiceNo || "",
 
       InvoiceDate: data.invoiceDate || "",
       JobCards: joinUnique(items.map((x) => x.JobNo)),
@@ -882,6 +1244,11 @@ const visibleItems = useMemo(
 
       Notes: data.notes || "",
       Status: status,
+      status,
+      InvoiceStatus: status,
+      invoiceStatus: status,
+      IsFinal: status === "Final",
+      isFinal: status === "Final",
       Enteredby: userContext.username || "",
       Entereddat: new Date().toISOString(),
       Lstupateby: userContext.username || "",
@@ -893,7 +1260,7 @@ const visibleItems = useMemo(
   const customerTotals = calculateInvoiceTotals(completeItems);
 
   const customerInvoice = {
-    InvoiceNo: "",
+    InvoiceNo: data.invoiceNo || "",
     InvoiceType: "BillingToCustomer",
     ParentInvoiceNo: "",
 
@@ -918,6 +1285,11 @@ const visibleItems = useMemo(
 
     Notes: data.notes || "",
     Status: status,
+    status,
+    InvoiceStatus: status,
+    invoiceStatus: status,
+    IsFinal: status === "Final",
+    isFinal: status === "Final",
     Enteredby: userContext.username || "",
     Entereddat: new Date().toISOString(),
     Lstupateby: userContext.username || "",
@@ -926,6 +1298,12 @@ const visibleItems = useMemo(
   };
 
   const savePayload = {
+    Status: status,
+    status,
+    InvoiceStatus: status,
+    invoiceStatus: status,
+    IsFinal: status === "Final",
+    isFinal: status === "Final",
     BillingLocation: completeItems[0]?.BillingLocation || "",
     CustomerInvoice: customerInvoice,
     ProductionInvoices: productionInvoices,
@@ -943,11 +1321,19 @@ const visibleItems = useMemo(
       }
     );
 
-    const savedInvoiceNo =
-      response?.data?.customerInvoiceNo ||
-      response?.data?.invoiceNo ||
-      response?.data?.data?.invoiceNo ||
-      "";
+    let savedInvoiceNo = getSavedInvoiceNoFromResponse(response?.data);
+
+    if (!savedInvoiceNo) {
+      try {
+        savedInvoiceNo = await findSavedCustomerInvoiceNo({
+          jobCardNo: data.jobCardNo,
+          clientName: data.clientName || previewPayload.billAsName,
+          grandTotal: invoiceGrandTotal,
+        });
+      } catch (lookupError) {
+        console.warn("Could not look up saved invoice number after save", lookupError);
+      }
+    }
 
     if (savedInvoiceNo) {
       setData((prev) => ({
@@ -955,14 +1341,23 @@ const visibleItems = useMemo(
         invoiceNo: savedInvoiceNo,
       }));
     }
+    const resolvedInvoiceNo = savedInvoiceNo || data.invoiceNo || previewPayload.invoiceNo;
 
-    const nextPreviewPayload = {
-      ...previewPayload,
-      invoiceNo: savedInvoiceNo || previewPayload.invoiceNo,
-    };
+    const nextPreviewPayload = addInvoiceNoToPreviewPayload(previewPayload, resolvedInvoiceNo);
+    const invoiceNoForStatus = resolvedInvoiceNo;
+
+    rememberInvoiceStatus(invoiceNoForStatus, status);
 
     if (status === "Draft") {
-      localStorage.setItem("invoiceDraftData", JSON.stringify({ ...data, status, savedAt: new Date().toISOString() }));
+      localStorage.setItem(
+        "invoiceDraftData",
+        JSON.stringify({
+          ...data,
+          invoiceNo: resolvedInvoiceNo,
+          status,
+          savedAt: new Date().toISOString(),
+        })
+      );
     } else {
       localStorage.removeItem("invoiceDraftData");
     }
@@ -971,7 +1366,7 @@ const visibleItems = useMemo(
     const productionNos = response?.data?.productionInvoiceNos || [];
 
     setMessage(
-      `${status} customer invoice ${savedInvoiceNo || ""} saved successfully. Production invoices: ${
+      `${status} customer invoice ${resolvedInvoiceNo || ""} saved successfully. Production invoices: ${
         productionNos.length ? productionNos.join(", ") : "-"
       }`
     );
@@ -994,11 +1389,49 @@ const visibleItems = useMemo(
     setMessage("Invoice reset.");
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     const invoiceRows = buildPrintRows();
+    if (!selectedItems.length || !invoiceRows.length) {
+      setMessage("Please select invoice row(s) before printing.");
+      return;
+    }
+    const invoiceGrandTotal = invoiceRows.reduce((sum, row) => sum + toNumber(row.lineTotal), 0);
+    if (invoiceGrandTotal <= 0) {
+      setMessage("Grand total is 0. Please enter Qty, Width, Height and Rate before printing.");
+      return;
+    }
     const previewPayload = buildInvoicePreviewPayload(data, jobCards, invoiceRows);
+    let resolvedInvoiceNo = firstNonEmpty(data.invoiceNo, previewPayload.invoiceNo);
 
-    localStorage.setItem("invoicePrintPreviewData", JSON.stringify(previewPayload));
+    if (!resolvedInvoiceNo) {
+      try {
+        setIsPrinting(true);
+        resolvedInvoiceNo = await findSavedCustomerInvoiceNo({
+          jobCardNo: data.jobCardNo,
+          clientName: data.clientName || previewPayload.billAsName,
+          grandTotal: invoiceGrandTotal,
+        });
+        if (resolvedInvoiceNo) {
+          setData((prev) => ({
+            ...prev,
+            invoiceNo: resolvedInvoiceNo,
+          }));
+        }
+      } catch (lookupError) {
+        console.warn("Could not look up saved invoice number before printing", lookupError);
+      } finally {
+        setIsPrinting(false);
+      }
+    }
+
+    localStorage.setItem(
+      "invoicePrintPreviewData",
+      JSON.stringify(addInvoiceNoToPreviewPayload(previewPayload, resolvedInvoiceNo))
+    );
+
+    if (!resolvedInvoiceNo) {
+      setMessage("Print preview opened, but invoice number was not found. Please save the invoice or print from All Invoices.");
+    }
 
     window.open(all_routes.invoiceprintpreview, "_blank");
   };
@@ -1271,13 +1704,49 @@ const visibleItems = useMemo(
             margin: 0 4px 0 0;
           }
           .invoice-grid-table {
-            min-width: 1160px;
+            min-width: 1080px;
             margin-bottom: 0;
+            table-layout: fixed;
+          }
+          .invoice-grid-table th:nth-child(1),
+          .invoice-grid-table td:nth-child(1) {
+            width: 52px;
+            text-align: center;
+          }
+          .invoice-grid-table th:nth-child(2),
+          .invoice-grid-table td:nth-child(2) {
+            width: 130px;
+          }
+          .invoice-grid-table th:nth-child(3),
+          .invoice-grid-table td:nth-child(3) {
+            width: 260px;
+          }
+          .invoice-grid-table th:nth-child(4),
+          .invoice-grid-table td:nth-child(4) {
+            width: 150px;
+          }
+          .invoice-grid-table th:nth-child(5),
+          .invoice-grid-table td:nth-child(5) {
+            width: 130px;
+          }
+          .invoice-grid-table th:nth-child(6),
+          .invoice-grid-table td:nth-child(6),
+          .invoice-grid-table th:nth-child(7),
+          .invoice-grid-table td:nth-child(7),
+          .invoice-grid-table th:nth-child(8),
+          .invoice-grid-table td:nth-child(8),
+          .invoice-grid-table th:nth-child(9),
+          .invoice-grid-table td:nth-child(9) {
+            width: 120px;
+          }
+          .invoice-grid-table th:nth-child(10),
+          .invoice-grid-table td:nth-child(10) {
+            width: 130px;
           }
           .invoice-grid-table th {
-            background: #eef4fb;
+            background: #eaf2ff;
             border: 1px solid #d5deea;
-            color: #475467;
+            color: #1f3f76;
             font-size: 12px;
             padding: 9px 10px;
             white-space: nowrap;
@@ -1290,18 +1759,45 @@ const visibleItems = useMemo(
           }
           .invoice-grid-table .form-control,
           .invoice-grid-table .form-select {
-            min-width: 96px;
+            width: 100%;
+            min-width: 0;
             height: 34px;
             padding: 5px 8px;
             font-size: 13px;
           }
           .invoice-grid-table .description-input {
-            min-width: 230px;
+            min-width: 0;
+          }
+          .invoice-grid-table .invoice-amount-control {
+            background: #f5f7fb;
+            border-color: #d5deea;
+            color: #1f2937;
+            font-weight: 700;
+            cursor: default;
           }
           .invoice-grid-table .form-check {
             display: flex;
             justify-content: center;
             margin: 0;
+          }
+          .invoice-section .btn-primary {
+            background: #2f56d9;
+            border-color: #2f56d9;
+            color: #fff;
+          }
+          .invoice-section .btn-outline-primary,
+          .invoice-section .btn-outline-secondary,
+          .invoice-grid-actions .btn-outline-danger {
+            background: #fff;
+            border-color: #2f56d9;
+            color: #173f8a;
+          }
+          .invoice-section .btn-outline-primary:hover,
+          .invoice-section .btn-outline-secondary:hover,
+          .invoice-grid-actions .btn-outline-danger:hover {
+            background: #eaf2ff;
+            border-color: #2f56d9;
+            color: #173f8a;
           }
           .invoice-notes-row {
             display: grid;
@@ -1391,7 +1887,7 @@ const visibleItems = useMemo(
             <button className="invoice-icon-btn" type="button" onClick={handleReset} title="Reset invoice">
               <RotateCcw size={16} />
             </button>
-            <button className="invoice-icon-btn" type="button" onClick={handlePrint} title="Print invoice">
+            <button className="invoice-icon-btn" type="button" onClick={handlePrint} disabled={isSaving || isPrinting} title="Print invoice">
               <Printer size={16} />
             </button>
             <button className="invoice-primary-btn" type="button" onClick={() => handleSave("Draft")} disabled={isSaving} title="Save invoice draft">
@@ -1416,22 +1912,35 @@ const visibleItems = useMemo(
             <div className="invoice-section-heading">
               <h5>Invoice Job Queue</h5>
               <div className="text-muted small">
-                {isLoading ? "Loading jobs..." : `${visibleJobCards.length} shown from ${jobCards.length} invoice-ready job card(s)`}
+                {isLoading
+                  ? "Loading jobs..."
+                  : queueJobFilterNos.length || data.selectedJobIds.length
+                    ? `${visibleJobCards.length} shown from ${jobCards.length} invoice-ready job card(s)`
+                    : `${jobCards.length} invoice-ready job card(s). Select Job No to show cards.`}
               </div>
             </div>
-        <div className="invoice-queue-actions" style={{ minWidth: 420 }}>
+      <div className="invoice-queue-actions" style={{ minWidth: 420 }}>
   <Select
     isMulti
     isClearable
     isLoading={isLoading}
-    options={jobSelectOptions}
+    options={jobSelectOptions.filter((option) =>
+      String(option.label || "")
+        .toLowerCase()
+        .includes(searchText.toLowerCase())
+    )}
     value={selectedJobOptions}
     placeholder="Search / select job number"
+    onInputChange={(value) => {
+      setSearchText(value);
+      return value;
+    }}
     onChange={(selected) => {
-      const ids = Array.isArray(selected)
+      const selectedCardIds = Array.isArray(selected)
         ? selected.map((option) => option.value)
         : [];
-      handleJobsSelected(ids);
+
+      setQueueJobFilterNos(selectedCardIds);
     }}
     menuPortalTarget={document.body}
     styles={{
@@ -1448,7 +1957,10 @@ const visibleItems = useMemo(
   <Button
     size="sm"
     variant="outline-secondary"
-    onClick={() => handleJobsSelected([])}
+    onClick={() => {
+      setSearchText("");
+      setQueueJobFilterNos([]);
+    }}
   >
     Clear
   </Button>
@@ -1493,7 +2005,9 @@ const visibleItems = useMemo(
             </div>
           ) : (
             <Alert variant="info" className="mb-0">
-              No jobs found for this Job No. Use Refresh after creating delivery/implementation challans.
+              {queueJobFilterNos.length
+                ? "No jobs found for this Job No. Use Refresh after creating delivery/implementation challans."
+                : "Select a Job No from the dropdown to show invoice card(s)."}
             </Alert>
           )}
         </section>
@@ -1653,8 +2167,6 @@ const visibleItems = useMemo(
                     aria-label="Select all invoice rows"
                   />
                 </th>
-                <th>Group Media</th>
-                <th>Type</th>
                 <th>Job No</th>
                 <th>Description</th>
                 <th>Media</th>
@@ -1671,16 +2183,6 @@ const visibleItems = useMemo(
                 <tr key={item.id}>
                   <td>
                     <Form.Check checked={item.selected} onChange={(event) => updateItem(item.id, "selected", event.target.checked)} />
-                  </td>
-                  <td>
-                    <Form.Check checked={Boolean(item.groupByMedia)} onChange={(event) => updateItem(item.id, "groupByMedia", event.target.checked)} />
-                  </td>
-                  <td>
-                    <Form.Select value={item.lineType} onChange={(event) => updateItem(item.id, "lineType", event.target.value)}>
-                      <option value="media">Media</option>
-                      <option value="transportation">Transportation</option>
-                      <option value="implementation">Implementation</option>
-                    </Form.Select>
                   </td>
                   <td>
                     <Form.Control value={item.jobNo} onChange={(event) => updateItem(item.id, "jobNo", event.target.value)} />
@@ -1706,7 +2208,17 @@ const visibleItems = useMemo(
                   <td>
                     <Form.Control type="number" min="0" step="0.01" value={item.rate} onChange={(event) => updateItem(item.id, "rate", event.target.value)} />
                   </td>
-                  <td className="fw-semibold">{formatMoney(calculateItemAmount(item))}</td>
+                  <td>
+                    <Form.Control
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className="invoice-amount-control"
+                      value={String(item.manualAmount ?? "").trim() !== "" ? item.manualAmount : calculateItemAmount(item).toFixed(2)}
+                      onChange={(event) => updateItem(item.id, "manualAmount", event.target.value)}
+                      aria-label="Amount"
+                    />
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -1714,7 +2226,7 @@ const visibleItems = useMemo(
 
           {(data.groupByMedia || data.groupByStore || data.groupByCity || data.groupByDescription) && (
             <div className="mt-3">
-              <h6>Grouped Preview</h6>
+              <h6>{selectedItems.length ? "Grouped Preview (selected rows)" : "Grouped Preview"}</h6>
               <Table responsive size="sm" className="invoice-grid-table">
                 <thead>
                   <tr>
@@ -1728,7 +2240,7 @@ const visibleItems = useMemo(
                   </tr>
                 </thead>
                 <tbody>
-                  {visibleItems.map((item) => (
+                  {groupedPreviewItems.map((item) => (
                     <tr key={item.id}>
                       <td>{item.description || "-"}</td>
                       <td>{item.media || "-"}</td>
@@ -1811,4 +2323,4 @@ const buildInvoicePreviewPayload = (data, jobCards, invoiceRows) => {
   };
 };
 
-export default InvoicePreviewBuilder;
+export default InvoicePreviewBuilder; 

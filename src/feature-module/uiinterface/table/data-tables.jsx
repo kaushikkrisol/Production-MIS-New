@@ -6,8 +6,6 @@ import { Table, Tab, Form, Nav, NavItem, Button, Row, NavLink, Card, Col, CardBo
 import 'react-toastify/dist/ReactToastify.css';
 import Sort from "../ui/Sort";
 import OrderPopup from "../../dashboard/orderPopup"; 
-import ExcelJS from "exceljs";
-import { saveAs } from "file-saver";
 // import EditableCell from './EditableCell'; // Adjust path accordingly
 // import EditableRow from './EditableRow'; // Adjust path accordingly
 import { AgGridReact } from "ag-grid-react";
@@ -15,9 +13,7 @@ import './DataTables.css'; // Adjust path accordingly
 
 import 'ag-grid-community/styles/ag-grid.css';
 import 'ag-grid-community/styles/ag-theme-alpine.css';
-import * as XLSX from "xlsx";
 
-import { read, utils } from 'xlsx';
 import axios from "axios";
 import config from "../../../config";
 import { FaSyncAlt, FaSearch, FaFilter } from 'react-icons/fa';
@@ -25,6 +21,177 @@ import Select from 'react-select';
 import { ToastContainer, toast } from 'react-toastify';
 import FilterSidebar from "../ui/FilterComponent";
 import { mergeFallbackCustomers } from "./customerFallbacks";
+
+const loadExcelExportTools = async () => {
+  const [excelModule, fileSaverModule] = await Promise.all([
+    import("exceljs"),
+    import("file-saver"),
+  ]);
+
+  return {
+    ExcelJS: excelModule.default || excelModule,
+    saveAs:
+      fileSaverModule.saveAs ||
+      fileSaverModule.default?.saveAs ||
+      fileSaverModule.default,
+  };
+};
+
+const SLA_ALERT_RULES = [
+  {
+    threshold: 100,
+    notificationType: "Dark Grey",
+    label: "100%",
+    recipients: [""],
+    color: "#3f3f46",
+    textColor: "#fff",
+    detailBg: "#f4f4f5",
+    meaning: "Deadline reached or passed",
+  },
+  {
+    threshold: 80,
+    notificationType: "Orange",
+    label: "80%",
+    recipients: ["CS", "BM", "OPS", "Sales"],
+    color: "#f97316",
+    textColor: "#111827",
+    detailBg: "#fff7ed",
+    meaning: "80% of deadline time used",
+  },
+  {
+    threshold: 60,
+    notificationType: "Yellow",
+    label: "60%",
+    recipients: ["CS", "BM"],
+    color: "#facc15",
+    textColor: "#111827",
+    detailBg: "#fefce8",
+    meaning: "60% of deadline time used",
+  },
+  {
+    threshold: 35,
+    notificationType: "Blue",
+    label: "35%",
+    recipients: ["CS"],
+    color: "#0d6efd",
+    textColor: "#fff",
+    detailBg: "#f3f8ff",
+    meaning: "35% of deadline time used",
+  },
+];
+
+const getSlaAlertRuleForPercent = (percent) =>
+  SLA_ALERT_RULES.find((rule) => percent >= rule.threshold) || null;
+
+const getSlaAlertRuleByType = (notificationType) =>
+  SLA_ALERT_RULES.find((rule) => rule.notificationType === notificationType);
+
+const getAlertTypeClass = (notificationType) =>
+  `erp-threshold-tile erp-threshold-tile--${String(notificationType || "")
+    .toLowerCase()
+    .replace(/\s+/g, "-")}`;
+
+const getMongoValue = (value) => {
+  if (value && typeof value === "object") {
+    return (
+      value.$date ||
+      value.$numberDecimal ||
+      value.$numberInt ||
+      value.$numberLong ||
+      value.value ||
+      ""
+    );
+  }
+
+  return value;
+};
+
+const getAlertCreatedAtValue = (row = {}) =>
+  getMongoValue(
+    row.notificationCreatedAt ||
+      row.createdAt ||
+      row.CreatedAt ||
+      row.shownAt ||
+      row.ShownAt ||
+      row.generatedAt ||
+      row.GeneratedAt ||
+      row.entereddt ||
+      row.EnteredDt ||
+      ""
+  );
+
+const formatAlertTime = (value) => {
+  const rawValue = getMongoValue(value);
+  if (!rawValue) return "-";
+
+  const date = new Date(rawValue);
+  if (Number.isNaN(date.getTime())) return String(rawValue);
+
+  return date.toLocaleString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+  });
+};
+
+const getRowsFromApiResponse = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.message)) return data.message;
+  if (Array.isArray(data?.$values)) return data.$values;
+  if (Array.isArray(data?.data?.$values)) return data.data.$values;
+  if (data?.data && typeof data.data === "object") return [data.data];
+  if (data?.result && typeof data.result === "object") return [data.result];
+  return [];
+};
+
+const normalizeStoredProgressAlert = (row = {}) => {
+  const percentValue = getMongoValue(
+    row.percent ??
+      row.currentPercent ??
+      row.currentDeadlinePercent ??
+      row.thresholdPercent ??
+      row.notificationPercent ??
+      ""
+  );
+  const numericPercent = Number(percentValue);
+  const ruleFromPercent = Number.isFinite(numericPercent)
+    ? getSlaAlertRuleForPercent(numericPercent)
+    : null;
+  const color = getMongoValue(row.color || row.notificationType || row.type || "");
+  const ruleFromColor = getSlaAlertRuleByType(color);
+  const rule = ruleFromColor || ruleFromPercent;
+  const notificationType = color || rule?.notificationType || "ERP Alert";
+  const threshold =
+    getMongoValue(row.threshold || row.notificationThreshold || "") ||
+    rule?.label ||
+    (Number.isFinite(numericPercent) ? `${numericPercent}%` : "Alert");
+
+  return {
+    ...row,
+    jobNoDisplay: getMongoValue(row.jobNo || row.JobNo || row.jobNoDisplay || ""),
+    csName: getMongoValue(row.csName || row.CSName || row.enteredby || row.Enteredby || ""),
+    bmName: getMongoValue(row.bmName || row.BMName || ""),
+    storeName: getMongoValue(row.storeName || row.StoreName || row.salonStoreName || ""),
+    customerName: getMongoValue(row.customerName || row.client || row.Client || ""),
+    notificationDeadline: getMongoValue(row.deadline || row.notificationDeadline || "N/A"),
+    notificationStart: getMongoValue(row.start || row.notificationStart || "N/A"),
+    notificationPercent: Number.isFinite(numericPercent) ? numericPercent : null,
+    notificationActualPercent: Number.isFinite(numericPercent) ? numericPercent : null,
+    notificationBandPercent: rule?.threshold || (Number.isFinite(numericPercent) ? numericPercent : null),
+    notificationSource: getMongoValue(row.source || row.notificationSource || "Quartz Scheduler"),
+    notificationThreshold: threshold,
+    notificationRecipients: getMongoValue(row.recipients || row.notificationRecipients || ""),
+    notificationType,
+    notificationCreatedAt: getAlertCreatedAtValue(row),
+  };
+};
 
 // import Sort from "../ui/Sort";
 // import { responsiveArray } from "antd/es/_util/responsiveObserver";
@@ -101,7 +268,11 @@ const DataTables = () => {
   const [isPopupVisible, setIsPopupVisible] = useState(false);
   const [deadlineWarningJobs, setDeadlineWarningJobs] = useState([]);
   const [deadlineMissedJobs, setDeadlineMissedJobs] = useState([]);
+  const [implementationUploadNotificationJobs, setImplementationUploadNotificationJobs] = useState([]);
+  const [schedulerAlertJobs, setSchedulerAlertJobs] = useState([]);
   const [showDeadlineDetails, setShowDeadlineDetails] = useState(false);
+  const lastSavedAlertSignatureRef = useRef("");
+  const saveAlertFailureShownRef = useRef(false);
 
   const [emailid, setEmailid] = useState('');
   const [projectname,setProjectname]=useState('');
@@ -133,6 +304,7 @@ const DataTables = () => {
   const [deleteComment,setDeleteComment]=useState('');
   const [showLength, setShowLength] = useState(false);
   const [actualSqFt, setActualSqFt] = useState(0);
+  const [isAlertAccepted, setIsAlertAccepted] = useState(false);
 
 
 
@@ -294,6 +466,7 @@ const customColumnDefs = filterConfig.map(column => {
 
  
 const handleExportExcel = async () => {
+  const { ExcelJS, saveAs } = await loadExcelExportTools();
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet("Job Data");
 
@@ -375,6 +548,159 @@ const handleExportExcel = async () => {
   saveAs(blob, `JobData_${new Date().toISOString().slice(0, 10)}.xlsx`);
 };
 
+const getExportStatus = (row = {}) => {
+  const design = row.isDesignDone === "1";
+  const print = row.isPrinitngdone === "1";
+  const delivery = row.isDeliveryDone === "1";
+  const implementation = row.isImplementationDone === "1";
+  const upload = row.isImplementationUploadDone === "1";
+  const packing = row.isPackingDone === "1";
+
+  if (packing) return "Packed";
+  if (upload) return "Implementation Uploaded";
+  if (implementation) return "Implementation Done";
+  if (design && print && delivery) return "Delivered";
+  if (design && print) return "Printed";
+  if (design) return "Designed";
+  return "Not Started";
+};
+
+const formatExportValue = (field, value) => {
+  if (["qty", "width", "height", "totalSqFt"].includes(field)) {
+    const num = parseFloat(value);
+    return isNaN(num) ? "" : num.toFixed(2);
+  }
+
+  return value ?? "";
+};
+
+const handleFilteredExportExcel = async () => {
+  try {
+    const { ExcelJS, saveAs } = await loadExcelExportTools();
+    if (typeof saveAs !== "function") {
+      toast.error("Excel download helper is not available.");
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Job Data");
+    const gridApi = gridRef.current?.api;
+    const displayedColumns = gridApi?.getAllDisplayedColumns
+      ? gridApi.getAllDisplayedColumns()
+      : [];
+    const downloadTime = new Date().toISOString();
+
+    const exportColumns = displayedColumns.length
+      ? displayedColumns
+          .map((column) => {
+            const colDef = column.getColDef();
+            if (!colDef.field && !colDef.valueGetter) return null;
+            return {
+              header: colDef.headerName || colDef.field || column.getColId(),
+              key: column.getColId(),
+              field: colDef.field,
+              column,
+            };
+          })
+          .filter(Boolean)
+      : columnDefs
+          .filter((col) => col.field)
+          .map((col) => ({
+            header: col.headerName || col.field,
+            key: col.field,
+            field: col.field,
+          }));
+
+    worksheet.columns = [
+      ...exportColumns.map((col) => ({
+        header: col.header,
+        key: col.key,
+        width: Math.max(14, String(col.header || "").length + 4),
+      })),
+      { header: "Status", key: "status", width: 24 },
+      { header: "Download Timestamp", key: "downloadTimestamp", width: 24 },
+    ];
+
+    const rowsToExport = [];
+
+    if (gridApi?.forEachNodeAfterFilterAndSort && displayedColumns.length) {
+      gridApi.forEachNodeAfterFilterAndSort((node) => {
+        const exportRow = {};
+
+        exportColumns.forEach((col) => {
+          const value = col.column ? gridApi.getValue(col.column, node) : node.data?.[col.field];
+          exportRow[col.key] = formatExportValue(col.field, value);
+        });
+
+        const status = getExportStatus(node.data);
+        exportRow.status = status;
+        exportRow.downloadTimestamp = downloadTime;
+        rowsToExport.push({ values: exportRow, status });
+      });
+    } else {
+      sortedData.forEach((row) => {
+        const exportRow = {};
+
+        exportColumns.forEach((col) => {
+          exportRow[col.key] = formatExportValue(col.field, row?.[col.field]);
+        });
+
+        const status = getExportStatus(row);
+        exportRow.status = status;
+        exportRow.downloadTimestamp = downloadTime;
+        rowsToExport.push({ values: exportRow, status });
+      });
+    }
+
+    if (!rowsToExport.length) {
+      toast.info("No filtered records available to download.");
+      return;
+    }
+
+    const statusColors = {
+      "Not Started": "FFFFFF",
+      Designed: "FFEB9C",
+      Printed: "ADD8E6",
+      Delivered: "C6EFCE",
+      "Implementation Done": "FFD966",
+      "Implementation Uploaded": "D9D2E9",
+      Packed: "B7E1CD",
+    };
+
+    rowsToExport.forEach(({ values, status }) => {
+      const newRow = worksheet.addRow(values);
+      const fillColor = statusColors[status] || "FFFFFF";
+
+      newRow.eachCell((cell) => {
+        cell.fill = {
+          type: "pattern",
+          pattern: "solid",
+          fgColor: { argb: fillColor },
+        };
+      });
+
+      newRow.getCell("downloadTimestamp").numFmt = "yyyy-mm-dd hh:mm:ss";
+    });
+
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.autoFilter = {
+      from: { row: 1, column: 1 },
+      to: { row: 1, column: worksheet.columnCount },
+    };
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+
+    saveAs(blob, `JobData_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(`Downloaded ${rowsToExport.length} filtered record(s).`);
+  } catch (error) {
+    console.error("Excel export failed", error);
+    toast.error("Failed to download Excel.");
+  }
+};
+
 
 
 
@@ -432,6 +758,339 @@ const onSelectionChanged = () => {
   console.log("job", subClients)
   console.log(setJobNumber, setExJobNumber)
 
+  const getImplementationUploadListUrl = () =>
+    config?.ImplementationUpload?.URL?.GetAllImplementationUpload || "";
+
+  const normalizeImplementationLookupValue = (value) =>
+    String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/&/g, "and")
+      .replace(/[^a-z0-9]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
+  const uniqueTextValues = (values) => {
+    const seen = new Set();
+
+    return values
+      .map((value) => String(value || "").trim())
+      .filter(Boolean)
+      .filter((value) => {
+        const key = normalizeImplementationLookupValue(value);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  };
+
+  const getImplementationUploadJobNo = (row = {}) =>
+    row.jobNo ||
+    row.JobNo ||
+    row.comartjobno ||
+    row.ComartJobNo ||
+    row["Job No"] ||
+    row["JOB NO"] ||
+    "";
+
+  const getImplementationUploadStoreName = (row = {}) =>
+    row.store ||
+    row.Store ||
+    row.storeName ||
+    row.StoreName ||
+    row.salonStoreName ||
+    row.SalonStoreName ||
+    row.salonAddress ||
+    row.SalonAddress ||
+    row.SalonStoreAddress ||
+    row["Salon/Store Name"] ||
+    row["Salon / Store Name"] ||
+    row["Store Name"] ||
+    row["SALON ADDRESS"] ||
+    row["Salon / Store Address"] ||
+    row["Salon/Store Address"] ||
+    "";
+
+  const getImplementationUploadMediaFiles = (row = {}) => {
+    const mediaFiles =
+      row.mediaFiles ||
+      row.MediaFiles ||
+      row.upload?.mediaFiles ||
+      row.Upload?.MediaFiles ||
+      [];
+
+    return Array.isArray(mediaFiles) ? mediaFiles : [];
+  };
+
+  const getImplementationUploadRowIds = (row = {}) =>
+    uniqueTextValues([
+      row.id,
+      row.Id,
+      row.ID,
+      row.productionid,
+      row.productionId,
+      row.ProductionId,
+      row.productionID,
+      row.ProductionID,
+      row.implementationid,
+      row.implementationId,
+      row.ImplementationId,
+      row.csid,
+      row.csId,
+      row.CsId,
+      row.upload?.id,
+      row.upload?.Id,
+      row.Upload?.id,
+      row.Upload?.Id,
+      ...getImplementationUploadMediaFiles(row).flatMap((file) => [
+        file.productionid,
+        file.productionId,
+        file.ProductionId,
+        file.productionID,
+        file.ProductionID,
+        file.id,
+        file.Id,
+      ]),
+    ]);
+
+  const getImplementationUploadFilesCountFromRow = (row = {}) => {
+    const countFromField = Number(
+      row.uploadedFilesCount ||
+        row.UploadedFilesCount ||
+        row.imagesCount ||
+        row.ImagesCount ||
+        row.upload?.uploadedFilesCount ||
+        row.Upload?.UploadedFilesCount ||
+        0
+    );
+
+    if (countFromField > 0) return countFromField;
+
+    return getImplementationUploadMediaFiles(row).length;
+  };
+
+  const isImplementationUploadRowUploaded = (row = {}) => {
+    const uploadedFlag =
+      row.isUploaded ??
+      row.IsUploaded ??
+      row.uploaded ??
+      row.Uploaded ??
+      row.hasUpload ??
+      row.HasUpload;
+
+    return (
+      uploadedFlag === true ||
+      normalizeImplementationLookupValue(uploadedFlag) === "true" ||
+      normalizeImplementationLookupValue(uploadedFlag) === "yes" ||
+      normalizeImplementationLookupValue(uploadedFlag) === "1" ||
+      getImplementationUploadFilesCountFromRow(row) > 0
+    );
+  };
+
+  const getImplementationUploadRows = (payload) => {
+    const rows = [];
+    const nestedKeys = [
+      "data",
+      "Data",
+      "records",
+      "Records",
+      "items",
+      "Items",
+      "result",
+      "Result",
+      "jobDetails",
+      "JobDetails",
+      "details",
+      "Details",
+      "lineItems",
+      "LineItems",
+      "uploads",
+      "Uploads",
+      "implementationUploads",
+      "ImplementationUploads",
+    ];
+
+    const visit = (value, context = {}) => {
+      if (Array.isArray(value)) {
+        value.forEach((item) => visit(item, context));
+        return;
+      }
+
+      if (!value || typeof value !== "object") return;
+
+      const nestedJobDetails = value.jobDetails || value.JobDetails;
+      const storeNameFromDetails = Array.isArray(nestedJobDetails)
+        ? nestedJobDetails.map(getImplementationUploadStoreName).find(Boolean)
+        : "";
+      const jobNo = getImplementationUploadJobNo(value) || context.jobNo || "";
+      const storeName =
+        getImplementationUploadStoreName(value) ||
+        context.storeName ||
+        storeNameFromDetails ||
+        "";
+      const uploadFilesCount = getImplementationUploadFilesCountFromRow(value);
+      const hasUploadIdentity = jobNo || storeName || uploadFilesCount > 0;
+
+      if (hasUploadIdentity) {
+        rows.push({
+          ...value,
+          jobNo,
+          storeName,
+          implementationUploadFilesCount: uploadFilesCount,
+          isImplementationUploadDone: isImplementationUploadRowUploaded(value) ? "1" : "0",
+        });
+      }
+
+      const childContext = { jobNo, storeName };
+      nestedKeys.forEach((key) => {
+        if (value[key]) {
+          visit(value[key], childContext);
+        }
+      });
+    };
+
+    visit(payload);
+    return rows;
+  };
+
+  const getImplementationUploadLookupKey = (jobNo, storeName) => {
+    const normalizedJobNo = normalizeImplementationLookupValue(jobNo);
+    const normalizedStoreName = normalizeImplementationLookupValue(storeName);
+
+    if (!normalizedJobNo || !normalizedStoreName) return "";
+
+    return `${normalizedJobNo}||${normalizedStoreName}`;
+  };
+
+  const getImplementationUploadIdLookupKey = (id) => {
+    const normalizedId = normalizeImplementationLookupValue(id);
+    return normalizedId ? `id||${normalizedId}` : "";
+  };
+
+  const getImplementationUploadLookupKeysForRow = (row = {}) => {
+    const idKeys = getImplementationUploadRowIds(row).map(getImplementationUploadIdLookupKey);
+    const jobStoreKey = getImplementationUploadLookupKey(
+      getImplementationUploadJobNo(row),
+      getImplementationUploadStoreName(row)
+    );
+
+    return Array.from(new Set([...idKeys, jobStoreKey].filter(Boolean)));
+  };
+
+  const mergeImplementationUploadStatus = (currentStatus, nextStatus) => ({
+    uploaded: Boolean(currentStatus?.uploaded || nextStatus?.uploaded),
+    uploadedFilesCount:
+      Number(currentStatus?.uploadedFilesCount || 0) +
+      Number(nextStatus?.uploadedFilesCount || 0),
+    uploadedAtUtc: nextStatus?.uploadedAtUtc || currentStatus?.uploadedAtUtc || null,
+  });
+
+  const parseImplementationUploadStatus = (payload = {}) => {
+    const uploadedFilesCount = Number(
+      payload.imagesCount ??
+        payload.ImagesCount ??
+        payload.uploadedFilesCount ??
+        payload.UploadedFilesCount ??
+        payload.mediaFilesCount ??
+        payload.MediaFilesCount ??
+        getImplementationUploadFilesCountFromRow(payload) ??
+        0
+    );
+    const uploadedFlag =
+      payload.isUploaded ??
+      payload.IsUploaded ??
+      payload.uploaded ??
+      payload.Uploaded ??
+      payload.hasUpload ??
+      payload.HasUpload;
+
+    const uploaded =
+      uploadedFlag === true ||
+      normalizeImplementationLookupValue(uploadedFlag) === "true" ||
+      normalizeImplementationLookupValue(uploadedFlag) === "yes" ||
+      normalizeImplementationLookupValue(uploadedFlag) === "1" ||
+      uploadedFilesCount > 0;
+
+    return {
+      uploaded,
+      uploadedFilesCount,
+      uploadedAtUtc: payload.uploadedAtUtc ?? payload.UploadedAtUtc ?? null,
+    };
+  };
+
+  const buildImplementationUploadStatusLookup = (payload) => {
+    const lookup = new Map();
+
+    getImplementationUploadRows(payload).forEach((row) => {
+      const status = parseImplementationUploadStatus(row);
+
+      getImplementationUploadLookupKeysForRow(row).forEach((key) => {
+        lookup.set(
+          key,
+          mergeImplementationUploadStatus(lookup.get(key), status)
+        );
+      });
+    });
+
+    return lookup;
+  };
+
+  const getUploadStatusFromLookup = (job, lookup) => {
+    if (!lookup?.size) return null;
+
+    const keys = [
+      ...getImplementationUploadRowIds(job).map(getImplementationUploadIdLookupKey),
+      getImplementationUploadLookupKey(getJobNo(job), getStoreName(job)),
+    ].filter(Boolean);
+
+    return keys.map((key) => lookup.get(key)).find(Boolean) || null;
+  };
+
+  const withDefaultImplementationUploadStatus = (job) => ({
+    ...job,
+    isImplementationUploadDone: job?.isImplementationUploadDone || "0",
+    implementationUploadFilesCount: Number(
+      job?.implementationUploadFilesCount || 0
+    ),
+  });
+
+ const enrichJobsWithImplementationUploadStatus = async (jobs = []) => {
+  if (!Array.isArray(jobs) || jobs.length === 0) {
+    return [];
+  }
+
+  const jobsWithDefaults = jobs.map(withDefaultImplementationUploadStatus);
+  const apiUrl = getImplementationUploadListUrl();
+
+  if (!apiUrl) {
+    return jobsWithDefaults;
+  }
+
+  try {
+    const response = await axios.get(apiUrl);
+    const uploadStatusLookup = buildImplementationUploadStatusLookup(response.data);
+
+    return jobsWithDefaults.map((job) => {
+      const uploadStatus = getUploadStatusFromLookup(job, uploadStatusLookup);
+
+      if (!uploadStatus) {
+        return job;
+      }
+
+      return {
+        ...job,
+        isImplementationUploadDone: uploadStatus.uploaded ? "1" : "0",
+        implementationUploadFilesCount: uploadStatus.uploadedFilesCount || 0,
+        implementationUploadUploadedAtUtc:
+          uploadStatus.uploadedAtUtc || job.implementationUploadUploadedAtUtc || null,
+      };
+    });
+  } catch (error) {
+    console.warn("Could not load implementation upload status list", error);
+    return jobsWithDefaults;
+  }
+};
+
  const [columnDefs] = useState([
   {
     headerCheckboxSelection: true,
@@ -441,6 +1100,29 @@ const onSelectionChanged = () => {
     pinned: 'left'
   },
   ...customColumnDefs,
+  {
+    headerName: "Image Upload",
+    field: "isImplementationUploadDone",
+    width: 160,
+    minWidth: 160,
+    cellRenderer: (params) => {
+      const uploaded =
+        params.value === "1" ||
+        params.data?.isImplementationUploadDone === "1" ||
+        Number(params.data?.implementationUploadFilesCount || 0) > 0;
+
+      return uploaded ? (
+        <span className="badge bg-success">
+          Uploaded
+          {params.data?.implementationUploadFilesCount
+            ? ` (${params.data.implementationUploadFilesCount})`
+            : ""}
+        </span>
+      ) : (
+        <span className="badge bg-danger">Pending</span>
+      );
+    }
+  },
   {
     headerName: 'Sent to Printing',
     field: "Sent to Printing",
@@ -815,28 +1497,62 @@ const onSelectionChanged = () => {
   //   }
   // };
 
+const getRowsFromAnyResponse = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.result)) return payload.result;
+  if (Array.isArray(payload?.message)) return payload.message;
+  if (Array.isArray(payload?.$values)) return payload.$values;
+  if (Array.isArray(payload?.data?.$values)) return payload.data.$values;
+  if (Array.isArray(payload?.items?.$values)) return payload.items.$values;
+  return [];
+};
+
 const GetAllJobAccToLocation = async () => {
-  const users = localStorage.getItem('users');
-  const userObj = JSON.parse(users);
+  const users = localStorage.getItem("users");
+  if (!users) {
+    setData([]);
+    return;
+  }
+
+  let userObj = {};
+
+  try {
+    userObj = JSON.parse(users);
+  } catch (error) {
+    console.error("Invalid users JSON in localStorage", error);
+    setData([]);
+    return;
+  }
 
   const userNamedata = userObj?.message?.username;
   const locationdata = userObj?.message?.location_id;
   const roleName = userObj?.message?.rolE_NAME;
 
+  const allowedAdminRoles = ["SuperAdmin", "Admindelete", "Branch Manager"];
+
   const payload = {
     locationId: locationdata,
     username: userNamedata,
-    ...(roleName === "Admindelete" || roleName === "Branch Manager") && { rolename: roleName } // ✅ Only include if role is Admindelete or Branch Manager
+    ...(allowedAdminRoles.includes(roleName) && { rolename: roleName }),
   };
 
-  console.log("Payload to GetAllJobAccToLocation:", payload);
-
   try {
-    const response = await axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload);
-    console.log('response of jobs acc to location: ', response.data);
-    setData(response.data.items);
+    setLoading(true);
+
+    const response = await axios.post(
+      config.JobSummary.URL.GetAllJobsAccToLocation,
+      payload
+    );
+
+    const jobs = getRowsFromAnyResponse(response.data);
+    const jobsWithUploadStatus = await enrichJobsWithImplementationUploadStatus(jobs);
+
+    setData(jobsWithUploadStatus);
   } catch (error) {
-    console.error('Error fetching jobs according to location', error);
+    console.error("Error fetching jobs according to location", error);
+    setData([]);
   } finally {
     setLoading(false);
   }
@@ -881,49 +1597,472 @@ const handleResumeSelectedJobs = async () => {
     }
   }
 
-  const parseDeadline = (value) => {
-    if (!value) return null;
-    const trimmedValue = String(value).trim();
-    const date = new Date(trimmedValue);
-    if (!isNaN(date.getTime())) {
-      return date;
-    }
-    const normalized = trimmedValue.replace(' ', 'T');
-    const parsed = new Date(normalized);
-    return isNaN(parsed.getTime()) ? null : parsed;
+const normalize = (value) => String(value || "").trim().toLowerCase();
+
+const parseDeadline = (value) => {
+  if (!value) return null;
+
+  const s = String(value).trim();
+
+  let d = new Date(s);
+  if (!isNaN(d.getTime())) return d;
+
+  const m = s.match(
+    /^(\d{1,2})\/([A-Za-z]{3})\/(\d{4})\s+(\d{1,2}):(\d{2})(?::(\d{2}))?$/
+  );
+
+  if (!m) return null;
+
+  const months = {
+    JAN: 0, FEB: 1, MAR: 2, APR: 3, MAY: 4, JUN: 5,
+    JUL: 6, AUG: 7, SEP: 8, OCT: 9, NOV: 10, DEC: 11,
   };
 
-  const checkDeadlines = useCallback(() => {
-    if (!Array.isArray(data)) {
-      setDeadlineWarningJobs([]);
-      setDeadlineMissedJobs([]);
-      return;
-    }
+  const day = parseInt(m[1], 10);
+  const mon = months[m[2].toUpperCase()];
+  const year = parseInt(m[3], 10);
+  const hour = parseInt(m[4], 10);
+  const min = parseInt(m[5], 10);
+  const sec = parseInt(m[6] || "0", 10);
 
-    const now = new Date();
-    const warningJobs = [];
-    const missedJobs = [];
+  if (mon === undefined) return null;
 
-    data.forEach((row) => {
-      const deadlineValue = row.deadline || row['Job Deadline'] || row.printerDeadline || row['Printer Deadline'];
-      const deadlineDate = parseDeadline(deadlineValue);
-      if (!deadlineDate) return;
+  d = new Date(year, mon, day, hour, min, sec);
+  return isNaN(d.getTime()) ? null : d;
+};
 
-      const diffMs = deadlineDate.getTime() - now.getTime();
-      const diffHours = diffMs / (1000 * 60 * 60);
+const getJobNo = (row) =>
+  row.jobNo || row.JobNo || row.comartjobno || row.ComartJobNo || row.id || "";
 
-      if (diffMs < 0) {
-        missedJobs.push(row);
-      } else if (diffHours <= 6) {
-        warningJobs.push(row);
-      }
+const getCSName = (row) =>
+  row.userName ||
+  row.UserName ||
+  row.enteredby ||
+  row.Enteredby ||
+  row.EnteredBy ||
+  row.accountManager ||
+  row.AccountManager ||
+  "CS Not Assigned";
+
+const getBMName = (row) =>
+  row.bmName ||
+  row.BMName ||
+  row.branchManagerName ||
+  row.BranchManagerName ||
+  row.branchManager ||
+  row.BranchManager ||
+  "BM Not Assigned";
+
+const getStoreName = (row) =>
+  row.store ||
+  row.Store ||
+  row.storeName ||
+  row.StoreName ||
+  row.salonStoreName ||
+  row.SalonStoreName ||
+  row["Salon/Store Name"] ||
+  row["Salon / Store Name"] ||
+  row["Store Name"] ||
+  row.salonAddress ||
+  row.SalonAddress ||
+  row.SalonStoreAddress ||
+  row["SALON ADDRESS"] ||
+  row["Salon / Store Address"] ||
+  row["Salon/Store Address"] ||
+  "Store Not Available";
+
+
+  const getCustomerName = (row) =>
+  row.client ||
+  row.Client ||
+  row.CLIENT ||
+  row.customername ||
+  row.customerName ||
+  row.CustomerName ||
+  row["Customer Name"] ||
+  row.customer ||
+  row.Customer ||
+  row.subClient ||
+  row.SubClient ||
+  "Customer Not Available";
+
+const getRowUserValues = (row) => [
+  row.userName,
+  row.UserName,
+  row.username,
+  row.Username,
+  row["User Name"],
+  row["USER NAME"],
+  row["CS Name"],
+  row.enteredby,
+  row.Enteredby,
+  row.EnteredBy,
+  row.enteredBy,
+  row["Entered By"],
+  row.csName,
+  row.CSName,
+  row.accountManager,
+  row.AccountManager,
+  row.employeeName,
+  row.EmployeeName,
+  row.employeename,
+  row.userid,
+  row.userId,
+  row.UserId,
+  row.UserID,
+  row.user_id,
+  row.User_ID,
+];
+
+const normalizeUserMatchValue = (value) =>
+  normalize(value)
+    .replace(/[^a-z0-9]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const isUserValueMatch = (loggedInValue, rowValue) => {
+  const loginValue = normalizeUserMatchValue(loggedInValue);
+  const jobValue = normalizeUserMatchValue(rowValue);
+
+  if (!loginValue || !jobValue) return false;
+  if (loginValue === jobValue) return true;
+
+  const loginIsNumber = /^\d+$/.test(loginValue);
+  const jobIsNumber = /^\d+$/.test(jobValue);
+  if (loginIsNumber || jobIsNumber) return false;
+
+  return (
+    loginValue.length >= 3 &&
+    jobValue.length >= 3 &&
+    (jobValue.includes(loginValue) || loginValue.includes(jobValue))
+  );
+};
+
+const isLoggedInUserJob = (row) => {
+  const loggedInValues = [userName, user, enteredby, userId].filter(Boolean);
+
+  if (!loggedInValues.length) {
+    return false;
+  }
+
+  return getRowUserValues(row).some((value) =>
+    loggedInValues.some((loggedInValue) => isUserValueMatch(loggedInValue, value))
+  );
+};
+
+const isLoggedInEddieUser = () =>
+  [userName, user, enteredby]
+    .map(normalizeUserMatchValue)
+    .some((value) => value === "eddie" || value === "eddie sir");
+
+const getSuperAdminName = (row) =>
+  row.superAdminName ||
+  row.SuperAdminName ||
+  row.superadminName ||
+  row.SuperadminName ||
+  "SuperAdmin";
+
+const getNotificationRecipients = (row, alertRule) => {
+  const csName = getCSName(row);
+  const bmName = getBMName(row);
+
+  return alertRule.recipients
+    .map((recipient) => {
+      if (recipient === "CS") return csName;
+      if (recipient === "BM") return bmName;
+      return recipient;
+    })
+    .filter(Boolean)
+    .join(" / ");
+};
+
+const getDeadlineValue = (row) =>
+  row.deadline ||
+  row.Deadline ||
+  row["Job Deadline"] ||
+  row.jobDeadline ||
+  row.JobDeadline ||
+  row.printerDeadline ||
+  row.PrinterDeadline ||
+  row["Printer Deadline"] ||
+  row.designerDeadline ||
+  row.DesignerDeadline ||
+  row["Designer Deadline"] ||
+  "";
+
+const getJobStartValue = (row) =>
+  row.date ||
+  row.Date ||
+  row["Job Date"] ||
+  row.entereddt ||
+  row.EnteredDt ||
+  row.EnteredDT ||
+  row.startdate ||
+  row.startDate ||
+  row.StartDate ||
+  row.lstupdatedt ||
+  row.LstUpdateDt ||
+  "";
+
+const isTruthyFlag = (value) =>
+  ["1", "true", "yes", "y", "completed", "done"].includes(normalize(value));
+
+const isJobCompletedForAlert = (row) =>
+  isTruthyFlag(row.isCompleted) ||
+  isTruthyFlag(row.IsCompleted) ||
+  isTruthyFlag(row.isJobCompleted) ||
+  isTruthyFlag(row.IsJobCompleted) ||
+  normalize(row.status) === "completed" ||
+  normalize(row.Status) === "completed" ||
+  normalize(row.jobStatus) === "completed" ||
+  normalize(row.JobStatus) === "completed";
+
+const getDeadlineProgressPercent = (startDate, deadlineDate, now) => {
+  if (!startDate || !deadlineDate) return null;
+
+  const totalMs = deadlineDate.getTime() - startDate.getTime();
+  if (totalMs <= 0) return null;
+
+  const elapsedMs = now.getTime() - startDate.getTime();
+  if (elapsedMs <= 0) return 0;
+
+  return Math.min(100, (elapsedMs / totalMs) * 100);
+};
+
+const shouldShowNotificationToUser = (row, alertRule) => {
+  if (!alertRule) return false;
+
+  const role = normalize(rolename);
+
+  if (
+    role === "superadmin" ||
+    role === "admindelete" ||
+    role === "branch manager"
+  ) {
+    return true;
+  }
+
+  return isLoggedInUserJob(row);
+};
+
+const shouldShowJobNotificationToUser = (row) => {
+  const role = normalize(rolename);
+
+  if (
+    role === "superadmin" ||
+    role === "admindelete" ||
+    role === "branch manager"
+  ) {
+    return true;
+  }
+
+  return isLoggedInUserJob(row);
+};
+
+const isImplementationUploadDoneForNotification = (row = {}) =>
+  row.isImplementationUploadDone === "1" ||
+  isTruthyFlag(row.isImplementationUploadDone) ||
+  Number(row.implementationUploadFilesCount || 0) > 0;
+
+const getImplementationUploadNotificationKey = (row) =>
+  `${getJobNo(row)}|${getStoreName(row)}`;
+
+const getNotificationStorageKey = (alert) =>
+  `${alert.jobNoDisplay || alert.jobNo || ""}|${alert.notificationThreshold || ""}`;
+
+const getNotificationSignatureKey = (alert) =>
+  `${getNotificationStorageKey(alert)}|${alert.notificationPercent ?? ""}`;
+
+const toStoredNotification = (alert) => ({
+  jobNo: alert.jobNoDisplay,
+  threshold: alert.notificationThreshold,
+  thresholdPercent: alert.notificationBandPercent,
+  currentPercent: alert.notificationPercent,
+  currentDeadlinePercent: alert.notificationPercent,
+  color: alert.notificationType,
+  recipients: alert.notificationRecipients,
+  csName: alert.csName,
+  bmName: alert.bmName,
+  storeName: alert.storeName,
+  customerName: alert.customerName || "",
+  client: alert.customerName || alert.client || alert.Client || "",
+  source: alert.notificationSource,
+  start: alert.notificationStart,
+  deadline: alert.notificationDeadline,
+  createdFrom: "CS Dashboard",
+  createdAt: getAlertCreatedAtValue(alert) || new Date().toISOString(),
+  shownAt: getAlertCreatedAtValue(alert) || new Date().toISOString(),
+});
+
+const saveProgressNotifications = useCallback(async (alerts) => {
+  const endpoint = config.JobProgressAlert?.URL?.SaveBulk;
+  if (!endpoint || !Array.isArray(alerts) || alerts.length === 0) return;
+
+  const uniqueAlerts = Array.from(
+    new Map(alerts.map((alert) => [getNotificationStorageKey(alert), alert])).values()
+  );
+  const signature = uniqueAlerts
+    .map(getNotificationSignatureKey)
+    .sort()
+    .join("||");
+
+  if (!signature || signature === lastSavedAlertSignatureRef.current) return;
+  lastSavedAlertSignatureRef.current = signature;
+
+  try {
+    await axios.post(endpoint, {
+      generatedBy: userName || user || "",
+      roleName: rolename || "",
+      locationId: locationid || "",
+      alerts: uniqueAlerts.map(toStoredNotification),
     });
+    saveAlertFailureShownRef.current = false;
+  } catch (error) {
+    console.warn("Could not save job progress notifications", error);
+    if (!saveAlertFailureShownRef.current) {
+      toast.warning("Notifications are showing, but backend save failed. Check JobProgressAlert SaveBulk API.");
+      saveAlertFailureShownRef.current = true;
+    }
+  }
+}, [locationid, rolename, user, userName]);
 
-    setDeadlineWarningJobs(warningJobs);
-    setDeadlineMissedJobs(missedJobs);
-  }, [data]);
+const fetchActiveSchedulerAlerts = useCallback(async () => {
+  const endpoint = config.JobProgressAlert?.URL?.GetActive;
+  if (!endpoint) return;
+
+  try {
+    const response = await axios.get(endpoint);
+    const rows = getRowsFromApiResponse(response.data);
+    setSchedulerAlertJobs(
+      rows
+        .map(normalizeStoredProgressAlert)
+        .filter((alert) => alert.jobNoDisplay || alert.notificationSource)
+    );
+  } catch (error) {
+    console.warn("Could not load active ERP scheduler alerts", error);
+    setSchedulerAlertJobs([]);
+  }
+}, []);
+
+
+const checkDeadlines = useCallback(() => {
+  if (!Array.isArray(data)) {
+    setDeadlineWarningJobs([]);
+    setDeadlineMissedJobs([]);
+    return;
+  }
+
+  const now = new Date();
+
+  const finalJobs = [];
+  const activeThresholdJobs = [];
+  const notificationMap = new Map();
+
+  data.forEach((row) => {
+    if (isJobCompletedForAlert(row)) return;
+
+    const deadlineValue = getDeadlineValue(row);
+    const startValue = getJobStartValue(row);
+    const deadlineDate = parseDeadline(deadlineValue);
+    const startDate = parseDeadline(startValue);
+
+    const deadlineProgressPercent = getDeadlineProgressPercent(startDate, deadlineDate, now);
+    if (deadlineProgressPercent === null) return;
+
+    const alertRule = getSlaAlertRuleForPercent(deadlineProgressPercent);
+    if (!shouldShowNotificationToUser(row, alertRule)) return;
+
+    const roundedDeadlinePercent = Number(deadlineProgressPercent.toFixed(1));
+    const alertCreatedAt = getAlertCreatedAtValue(row) || now.toISOString();
+    const notificationRow = {
+      ...row,
+      jobNoDisplay: getJobNo(row),
+      csName: getCSName(row),
+      bmName: getBMName(row),
+      storeName: getStoreName(row),
+        customerName: getCustomerName(row),
+      superAdminName: getSuperAdminName(row),
+      notificationDeadline: deadlineValue || "N/A",
+      notificationStart: startValue || "N/A",
+      notificationPercent: roundedDeadlinePercent,
+      notificationActualPercent: roundedDeadlinePercent,
+      notificationBandPercent: alertRule.threshold,
+      notificationSource: getMongoValue(row.source || row.Source || "") || "Deadline",
+      notificationThreshold: alertRule.label,
+      notificationRecipients: getNotificationRecipients(row, alertRule),
+      notificationType: alertRule.notificationType,
+      notificationCreatedAt: alertCreatedAt,
+    };
+
+    notificationMap.set(getNotificationStorageKey(notificationRow), notificationRow);
+  });
+
+  Array.from(notificationMap.values()).forEach((notificationRow) => {
+    const alertRule = getSlaAlertRuleByType(notificationRow.notificationType);
+    if (alertRule?.threshold >= 100) {
+      finalJobs.push(notificationRow);
+    } else {
+      activeThresholdJobs.push(notificationRow);
+    }
+  });
+
+  setDeadlineMissedJobs(finalJobs);
+  setDeadlineWarningJobs(activeThresholdJobs);
+  saveProgressNotifications([...activeThresholdJobs, ...finalJobs]);
+}, [data, enteredby, saveProgressNotifications, user, userId, userName]);
+
+const checkImplementationUploadNotifications = useCallback(() => {
+  if (!Array.isArray(data)) {
+    setImplementationUploadNotificationJobs([]);
+    return;
+  }
+
+  const notificationMap = new Map();
+
+  data.forEach((row) => {
+    if (!isImplementationUploadDoneForNotification(row)) return;
+    if (!shouldShowJobNotificationToUser(row)) return;
+
+    const jobNoDisplay = getJobNo(row);
+    const storeName = getStoreName(row);
+    const notificationKey = getImplementationUploadNotificationKey(row);
+
+    if (!jobNoDisplay || !storeName || !notificationKey) return;
+
+    const filesCount = Number(row.implementationUploadFilesCount || 0);
+    const current = notificationMap.get(notificationKey);
+    const alertCreatedAt = getAlertCreatedAtValue(row) || new Date().toISOString();
+
+    notificationMap.set(notificationKey, {
+      ...row,
+      jobNoDisplay,
+      csName: getCSName(row),
+      bmName: getBMName(row),
+      storeName,
+      customerName: getCustomerName(row),
+      notificationDeadline: getDeadlineValue(row) || "N/A",
+      notificationStart: getJobStartValue(row) || "N/A",
+      notificationPercent: null,
+      notificationActualPercent: null,
+      notificationBandPercent: null,
+      notificationSource: getMongoValue(row.source || row.Source || "") || "Implementation Upload",
+      notificationThreshold: "Uploaded",
+      notificationRecipients: getCSName(row),
+      notificationType: "Implementation Upload",
+      notificationCreatedAt: alertCreatedAt,
+      implementationUploadFilesCount: Math.max(
+        current?.implementationUploadFilesCount || 0,
+        filesCount
+      ),
+    });
+  });
+
+  setImplementationUploadNotificationJobs(Array.from(notificationMap.values()));
+}, [data, enteredby, rolename, user, userId, userName]);
 
   useEffect(() => {
+    if (!locationid || !userName) return;
+
     // fetchJobs();
     fetchcustomers();
     GetAllJobsFromSql();
@@ -935,6 +2074,16 @@ const handleResumeSelectedJobs = async () => {
     const interval = setInterval(checkDeadlines, 60000); // refresh every minute
     return () => clearInterval(interval);
   }, [checkDeadlines]);
+
+  useEffect(() => {
+    fetchActiveSchedulerAlerts();
+    const interval = setInterval(fetchActiveSchedulerAlerts, 60000);
+    return () => clearInterval(interval);
+  }, [fetchActiveSchedulerAlerts]);
+
+  useEffect(() => {
+    checkImplementationUploadNotifications();
+  }, [checkImplementationUploadNotifications]);
 
   useEffect(() => {
     if (!isDraggingAlert) return;
@@ -1112,17 +2261,23 @@ const handleResumeSelectedJobs = async () => {
 
   useEffect(() => {
     const fetchCustomerName = async () => {
+      if (!locationid) return;
+
       const payload = {
         locationId: locationid,
-      }
+      };
+
       try {
         const response = await axios.post(config.JobSummary.URL.GetCustomerNameAccToLocation, payload);
-        setCustomerNameAccLocation(response.data);
-        console.log('customer names', response.data);
+        const rows = getRowsFromAnyResponse(response.data);
+        setCustomerNameAccLocation(rows);
+        console.log('customer names', rows);
       } catch (error) {
-        console.error('Error fetching customer name');
+        console.error('Error fetching customer name', error);
+        setCustomerNameAccLocation([]);
       }
-    }
+    };
+
     fetchCustomerName();
   }, [locationid]);
 
@@ -1228,6 +2383,7 @@ const exportValidationErrorsToExcel = async () => {
       return;
     }
 
+    const { ExcelJS, saveAs } = await loadExcelExportTools();
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Excel Errors");
 
@@ -1270,7 +2426,8 @@ const exportValidationErrorsToExcel = async () => {
     const file = e.target.files[0];
     const reader = new FileReader();
 
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
+      const { read, utils } = await import("xlsx");
       const binaryStr = event.target.result;
       const workbook = read(binaryStr, { type: 'binary' });
       const sheetName = workbook.SheetNames[0];
@@ -1730,158 +2887,392 @@ setData(mappedData);
 
   console.log('comart job no: ', jobsFromSql.comartjobno);
 
+  const activeNotificationJobs = Array.from(
+    new Map(
+      [
+        ...schedulerAlertJobs,
+        ...implementationUploadNotificationJobs,
+        ...deadlineWarningJobs,
+        ...deadlineMissedJobs,
+      ].map((job) => [
+        `${job.notificationSource || ""}|${job.jobNoDisplay || ""}|${job.storeName || ""}|${job.notificationThreshold || ""}|${job.notificationType || ""}`,
+        job,
+      ])
+    ).values()
+  );
+  const uploadNotificationCount = implementationUploadNotificationJobs.length;
+  const activeNotificationSignature = activeNotificationJobs
+    .map((job) =>
+      `${job.notificationSource || ""}|${job.jobNoDisplay || ""}|${job.storeName || ""}|${job.notificationThreshold || ""}|${job.notificationPercent ?? ""}|${getAlertCreatedAtValue(job) || ""}`
+    )
+    .sort()
+    .join("||");
+
+
+  useEffect(() => {
+  if (activeNotificationJobs.length > 0) {
+    setIsAlertAccepted(false);
+  }
+}, [activeNotificationJobs.length, activeNotificationSignature]);
+
+  const visibleAlertRules = [...SLA_ALERT_RULES]
+    .reverse()
+    .filter((rule) =>
+      activeNotificationJobs.some((job) => job.notificationType === rule.notificationType)
+    );
+
   return (
     <div>
       <div className="page-wrapper">
         <div className="content container-fluid">
           <ToastContainer />
 
-          {(deadlineMissedJobs.length > 0 || deadlineWarningJobs.length > 0) && (
-            <Alert
-              ref={alertRef}
-              variant="light"
+        {activeNotificationJobs.length > 0 && !isAlertAccepted && (
+  <Alert
+    ref={alertRef}
+    variant="light"
+    style={{
+  position: "fixed",
+  left: 0,
+  top: 0,
+  width: "100vw",
+  height: "100vh",
+  zIndex: 99999,
+  borderRadius: 0,
+  overflow: "auto",
+  boxShadow: "none",
+  padding: "35px",
+  background: "rgba(255,255,255,0.98)",
+  userSelect: "auto",
+}}
+  >
+    <div
+      onMouseDown={handleAlertMouseDown}
+      style={{
+        width: "100%",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 16,
+        cursor: "move",
+      }}
+    >
+      <div style={{ fontSize: 18, fontWeight: 700 }}>
+        ERP Scheduler Alerts
+      </div>
+      <div style={{ fontSize: 13, opacity: 0.7 }}>Drag</div>
+    </div>
+
+    <div
+  style={{
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
+  gap: 24,
+  marginBottom: 20,
+}}
+>
+  {uploadNotificationCount > 0 && (
+    <div
+      className="erp-alert-tile-blink"
+      style={{
+        background: "#16a34a",
+        color: "#fff",
+        borderRadius: 20,
+        padding: "30px",
+        minHeight: "220px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "flex-start",
+        boxShadow: "0 14px 40px rgba(0,0,0,0.25)",
+        animation: "pulseBlink 1.2s infinite",
+      }}
+    >
+      <div
+        style={{
+          fontSize: "38px",
+          fontWeight: 900,
+          lineHeight: 1.1,
+        }}
+      >
+        Uploaded
+      </div>
+
+      <div
+        style={{
+          fontSize: "26px",
+          fontWeight: 700,
+          marginTop: 14,
+        }}
+      >
+        Implementation Pictures
+      </div>
+
+      <div
+        style={{
+          fontSize: "64px",
+          fontWeight: 900,
+          marginTop: 18,
+        }}
+      >
+        {uploadNotificationCount}
+      </div>
+    </div>
+  )}
+
+  {visibleAlertRules.map((rule) => {
+    const alertCount = activeNotificationJobs.filter(
+      (job) => job.notificationType === rule.notificationType
+    ).length;
+
+    if (alertCount <= 0) return null;
+
+    return (
+      <div
+        key={rule.notificationType}
+        className="erp-alert-tile-blink"
+        style={{
+          background: rule.color,
+          color: rule.textColor || "#fff",
+          borderRadius: 20,
+          padding: "30px",
+          minHeight: "220px",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "flex-start",
+          boxShadow: "0 14px 40px rgba(0,0,0,0.25)",
+          animation: "pulseBlink 1.2s infinite",
+        }}
+      >
+        <div
+          style={{
+            fontSize: "42px",
+            fontWeight: 900,
+            lineHeight: 1,
+          }}
+        >
+          {rule.label}
+        </div>
+
+        <div
+          style={{
+            fontSize: "28px",
+            fontWeight: 700,
+            marginTop: 14,
+          }}
+        >
+          {rule.notificationType}
+        </div>
+
+        <div
+          style={{
+            fontSize: "64px",
+            fontWeight: 900,
+            marginTop: 18,
+          }}
+        >
+          {alertCount}
+        </div>
+      </div>
+    );
+  })}
+</div>
+
+    <div
+      style={{
+        marginTop: 16,
+        padding: "12px 14px",
+        border: "1px solid #e5e7eb",
+        borderRadius: 8,
+        background: "#fff",
+      }}
+    >
+      <div style={{ fontWeight: 700, marginBottom: 8 }}>Color meaning</div>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 10,
+          fontSize: 13,
+          lineHeight: 1.35,
+        }}
+      >
+        {uploadNotificationCount > 0 && (
+          <div
+            style={{ display: "flex", gap: 8, alignItems: "flex-start" }}
+          >
+            <span
               style={{
-                position: 'fixed',
-                right: alertPosition ? undefined : 20,
-                bottom: alertPosition ? undefined : 20,
-                left: alertPosition?.left,
-                top: alertPosition?.top,
-                zIndex: 1055,
-                minWidth: 380,
-                maxWidth: 'calc(100vw - 40px)',
-                boxShadow: '0 0 12px rgba(0,0,0,0.15)',
-                padding: '12px 14px',
-                userSelect: isDraggingAlert ? 'none' : 'auto',
+                width: 14,
+                height: 14,
+                borderRadius: 3,
+                background: "#16a34a",
+                border: "1px solid rgba(15,23,42,0.18)",
+                flex: "0 0 14px",
+                marginTop: 2,
               }}
-            >
-              <div
-                onMouseDown={handleAlertMouseDown}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: 10,
-                  cursor: 'move',
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 700 }}>Drag to move</div>
-                <div style={{ fontSize: 12, opacity: 0.7 }}>Click and drag</div>
+            />
+            <div>
+              <div>
+                <b>Implementation Upload</b>: Pictures uploaded for job/store
               </div>
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '10px',
-                alignItems: 'center',
-              }}>
-                {deadlineMissedJobs.length > 0 && (
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    background: '#d9534f',
-                    color: '#fff',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    minWidth: 160,
-                    fontSize: 14,
-                    lineHeight: 1.3,
-                  }}>
-                    <strong style={{ marginRight: 6 }}>Missed</strong>
-                    {deadlineMissedJobs.length} job(s)
-                  </div>
-                )}
+              <div style={{ color: "#6b7280" }}>
+                To: CS
+              </div>
+            </div>
+          </div>
+        )}
 
-                {deadlineWarningJobs.length > 0 && (
-                  <div style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    background: '#f0ad4e',
-                    color: '#212529',
-                    padding: '8px 12px',
-                    borderRadius: 8,
-                    minWidth: 160,
-                    fontSize: 14,
-                    lineHeight: 1.3,
-                  }}>
-                    <strong style={{ marginRight: 6 }}>Warning</strong>
-                    {deadlineWarningJobs.length} job(s)
-                  </div>
-                )}
+        {[...SLA_ALERT_RULES].reverse().map((rule) => (
+          <div
+            key={`legend-${rule.notificationType}`}
+            style={{ display: "flex", gap: 8, alignItems: "flex-start" }}
+          >
+            <span
+              style={{
+                width: 14,
+                height: 14,
+                borderRadius: 3,
+                background: rule.color,
+                border: "1px solid rgba(15,23,42,0.18)",
+                flex: "0 0 14px",
+                marginTop: 2,
+              }}
+            />
+            <div>
+              <div>
+                <b>{rule.notificationType}</b>: {rule.meaning}
               </div>
+              <div style={{ color: "#6b7280" }}>
+                To: {rule.recipients.join(" / ")}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
 
-              <div style={{
-                marginTop: 10,
-                fontSize: 13,
-                color: '#333',
-                lineHeight: 1.4,
-              }}>
-                {deadlineMissedJobs.length > 0 && (
-                  <span>
-                    Missed job nos: {deadlineMissedJobs.slice(0, 3).map((job, index) => (
-                      <span key={index}>
-                        {job.jobNo || job.comartjobno || job.id}
-                        {index < Math.min(deadlineMissedJobs.length, 3) - 1 ? ', ' : ''}
-                      </span>
-                    ))}
-                    {deadlineMissedJobs.length > 3 && '...'}
-                  </span>
-                )}
-                {deadlineMissedJobs.length > 0 && deadlineWarningJobs.length > 0 && <span style={{ margin: '0 6px' }}>|</span>}
-                {deadlineWarningJobs.length > 0 && (
-                  <span>
-                    Approaching job nos: {deadlineWarningJobs.slice(0, 3).map((job, index) => (
-                      <span key={index}>
-                        {job.jobNo || job.comartjobno || job.id}
-                        {index < Math.min(deadlineWarningJobs.length, 3) - 1 ? ', ' : ''}
-                      </span>
-                    ))}
-                    {deadlineWarningJobs.length > 3 && '...'}
-                  </span>
-                )}
-              </div>
-              <div style={{ textAlign: 'right', marginTop: 10 }}>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => setShowDeadlineDetails(true)}
-                  style={{ fontSize: 12, padding: '4px 10px' }}
-                >
-                  View details
-                </Button>
-              </div>
-            </Alert>
+    <div style={{ marginTop: 16, fontSize: 15, lineHeight: 1.65 }}>
+      <div style={{ fontWeight: 700, marginBottom: 6 }}>
+        Showing {activeNotificationJobs.length} alert(s)
+      </div>
+      <div
+        style={{
+          maxHeight: 260,
+          overflowY: "auto",
+          paddingRight: 6,
+        }}
+      >
+      {activeNotificationJobs.map((job, index) => {
+        const isUploadNotification = job.notificationSource === "Implementation Upload";
+        const alertTime = formatAlertTime(job.notificationCreatedAt || job.createdAt || job.shownAt);
+
+        return (
+          <div
+            key={index}
+            style={{
+              padding: "4px 0",
+              borderBottom:
+                index === activeNotificationJobs.length - 1
+                  ? "none"
+                  : "1px solid #e5e7eb",
+            }}
+          >
+            {isUploadNotification ? (
+              <span>
+                <b>Implementation pictures uploaded</b> - {job.jobNoDisplay} | Time: <b>{alertTime}</b> | Customer: <b>{job.customerName}</b> | Store: <b>{job.storeName}</b> | Files: <b>{job.implementationUploadFilesCount || "Yes"}</b> | CS: <b>{job.csName}</b>
+              </span>
+            ) : (
+              <span>
+                <b>{job.notificationPercent}% Deadline</b> ({job.notificationThreshold} {job.notificationType}) - {job.jobNoDisplay} | Time: <b>{alertTime}</b> | Customer: <b>{job.customerName}</b> | Store: <b>{job.storeName}</b> | Deadline: <b>{job.notificationDeadline}</b> | CS: <b>{job.csName}</b>
+              </span>
+            )}
+          </div>
+        );
+      })}
+      </div>
+    </div>
+
+ <div style={{ textAlign: "right", marginTop: 24 }}>
+  <Button
+    variant="secondary"
+    onClick={() => setShowDeadlineDetails(true)}
+    style={{ marginRight: 12 }}
+  >
+    View details
+  </Button>
+
+  <Button
+    variant="success"
+    onClick={() => setIsAlertAccepted(true)}
+    style={{
+      padding: "10px 34px",
+      fontWeight: 700,
+      fontSize: 16,
+    }}
+  >
+    OK
+  </Button>
+</div>
+  </Alert>
+)}
+
+<Modal
+  isOpen={showDeadlineDetails}
+  toggle={() => setShowDeadlineDetails(false)}
+  centered
+  size="xl"
+>
+  <ModalHeader toggle={() => setShowDeadlineDetails(false)}>
+    ERP Notification Details
+  </ModalHeader>
+
+  <ModalBody style={{ padding: 20, maxHeight: "72vh", overflowY: "auto" }}>
+    {activeNotificationJobs.length === 0 && (
+      <div>No active notifications.</div>
+    )}
+
+    {activeNotificationJobs.map((job, index) => {
+      const isUploadNotification = job.notificationSource === "Implementation Upload";
+      const rule = getSlaAlertRuleByType(job.notificationType);
+      const detailColor = isUploadNotification ? "#16a34a" : rule?.color || "#0d6efd";
+      const detailBg = isUploadNotification ? "#f0fdf4" : rule?.detailBg || "#f3f8ff";
+
+      return (
+        <div
+          key={index}
+          style={{
+            marginBottom: 16,
+            padding: 18,
+            borderRadius: 8,
+            borderLeft: `7px solid ${detailColor}`,
+            background: detailBg,
+            fontSize: 15,
+            lineHeight: 1.65,
+          }}
+        >
+          <div><b>Type:</b> {isUploadNotification ? "Implementation pictures uploaded" : `${job.notificationThreshold} (${job.notificationType})`}</div>
+          <div><b>Meaning:</b> {isUploadNotification ? "Uploaded pictures are available for this job/store" : rule?.meaning || "Deadline alert"}</div>
+          <div><b>Time:</b> {formatAlertTime(job.notificationCreatedAt || job.createdAt || job.shownAt)}</div>
+          <div><b>Job No:</b> {job.jobNoDisplay}</div>
+          <div><b>Store:</b> {job.storeName}</div>
+          {isUploadNotification ? (
+            <div><b>Uploaded Files:</b> {job.implementationUploadFilesCount || "Yes"}</div>
+          ) : (
+            <div><b>Deadline Progress:</b> {job.notificationPercent}%</div>
           )}
-          <Modal isOpen={showDeadlineDetails} toggle={() => setShowDeadlineDetails(false)} centered>
-            <ModalHeader toggle={() => setShowDeadlineDetails(false)}>
-              Deadline details
-            </ModalHeader>
-            <ModalBody>
-              {deadlineMissedJobs.length > 0 && (
-                <div style={{ marginBottom: 16 }}>
-                  <strong style={{ color: '#d9534f' }}>Missed deadlines</strong>
-                  <div style={{ marginTop: 8 }}>
-                    {deadlineMissedJobs.map((job, index) => (
-                      <div key={`missed-${index}`} style={{ marginBottom: 4 }}>
-                        {job.jobNo || job.comartjobno || job.id} — {job.deadline || job['Job Deadline'] || job.printerDeadline || job['Printer Deadline']}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {deadlineWarningJobs.length > 0 && (
-                <div>
-                  <strong style={{ color: '#f0ad4e' }}>Approaching deadlines</strong>
-                  <div style={{ marginTop: 8 }}>
-                    {deadlineWarningJobs.map((job, index) => (
-                      <div key={`warn-${index}`} style={{ marginBottom: 4 }}>
-                        {job.jobNo || job.comartjobno || job.id} — {job.deadline || job['Job Deadline'] || job.printerDeadline || job['Printer Deadline']}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </ModalBody>
-          </Modal>
+          <div><b>Source:</b> {job.notificationSource}</div>
+          <div><b>Recipients:</b> {job.notificationRecipients}</div>
+          <div><b>CS:</b> {job.csName}</div>
+          <div><b>BM:</b> {job.bmName}</div>
+          <div><b>Start:</b> {job.notificationStart}</div>
+          <div><b>Deadline:</b> {job.notificationDeadline}</div>
+        </div>
+      );
+    })}
+  </ModalBody>
+</Modal>
 
           <Modal isOpen={showValidationModal} toggle={() => setShowValidationModal(false)} centered>
   <ModalHeader toggle={() => setShowValidationModal(false)}>
@@ -2003,7 +3394,7 @@ setData(mappedData);
 
                     <Button
                 variant="success"
-                onClick={() => handleExportExcel()}
+                onClick={() => handleFilteredExportExcel()}
                 style={{ marginBottom: "1em" }}
               >
                 Download Excel
@@ -2436,13 +3827,13 @@ setData(mappedData);
 
 
                 </div>
-                <OrderPopup
+                {/* <OrderPopup
                 show={isPopupVisible}
                 items={data.filter(d => d.approved === "Yes")}
                 onClose={() => setIsPopupVisible(false)}
                 jobOptions={uniqueJobNoOptions}
                 onAcceptAllOrders={handleAcceptOrder}
-              />
+              /> */}
 
 
 

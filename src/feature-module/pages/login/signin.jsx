@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import ImageWithBasePath from "../../../core/img/imagewithbasebath";
 import { Link, useNavigate } from "react-router-dom";
 import { all_routes } from "../../../Router/all_routes";
 import axios from "axios";
@@ -56,7 +55,7 @@ const Signin = () => {
                   <h1>Comart</h1>
                 </div>
                 <Link to={all_routes.dashboard} className="login-logo logo-white">
-                  <ImageWithBasePath src="assets/img/logo-white.png" alt="logo" />
+                  <h1>Comart</h1>
                 </Link>
                 <div className="login-userheading">
                   <h3>Sign In</h3>
@@ -71,10 +70,7 @@ const Signin = () => {
                       onChange={(e) => setEmail(e.target.value)}
                       required
                     />
-                    <ImageWithBasePath
-                      src="assets/img/icons/mail.svg"
-                      alt="email-icon"
-                    />
+                    <span className="feather icon-mail" aria-hidden="true" />
                   </div>
                 </div>
                 <div className="form-login mb-3">
@@ -122,7 +118,7 @@ const Signin = () => {
                 </div>
                 <div className="my-4 d-flex justify-content-center align-items-center copyright-text">
                   <p>
-                    Copyright © 2024 Krisol Infosoft Pvt Ltd. All rights reserved
+                    Copyright © 2026 Krisol Infosoft Pvt Ltd. All rights reserved
                   </p>
                 </div>
               </div>

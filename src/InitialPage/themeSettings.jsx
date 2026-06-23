@@ -123,6 +123,7 @@ const ThemeSettings = () => {
         </ul>
       </div>
 
+      {show && (
       <div
         className={
           show
@@ -255,10 +256,7 @@ const ThemeSettings = () => {
                                 defaultValue="rtl"
                               />
                               <label htmlFor="rtl" className="checktoggles">
-                                <Link
-                                  to="https://dreamspos.dreamstechnologies.com/react/template-rtl/"
-                                  target="_blank"
-                                >
+                                <Link to="#">
                                   <ImageWithBasePath
                                     src="assets/img/theme/theme-img-03.jpg"
                                     alt
@@ -536,6 +534,7 @@ const ThemeSettings = () => {
           </div>
         </div>
       </div>
+      )}
     </>
   );
 };

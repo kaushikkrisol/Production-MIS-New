@@ -1,0 +1,4081 @@
+{
+  "sourceFile": "ERP Master.xlsx",
+  "sourceSheet": "Data",
+  "groups": {
+    "lamination": [
+      {
+        "value": "Glosy Lamination Film",
+        "label": "Glosy Lamination Film",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Matt Lamination",
+        "label": "Matt Lamination",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "CROWN Matt Lamination",
+        "label": "CROWN Matt Lamination",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "HI-STAR Glosy Lamination Film",
+        "label": "HI-STAR Glosy Lamination Film",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "HI-STAR Matt Lamination",
+        "label": "HI-STAR Matt Lamination",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Novastar Glosy LaminationFilm",
+        "label": "Novastar Glosy LaminationFilm",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Novastar Matt Lamination",
+        "label": "Novastar Matt Lamination",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Onyx Glosy Lamination Film",
+        "label": "Onyx Glosy Lamination Film",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Onyx GREEN LAMINATION",
+        "label": "Onyx GREEN LAMINATION",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Onyx Matt Lamination",
+        "label": "Onyx Matt Lamination",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "No Lamination",
+        "label": "No Lamination",
+        "group": "Lamination",
+        "hsnSac": "",
+        "productGroup": "Lamination"
+      }
+    ],
+    "machineNames": [
+      {
+        "value": "Grando Eco Solvent I3200",
+        "label": "Grando Eco Solvent I3200",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Epson SC-S60670l",
+        "label": "Epson SC-S60670l",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Plottercut",
+        "label": "Plottercut",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "No Printing",
+        "label": "No Printing",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Out Source",
+        "label": "Out Source",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "UV Print Out Source",
+        "label": "UV Print Out Source",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Sortrun Printing",
+        "label": "Sortrun Printing",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Offset Printing",
+        "label": "Offset Printing",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Thunder Jet (UV)",
+        "label": "Thunder Jet (UV)",
+        "group": "Machine Name",
+        "hsnSac": "",
+        "productGroup": ""
+      }
+    ],
+    "productionLocations": [
+      {
+        "value": "East",
+        "label": "East",
+        "group": "Production Location",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "North",
+        "label": "North",
+        "group": "Production Location",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "South",
+        "label": "South",
+        "group": "Production Location",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "West",
+        "label": "West",
+        "group": "Production Location",
+        "hsnSac": "",
+        "productGroup": ""
+      }
+    ],
+    "clientList": [
+      {
+        "value": "Allana Consumer Products",
+        "label": "Allana Consumer Products",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Allana Consumer Products Private Limited (New GST)",
+        "label": "Allana Consumer Products Private Limited (New GST)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brand Retail (Kol)",
+        "label": "Arvind Beauty Brand Retail (Kol)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands (Mum)",
+        "label": "Arvind Beauty Brands (Mum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail (Navi Mumbai)",
+        "label": "Arvind Beauty Brands Retail (Navi Mumbai)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail (Malad)",
+        "label": "Arvind Beauty Brands Retail (Malad)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands (Chandigarh)",
+        "label": "Arvind Beauty Brands (Chandigarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands (UP)",
+        "label": "Arvind Beauty Brands (UP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands (Tamil Nadu)",
+        "label": "Arvind Beauty Brands (Tamil Nadu)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail (Bangalore-Forum)",
+        "label": "Arvind Beauty Brands Retail (Bangalore-Forum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands (Dwarka ,New Delhi)",
+        "label": "Arvind Beauty Brands (Dwarka ,New Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail(Ahmedabad)",
+        "label": "Arvind Beauty Brands Retail(Ahmedabad)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Bata India Limited (Gur)",
+        "label": "Bata India Limited (Gur)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Bata India Limited",
+        "label": "Bata India Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future ( New Delhi)",
+        "label": "Celio Future ( New Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Chennai-TN)",
+        "label": "Celio Future (Chennai-TN)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Gujarat)",
+        "label": "Celio Future (Gujarat)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Kerala)",
+        "label": "Celio Future (Kerala)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Kolkata)",
+        "label": "Celio Future (Kolkata)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Rajasthan)",
+        "label": "Celio Future (Rajasthan)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion ( Jharkhand)",
+        "label": "Celio Future Fashion ( Jharkhand)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion (Uttaranchal)",
+        "label": "Celio Future Fashion (Uttaranchal)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Market City Chennai(Chn)",
+        "label": "Celio Market City Chennai(Chn)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion Private Limited (UP-Noida)",
+        "label": "Celio Future Fashion Private Limited (UP-Noida)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Dhani Loans And Services Limited",
+        "label": "Dhani Loans And Services Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Diesel Fashion",
+        "label": "Diesel Fashion",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Diesel Fashion (Karnataka)",
+        "label": "Diesel Fashion (Karnataka)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Enrich Hair & Skin Solutions",
+        "label": "Enrich Hair & Skin Solutions",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "FSN E-Commerce Ventures",
+        "label": "FSN E-Commerce Ventures",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (PMC Bng)",
+        "label": "Genesis La Mode (PMC Bng)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Kerala EdAPpally)",
+        "label": "Genesis La Mode (Kerala EdAPpally)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Pune)",
+        "label": "Genesis La Mode (Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Punj Mbd)",
+        "label": "Genesis La Mode (Punj Mbd)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Kol Southcity)",
+        "label": "Genesis La Mode (Kol Southcity)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Chennai TN)",
+        "label": "Genesis La Mode (Chennai TN)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Chandigarh)",
+        "label": "Genesis La Mode (Chandigarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Inorbit Hyd)",
+        "label": "Genesis La Mode (Inorbit Hyd)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode ( Delhi Saket)",
+        "label": "Genesis La Mode ( Delhi Saket)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Delhi Tagore Garden)",
+        "label": "Genesis La Mode (Delhi Tagore Garden)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Har Gur DLF)",
+        "label": "Genesis La Mode (Har Gur DLF)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Gur Ambience)",
+        "label": "Genesis La Mode (Gur Ambience)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Mum)",
+        "label": "Genesis La Mode (Mum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis Luxury Fashion (Har Gur DLF)",
+        "label": "Genesis Luxury Fashion (Har Gur DLF)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis Luxury Fashions (Gurgaon)",
+        "label": "Genesis Luxury Fashions (Gurgaon)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis Luxury Fashions (Noida-UP)",
+        "label": "Genesis Luxury Fashions (Noida-UP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej & Boyce Mfg",
+        "label": "Godrej & Boyce Mfg",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej & Boyce",
+        "label": "Godrej & Boyce",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej & Boyce Mfg. Co. Ltd. (Stationery Dpt)",
+        "label": "Godrej & Boyce Mfg. Co. Ltd. (Stationery Dpt)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Consumer (RPM)",
+        "label": "Godrej Consumer (RPM)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej",
+        "label": "Godrej",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Hard Caslte",
+        "label": "Hard Caslte",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Herbs Nutriproducts",
+        "label": "Herbs Nutriproducts",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Uttar Pradesh)",
+        "label": "HH Print Management (Uttar Pradesh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (West Bangal)",
+        "label": "HH Print Management (West Bangal)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Tamil Nadu)",
+        "label": "HH Print Management (Tamil Nadu)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Rajasthan)",
+        "label": "HH Print Management (Rajasthan)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Punjab)",
+        "label": "HH Print Management (Punjab)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Orissa)",
+        "label": "HH Print Management (Orissa)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (MP)",
+        "label": "HH Print Management (MP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH GLOBAL MARKETING SOLUTIONS PRIVATE LIMITED",
+        "label": "HH GLOBAL MARKETING SOLUTIONS PRIVATE LIMITED",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Bihar)",
+        "label": "HH Print Management (Bihar)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Chandigarh)",
+        "label": "HH Print Management (Chandigarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Chattisgarh)",
+        "label": "HH Print Management (Chattisgarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Delhi)",
+        "label": "HH Print Management (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Gujarat)",
+        "label": "HH Print Management (Gujarat)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Haryana)",
+        "label": "HH Print Management (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Jharkhand)",
+        "label": "HH Print Management (Jharkhand)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Telangana)",
+        "label": "HH Print Management (Telangana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Karnataka)",
+        "label": "HH Print Management (Karnataka)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Kerela)",
+        "label": "HH Print Management (Kerela)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HUL (Modern Trade Div.)",
+        "label": "HUL (Modern Trade Div.)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Hin. Uni. Ltd.",
+        "label": "Hin. Uni. Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HUL (Chakala)",
+        "label": "HUL (Chakala)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Hin. Uni. (Andheri)",
+        "label": "Hin. Uni. (Andheri)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Hll (Network)",
+        "label": "Hll (Network)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Indiabulls Consumer Finance",
+        "label": "Indiabulls Consumer Finance",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Kohler India Corporation (Gur)",
+        "label": "Kohler India Corporation (Gur)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "L&T Finance",
+        "label": "L&T Finance",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lakme Lever",
+        "label": "Lakme Lever",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lowe (Nariman Point)",
+        "label": "Lowe (Nariman Point)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lintas India",
+        "label": "Lintas India",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Loreal India Private Limited R&I (Mum)",
+        "label": "Loreal India Private Limited R&I (Mum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Manipal Technologies (Mum)",
+        "label": "Manipal Technologies (Mum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "More Retail (AP)",
+        "label": "More Retail (AP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "More Retail",
+        "label": "More Retail",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "More Retail (Pune)",
+        "label": "More Retail (Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Mountain Trail Foods",
+        "label": "Mountain Trail Foods",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Natures Basket (Mum)",
+        "label": "Natures Basket (Mum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Natures Basket Ltd (Gur)",
+        "label": "Natures Basket Ltd (Gur)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Natures Basket",
+        "label": "Natures Basket",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Nivea India Pvt. Ltd.",
+        "label": "Nivea India Pvt. Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (CHHatisgarh)",
+        "label": "Reliance Brands (CHHatisgarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brand Luxury Fashion (Gvk Mall Tlg)",
+        "label": "Reliance Brand Luxury Fashion (Gvk Mall Tlg)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Kerala)",
+        "label": "Reliance Brands (Kerala)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Delhi)",
+        "label": "Reliance Brands (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Haryana)",
+        "label": "Reliance Brands (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Uttar Pradesh)",
+        "label": "Reliance Brands (Uttar Pradesh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Dhobi Talav)",
+        "label": "Reliance Brands (Dhobi Talav)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Hyd-Telangana",
+        "label": "Reliance Brands (Hyd-Telangana",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Assam)",
+        "label": "Reliance Brands (Assam)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Orissa)",
+        "label": "Reliance Brands (Orissa)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Limited (Chandigarh)",
+        "label": "Reliance Brands Limited (Chandigarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands",
+        "label": "Reliance Brands",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Quiksilver)",
+        "label": "Reliance Brands (Quiksilver)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Odisha)",
+        "label": "Reliance Brands Luxury (Odisha)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Assam)",
+        "label": "Reliance Brands Luxury (Assam)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Haryana)",
+        "label": "Reliance Brands Luxury (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (J&K)",
+        "label": "Reliance Brands Luxury (J&K)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Karnataka)",
+        "label": "Reliance Brands Luxury (Karnataka)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Guj)",
+        "label": "Reliance Brands Luxury (Guj)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Andhra Pradesh)",
+        "label": "Reliance Brands Luxury (Andhra Pradesh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Chandigarh)",
+        "label": "Reliance Brands Luxury (Chandigarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Telangana)",
+        "label": "Reliance Brands Luxury (Telangana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (Punjab)",
+        "label": "Reliance Brands Luxury (Punjab)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Gas Lifestyle India Pvt Ltd. (Maha)",
+        "label": "Reliance Gas Lifestyle India Pvt Ltd. (Maha)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holding (Delhi)",
+        "label": "Reliance Lifestyle Holding (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings (TN)",
+        "label": "Reliance Lifestyle Holdings (TN)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings (Kolkata)",
+        "label": "Reliance Lifestyle Holdings (Kolkata)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings (",
+        "label": "Reliance Lifestyle Holdings (",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings Ltd.",
+        "label": "Reliance Lifestyle Holdings Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings (Gujarat)",
+        "label": "Reliance Lifestyle Holdings (Gujarat)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings (MP-Bhopal)",
+        "label": "Reliance Lifestyle Holdings (MP-Bhopal)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Retail",
+        "label": "Reliance Retail",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (UP)",
+        "label": "Reliance Brands Luxury (UP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Ryohin Keikaku Reliance",
+        "label": "Ryohin Keikaku Reliance",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Ryohin-Keikaku Reliance India (Kar)",
+        "label": "Ryohin-Keikaku Reliance India (Kar)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Salon & Spa Studio By Tangy Rose (Delhi)",
+        "label": "Salon & Spa Studio By Tangy Rose (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Salon & Spa Studio By Tangy Rose (Mum)",
+        "label": "Salon & Spa Studio By Tangy Rose (Mum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Scindia Creations",
+        "label": "Scindia Creations",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Scindia Merchandising And Promotion Co.",
+        "label": "Scindia Merchandising And Promotion Co.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skechers Retail India (MP)",
+        "label": "Skechers Retail India (MP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skechers Retail",
+        "label": "Skechers Retail",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skechers Retail India (Vadodara)",
+        "label": "Skechers Retail India (Vadodara)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Tarz Distribution India Pvt Ltd.",
+        "label": "Tarz Distribution India Pvt Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Wella India",
+        "label": "Wella India",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Zegna South (New Delhi)",
+        "label": "Zegna South (New Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Zegna South Asia",
+        "label": "Zegna South Asia",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Indosing Distribution",
+        "label": "Indosing Distribution",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Hindustan Unilever Limited(Gur)",
+        "label": "Hindustan Unilever Limited(Gur)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "General Mills",
+        "label": "General Mills",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Diesel Fashion (Dhobi Talav)",
+        "label": "Diesel Fashion (Dhobi Talav)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Diesel Fashion (Telangana)",
+        "label": "Diesel Fashion (Telangana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Bhiwandi)",
+        "label": "Celio Future (Bhiwandi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lintas Bang",
+        "label": "Lintas Bang",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Indagro Foods (Kerala)",
+        "label": "Indagro Foods (Kerala)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Indagro Foods (Taloja)",
+        "label": "Indagro Foods (Taloja)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skechers Retail India (Chattisgarh)",
+        "label": "Skechers Retail India (Chattisgarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "FSN Brands Marketing (Pune)",
+        "label": "FSN Brands Marketing (Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis Luxury Fashions (Hyd-Tel)",
+        "label": "Genesis Luxury Fashions (Hyd-Tel)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis Luxury Fashions (Delhi)",
+        "label": "Genesis Luxury Fashions (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion (J&K)",
+        "label": "Celio Future Fashion (J&K)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HUL(New) (Chakala)",
+        "label": "HUL(New) (Chakala)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Loreal India",
+        "label": "Loreal India",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Natures Basket (Delhi)",
+        "label": "Natures Basket (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands Luxury (",
+        "label": "Reliance Brands Luxury (",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skechers South Asia",
+        "label": "Skechers South Asia",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "General Mills (USA)",
+        "label": "General Mills (USA)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings (Goa)",
+        "label": "Reliance Lifestyle Holdings (Goa)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Ryohin-Keikaku Reliance (UP)",
+        "label": "Ryohin-Keikaku Reliance (UP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Kol)",
+        "label": "Reliance Brands (Kol)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail (Jaipur)",
+        "label": "Arvind Beauty Brands Retail (Jaipur)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Gas Lifestyle India Pvt. Ltd. (Guj)",
+        "label": "Reliance Gas Lifestyle India Pvt. Ltd. (Guj)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Guj)",
+        "label": "Reliance Brands (Guj)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Indagro Foods (Telangana )",
+        "label": "Indagro Foods (Telangana )",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Hyd)",
+        "label": "Celio Future (Hyd)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Ryohin-Keikaku Reliance (Delhi)",
+        "label": "Ryohin-Keikaku Reliance (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail(Pune)",
+        "label": "Arvind Beauty Brands Retail(Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skechers South Asia (Ahmd)",
+        "label": "Skechers South Asia (Ahmd)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Comartone Premedia",
+        "label": "Comartone Premedia",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Commercial Reprographers(KOL)",
+        "label": "Commercial Reprographers(KOL)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail (Mum-Parel)",
+        "label": "Arvind Beauty Brands Retail (Mum-Parel)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands (Delhi)",
+        "label": "Arvind Beauty Brands (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail (Uttar Pradesh)",
+        "label": "Arvind Beauty Brands Retail (Uttar Pradesh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Punjab)",
+        "label": "Reliance Brands (Punjab)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (MP)",
+        "label": "Reliance Brands (MP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Karnataka)",
+        "label": "Reliance Brands (Karnataka)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (Tamil Nadu)",
+        "label": "Reliance Brands (Tamil Nadu)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Kohler India Corporation (Mah)",
+        "label": "Kohler India Corporation (Mah)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail (Mum-Kurla) Private",
+        "label": "Arvind Beauty Brands Retail (Mum-Kurla) Private",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Brands (J&K)",
+        "label": "Reliance Brands (J&K)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands (Haryana)",
+        "label": "Arvind Beauty Brands (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brand Retail (Hyd)",
+        "label": "Arvind Beauty Brand Retail (Hyd)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Xreality Solutions Private Limited",
+        "label": "Xreality Solutions Private Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Navi Mumbai)",
+        "label": "Celio Future (Navi Mumbai)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future",
+        "label": "Celio Future",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands (Indore)",
+        "label": "Arvind Beauty Brands (Indore)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Indagro Foods (Taloja-Raigad)",
+        "label": "Indagro Foods (Taloja-Raigad)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Commercial Reprographers(BNG)",
+        "label": "Commercial Reprographers(BNG)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings (Ghansoli)",
+        "label": "Reliance Lifestyle Holdings (Ghansoli)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Comart (Mum)",
+        "label": "Comart (Mum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Lifestyle Holdings (Kerala)",
+        "label": "Reliance Lifestyle Holdings (Kerala)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands",
+        "label": "Arvind Beauty Brands",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Industries",
+        "label": "Reliance Industries",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Delhi)",
+        "label": "Celio Future (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future (Orissa)",
+        "label": "Celio Future (Orissa)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion (Jaipur)",
+        "label": "Celio Future Fashion (Jaipur)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion (Vasant Kunj-Delhi)",
+        "label": "Celio Future Fashion (Vasant Kunj-Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future(Bangalore)",
+        "label": "Celio Future(Bangalore)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej & Boyce (Vikroli)",
+        "label": "Godrej & Boyce (Vikroli)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Industries",
+        "label": "Godrej Industries",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HH Print Management (Assam)",
+        "label": "HH Print Management (Assam)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Indagro Foods (Bng)",
+        "label": "Indagro Foods (Bng)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Indagro Foods Ltd",
+        "label": "Indagro Foods Ltd",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Commercial Reprographers(GUR)",
+        "label": "Commercial Reprographers(GUR)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Bng)",
+        "label": "Genesis La Mode (Bng)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Dhani Healthcare",
+        "label": "Dhani Healthcare",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Kol)",
+        "label": "Genesis La Mode (Kol)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Hyd Tel)",
+        "label": "Genesis La Mode (Hyd Tel)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion (Haryana)",
+        "label": "Celio Future Fashion (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "L&T Investment Management Ltd.",
+        "label": "L&T Investment Management Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Paul & Shark (Dhobi Talav)",
+        "label": "Reliance Paul & Shark (Dhobi Talav)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skechers South Asia (MP)",
+        "label": "Skechers South Asia (MP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Manipal Technologies",
+        "label": "Manipal Technologies",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "V M Prints",
+        "label": "V M Prints",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (UP)",
+        "label": "Genesis La Mode (UP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail (Lucknow-UP)",
+        "label": "Arvind Beauty Brands Retail (Lucknow-UP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis La Mode (Delhi)",
+        "label": "Genesis La Mode (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Commercial Reprographers(MUM)",
+        "label": "Commercial Reprographers(MUM)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Ryohin-Keikaku (Har)",
+        "label": "Ryohin-Keikaku (Har)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxury Fashion",
+        "label": "Reliance Luxury Fashion",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Health & Glow (Bng)",
+        "label": "Health & Glow (Bng)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Paul",
+        "label": "Reliance Paul",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Diesel Fashion (TN)",
+        "label": "Diesel Fashion (TN)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "ITC Ltd. (Kolkata)",
+        "label": "ITC Ltd. (Kolkata)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Genesis Colors",
+        "label": "Genesis Colors",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HUL (Bru World Cafe)",
+        "label": "HUL (Bru World Cafe)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Biba Apparels Pvt Ltd",
+        "label": "Biba Apparels Pvt Ltd",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "LIFESTYLE INTERNATIONAL PRIVATE LIMITED MUMBAI",
+        "label": "LIFESTYLE INTERNATIONAL PRIVATE LIMITED MUMBAI",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "LIFESTYLE INTERNATIONAL PRIVATE LIMITED GUJARAT",
+        "label": "LIFESTYLE INTERNATIONAL PRIVATE LIMITED GUJARAT",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Shefali Arts And Printennium Printers",
+        "label": "Shefali Arts And Printennium Printers",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Sustainable Beauty Pvt Ltd.",
+        "label": "Sustainable Beauty Pvt Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "HOB Cosmetics Private Limited(gurgoan)",
+        "label": "HOB Cosmetics Private Limited(gurgoan)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "WEST WIND RETAILS (P) LTD",
+        "label": "WEST WIND RETAILS (P) LTD",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "ARVIND BEAUTY BRANDS RETAIL PVT LTD (GHATKOPHAR - MUMBAI)",
+        "label": "ARVIND BEAUTY BRANDS RETAIL PVT LTD (GHATKOPHAR - MUMBAI)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited",
+        "label": "Vellvette Lifestyle Private Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "More Retail (Punjab)",
+        "label": "More Retail (Punjab)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (Mumbai)",
+        "label": "Vellvette Lifestyle Private Limited (Mumbai)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vishal Patil",
+        "label": "Vishal Patil",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Raj Interior",
+        "label": "Raj Interior",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Sinex Advertising",
+        "label": "Sinex Advertising",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Arvind Beauty Brands Retail Private ABBRPL- Head Office(M.G Road Bangalore)",
+        "label": "Arvind Beauty Brands Retail Private ABBRPL- Head Office(M.G Road Bangalore)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "FSN BRANDS MARKETING PRIVATE LIMITED",
+        "label": "FSN BRANDS MARKETING PRIVATE LIMITED",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "ATHALIAH BAKHT",
+        "label": "ATHALIAH BAKHT",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "ARVIND BEAUTY BRANDS RETAIL PVT LTD(Bhopal)",
+        "label": "ARVIND BEAUTY BRANDS RETAIL PVT LTD(Bhopal)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd. (Kol_New Town Rajarhat)",
+        "label": "Lifestyle International Pvt. Ltd. (Kol_New Town Rajarhat)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd (Bihar)",
+        "label": "Lifestyle International Pvt. Ltd (Bihar)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd.(Assam)",
+        "label": "Lifestyle International Pvt. Ltd.(Assam)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt Ltd (Ranchi)",
+        "label": "Lifestyle International Pvt Ltd (Ranchi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd.(Odisha_Janpath)",
+        "label": "Lifestyle International Pvt. Ltd.(Odisha_Janpath)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt Ltd",
+        "label": "Lifestyle International Pvt Ltd",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "DREAM SHIVERA PRIVTE LIMITED",
+        "label": "DREAM SHIVERA PRIVTE LIMITED",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "G & R ASSOCIATES (H.P)",
+        "label": "G & R ASSOCIATES (H.P)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "SPENCER RETAIL",
+        "label": "SPENCER RETAIL",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "STREAMLINE BEAUTY INDIA PRIVATE LIMITED",
+        "label": "STREAMLINE BEAUTY INDIA PRIVATE LIMITED",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion (Pune)",
+        "label": "Celio Future Fashion (Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd (Panvel)",
+        "label": "Lifestyle International Pvt. Ltd (Panvel)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd (Subhash Nagar)",
+        "label": "Lifestyle International Pvt. Ltd (Subhash Nagar)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd.(Ghatkopar)",
+        "label": "Lifestyle International Pvt. Ltd.(Ghatkopar)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt Ltd (Bhandup)",
+        "label": "Lifestyle International Pvt Ltd (Bhandup)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "LIFESTYLE INTERNATIONAL (DELHI)",
+        "label": "LIFESTYLE INTERNATIONAL (DELHI)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd. (Haryana)",
+        "label": "Lifestyle International Pvt. Ltd. (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle International Pvt. Ltd. (Rajasthan)",
+        "label": "Lifestyle International Pvt. Ltd. (Rajasthan)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Dapper Impression",
+        "label": "Dapper Impression",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio(VIVA CITY - THANE)",
+        "label": "Celio(VIVA CITY - THANE)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Ink N Bliss",
+        "label": "Ink N Bliss",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "LOCCITANE INDIA PVT LTD",
+        "label": "LOCCITANE INDIA PVT LTD",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "SUNIL MISTRY",
+        "label": "SUNIL MISTRY",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Headrush Marketing Pvt Ltd",
+        "label": "Headrush Marketing Pvt Ltd",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "JEENA & COMPANY",
+        "label": "JEENA & COMPANY",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Nilesh Patil",
+        "label": "Nilesh Patil",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "MJ Displays",
+        "label": "MJ Displays",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Suraj Khapare",
+        "label": "Suraj Khapare",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Frigorifico Allana Private Limited",
+        "label": "Frigorifico Allana Private Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "ABACUS INDIA AGENCIES PVT LTD",
+        "label": "ABACUS INDIA AGENCIES PVT LTD",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "AJANTA PLASTICS",
+        "label": "AJANTA PLASTICS",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Premium Lifestyle & Fashion India",
+        "label": "Premium Lifestyle & Fashion India",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "POONAM BAMBANI",
+        "label": "POONAM BAMBANI",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "SANJAY BADVE",
+        "label": "SANJAY BADVE",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "SUN LIFE STYLES",
+        "label": "SUN LIFE STYLES",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "PREMIUM LIFESTYLE AND FASHION INDIA (GUJARAT)",
+        "label": "PREMIUM LIFESTYLE AND FASHION INDIA (GUJARAT)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "INVESCO ASSET MANAGEMENT (INDIA) PVT LTD",
+        "label": "INVESCO ASSET MANAGEMENT (INDIA) PVT LTD",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "VINI COSMETICS PRIVATE LIMITED",
+        "label": "VINI COSMETICS PRIVATE LIMITED",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Consumer Products Ltd. (Service GST)",
+        "label": "Godrej Consumer Products Ltd. (Service GST)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Bloombay Enterprises Pvt. Ltd",
+        "label": "Bloombay Enterprises Pvt. Ltd",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Saniolla Naturals Pvt Ltd",
+        "label": "Saniolla Naturals Pvt Ltd",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Shekhar Pillay",
+        "label": "Shekhar Pillay",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "RAJ RETAIL FURNITURE & INTERIOR SOLUTIONS",
+        "label": "RAJ RETAIL FURNITURE & INTERIOR SOLUTIONS",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "MIDSAFF FASHION BRANDS LLP",
+        "label": "MIDSAFF FASHION BRANDS LLP",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "GODREJ CONSUMER PRODUCTS LTD (Gujarat)",
+        "label": "GODREJ CONSUMER PRODUCTS LTD (Gujarat)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "GODREJ CONSUMER PRODUCTS LTD (Uttar Pradesh)",
+        "label": "GODREJ CONSUMER PRODUCTS LTD (Uttar Pradesh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "REENA KALLAT",
+        "label": "REENA KALLAT",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "FSN Brands Marketing (Karnataka)",
+        "label": "FSN Brands Marketing (Karnataka)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "PRIME FOODS & CONFECTIONERY LLP(DN Road)",
+        "label": "PRIME FOODS & CONFECTIONERY LLP(DN Road)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Comart One Pre-Media Pvt. Ltd.",
+        "label": "Comart One Pre-Media Pvt. Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "BACCAROSE COSMETICS PVT LTD",
+        "label": "BACCAROSE COSMETICS PVT LTD",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "ADITYA BIRLA FASHION AND RETAIL LIMITED (BNG) 29AAECP2371C1ZL",
+        "label": "ADITYA BIRLA FASHION AND RETAIL LIMITED (BNG) 29AAECP2371C1ZL",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "GODREJ CONSUMER PRODUCTS LTD (Rajasthan)",
+        "label": "GODREJ CONSUMER PRODUCTS LTD (Rajasthan)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vedalaya Trading Pvt.Ltd",
+        "label": "Vedalaya Trading Pvt.Ltd",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "PHOTOTECHNIKS",
+        "label": "PHOTOTECHNIKS",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "GODREJ CONSUMER PRODUCTS LTD (Punjab)",
+        "label": "GODREJ CONSUMER PRODUCTS LTD (Punjab)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Sky Fit",
+        "label": "Sky Fit",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "GODREJ CONSUMER PRODUCTS LTD (Rajasthan Service GST)",
+        "label": "GODREJ CONSUMER PRODUCTS LTD (Rajasthan Service GST)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "S R ENTERPRISES",
+        "label": "S R ENTERPRISES",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (BNG)",
+        "label": "Vellvette Lifestyle Private Limited (BNG)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (Chennai)",
+        "label": "Vellvette Lifestyle Private Limited (Chennai)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (Haryana)",
+        "label": "Vellvette Lifestyle Private Limited (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (Odisha)",
+        "label": "Vellvette Lifestyle Private Limited (Odisha)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion (MP)",
+        "label": "Celio Future Fashion (MP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion (Nashik)",
+        "label": "Celio Future Fashion (Nashik)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Ana Designworx Private Limited",
+        "label": "Ana Designworx Private Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Axis M Work Space Pvt. Ltd.",
+        "label": "Axis M Work Space Pvt. Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Pvt Ltd (Punjab)",
+        "label": "Vellvette Lifestyle Pvt Ltd (Punjab)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Pvt Ltd (J&K)",
+        "label": "Vellvette Lifestyle Pvt Ltd (J&K)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (Kol)",
+        "label": "Vellvette Lifestyle Private Limited (Kol)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Cococart Ventures Pvt. Ltd. (Mum)",
+        "label": "Cococart Ventures Pvt. Ltd. (Mum)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Cococart Ventures Pvt. Ltd. (Delhi)",
+        "label": "Cococart Ventures Pvt. Ltd. (Delhi)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Cococart Ventures Pvt. Ltd. (Kol)",
+        "label": "Cococart Ventures Pvt. Ltd. (Kol)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Pvt Ltd (MP)",
+        "label": "Vellvette Lifestyle Pvt Ltd (MP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Oxygen Design Studio",
+        "label": "Oxygen Design Studio",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion Pvt Ltd. (JH)",
+        "label": "Celio Future Fashion Pvt Ltd. (JH)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Future Fashion Pvt Ltd (AP)",
+        "label": "Celio Future Fashion Pvt Ltd (AP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vibrant Salon And Spa Services Pvt Ltd",
+        "label": "Vibrant Salon And Spa Services Pvt Ltd",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skil Travel Pvt Ltd.",
+        "label": "Skil Travel Pvt Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (TLG)",
+        "label": "Vellvette Lifestyle Private Limited (TLG)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (AP)",
+        "label": "Vellvette Lifestyle Private Limited (AP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Private Limited (Kerala)",
+        "label": "Vellvette Lifestyle Private Limited (Kerala)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Rivet Communications Pvt Ltd.",
+        "label": "Rivet Communications Pvt Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Sandaw Prints Private Limited",
+        "label": "Sandaw Prints Private Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Wipro Enterprises Private Limited",
+        "label": "Wipro Enterprises Private Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vellvette Lifestyle Pvt Ltd (UP)",
+        "label": "Vellvette Lifestyle Pvt Ltd (UP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Consumer Products Ltd (Uttarakhand)",
+        "label": "Godrej Consumer Products Ltd (Uttarakhand)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Avanticasa Hospitality LLP",
+        "label": "Avanticasa Hospitality LLP",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Basics",
+        "label": "Basics",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Grindwell Norton Limited",
+        "label": "Grindwell Norton Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Anjali Mukerjee Health Total Pvt. Ltd.",
+        "label": "Anjali Mukerjee Health Total Pvt. Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "FSN Brands Marketing (Raipur)",
+        "label": "FSN Brands Marketing (Raipur)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "GLOBAL SS BEAUTY BRANDS LIMITED",
+        "label": "GLOBAL SS BEAUTY BRANDS LIMITED",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Consumer Products Ltd (Kar)",
+        "label": "Godrej Consumer Products Ltd (Kar)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Kama Ayurveda Private Limited (Gautam_Noida)",
+        "label": "Kama Ayurveda Private Limited (Gautam_Noida)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Du Parc-Bng)",
+        "label": "Reliance Luxe Beauty Ltd (Du Parc-Bng)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Navi Mumbai)",
+        "label": "Reliance Luxe Beauty Ltd (Navi Mumbai)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Malad)",
+        "label": "Reliance Luxe Beauty Ltd (Malad)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Ahmedabad)",
+        "label": "Reliance Luxe Beauty Ltd (Ahmedabad)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (PMC Pune)",
+        "label": "Reliance Luxe Beauty Ltd (PMC Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (ICC Pune)",
+        "label": "Reliance Luxe Beauty Ltd (ICC Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Mum-Parel)",
+        "label": "Reliance Luxe Beauty Ltd (Mum-Parel)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Mum-Kurla)",
+        "label": "Reliance Luxe Beauty Ltd (Mum-Kurla)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Indore)",
+        "label": "Reliance Luxe Beauty Ltd (Indore)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Ghatkopar)",
+        "label": "Reliance Luxe Beauty Ltd (Ghatkopar)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Bhopal)",
+        "label": "Reliance Luxe Beauty Ltd (Bhopal)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Goregaon)",
+        "label": "Reliance Luxe Beauty Ltd (Goregaon)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "V.D. Pop & Display LLP",
+        "label": "V.D. Pop & Display LLP",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Retail Innovate",
+        "label": "Retail Innovate",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Ltd (Forum Mall)",
+        "label": "Reliance Luxe Beauty Ltd (Forum Mall)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Consumer Products Ltd (Assam)",
+        "label": "Godrej Consumer Products Ltd (Assam)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Beauty Garage India",
+        "label": "Beauty Garage India",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Ekta Cosmetics Limited",
+        "label": "Ekta Cosmetics Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Kohler India Corporation (Pune)",
+        "label": "Kohler India Corporation (Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "FSN Brands Marketing (MP)",
+        "label": "FSN Brands Marketing (MP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Consumer Products (Chattisgarh)",
+        "label": "Godrej Consumer Products (Chattisgarh)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Consumer Products Ltd (MP)",
+        "label": "Godrej Consumer Products Ltd (MP)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Celio Retail Private Limited(Chennai)",
+        "label": "Celio Retail Private Limited(Chennai)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Godrej Consumer Products Ltd (Chennai)",
+        "label": "Godrej Consumer Products Ltd (Chennai)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Kosca Distribution LLP",
+        "label": "Kosca Distribution LLP",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Manikaran Beauty Studio",
+        "label": "Manikaran Beauty Studio",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Waulite Technologies Private Limited",
+        "label": "Waulite Technologies Private Limited",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Limited (Wakad Pune)",
+        "label": "Reliance Luxe Beauty Limited (Wakad Pune)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vision Rx Lab (Bangalore_Kar)",
+        "label": "Vision Rx Lab (Bangalore_Kar)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Siddharth",
+        "label": "Siddharth",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Allana Consumer Products Limited (Colaba)",
+        "label": "Allana Consumer Products Limited (Colaba)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Founding Years Learning Solutions Pvt Ltd.",
+        "label": "Founding Years Learning Solutions Pvt Ltd.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Lifestyle Enterprises",
+        "label": "Lifestyle Enterprises",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Reliance Luxe Beauty Limited (Haryana)",
+        "label": "Reliance Luxe Beauty Limited (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Global SS Beauty Brands Ltd (Haryana)",
+        "label": "Global SS Beauty Brands Ltd (Haryana)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Global SS beauty brands (West Bengal)",
+        "label": "Global SS beauty brands (West Bengal)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Global SS beauty brands (Karanataka)",
+        "label": "Global SS beauty brands (Karanataka)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "ADORN DECOR PRIVATE LIMITED",
+        "label": "ADORN DECOR PRIVATE LIMITED",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "M/S KABIR TRENDZ",
+        "label": "M/S KABIR TRENDZ",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Skil Travel Private Limited MH",
+        "label": "Skil Travel Private Limited MH",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "RELIANCE LUXE BEAUTY LIMITED (Sephora) (BNG)",
+        "label": "RELIANCE LUXE BEAUTY LIMITED (Sephora) (BNG)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "RELIANCE LUXE BEAUTY LTD (SEPHORA MBD NEOPOLIS MALL)",
+        "label": "RELIANCE LUXE BEAUTY LTD (SEPHORA MBD NEOPOLIS MALL)",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "SMART SHOPPING HISAR",
+        "label": "SMART SHOPPING HISAR",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "MATRIX CORPORATION",
+        "label": "MATRIX CORPORATION",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "BACCAROSE PERFUMES BEAUTY PRODUCTS PVT LTD.",
+        "label": "BACCAROSE PERFUMES BEAUTY PRODUCTS PVT LTD.",
+        "group": "Client List",
+        "hsnSac": "",
+        "productGroup": ""
+      }
+    ],
+    "designerNames": [
+      {
+        "value": "Minil Varankar",
+        "label": "Minil Varankar",
+        "group": "Designer Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Vignesh Sawant",
+        "label": "Vignesh Sawant",
+        "group": "Designer Name",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Priobrato Banerjee",
+        "label": "Priobrato Banerjee",
+        "group": "Designer Name",
+        "hsnSac": "",
+        "productGroup": ""
+      }
+    ],
+    "printReadyFiles": [
+      {
+        "value": "Yes",
+        "label": "Yes",
+        "group": "Print Ready File",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "No",
+        "label": "No",
+        "group": "Print Ready File",
+        "hsnSac": "",
+        "productGroup": ""
+      }
+    ],
+    "media": [
+      {
+        "value": "3M 3630 series",
+        "label": "3M 3630 series",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M 3630-22 Black",
+        "label": "3M 3630-22 Black",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M 3635-222",
+        "label": "3M 3635-222",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M 3M IJ1220-10 MATT WHITE",
+        "label": "3M 3M IJ1220-10 MATT WHITE",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M 3MIJ1220-10 MATT WHITE",
+        "label": "3M 3MIJ1220-10 MATT WHITE",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M 3MIJ-60 Backlit Translite",
+        "label": "3M 3MIJ-60 Backlit Translite",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "3M 5525 frosted",
+        "label": "3M 5525 frosted",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M 7725-324 Sparkle frosted",
+        "label": "3M 7725-324 Sparkle frosted",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M BLACK TAPE 1 INCH",
+        "label": "3M BLACK TAPE 1 INCH",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Others"
+      },
+      {
+        "value": "3M Envision FS1",
+        "label": "3M Envision FS1",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M IJ-15124 Matt Lamination",
+        "label": "3M IJ-15124 Matt Lamination",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M IJ180c",
+        "label": "3M IJ180c",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M IJ40-114",
+        "label": "3M IJ40-114",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M IJ48c",
+        "label": "3M IJ48c",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M IJ8150",
+        "label": "3M IJ8150",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M lJ35c",
+        "label": "3M lJ35c",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3M Lumina II",
+        "label": "3M Lumina II",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "3M Pana graphics IV",
+        "label": "3M Pana graphics IV",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "3M Traslite",
+        "label": "3M Traslite",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "3M3MIJ-60 Backlit Translite",
+        "label": "3M3MIJ-60 Backlit Translite",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "3M-7725-314 DUSTED FILM",
+        "label": "3M-7725-314 DUSTED FILM",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3MIJ1129 One Way Vision",
+        "label": "3MIJ1129 One Way Vision",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "3MIJ15-10 MATT VINYL",
+        "label": "3MIJ15-10 MATT VINYL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3MIJ-15-124 MATT CLEAR FILM",
+        "label": "3MIJ-15-124 MATT CLEAR FILM",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3MIJ15-20 MATT VINYL",
+        "label": "3MIJ15-20 MATT VINYL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3MIJ16-10 MAT TVINYL(GreyBack)",
+        "label": "3MIJ16-10 MAT TVINYL(GreyBack)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "3MIJ16-10 MATT VINYL(GreyBack)",
+        "label": "3MIJ16-10 MATT VINYL(GreyBack)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "8510 over lamination",
+        "label": "8510 over lamination",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "8520 Matte",
+        "label": "8520 Matte",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Arvind Backlit Fabric",
+        "label": "Arvind Backlit Fabric",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Avery Avery MPI3000",
+        "label": "Avery Avery MPI3000",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Avery Doll Lam 3100 50INCH ROLL",
+        "label": "Avery Doll Lam 3100 50INCH ROLL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Avery Frosted Film",
+        "label": "Avery Frosted Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "AVERY GREAY BACK SAV",
+        "label": "AVERY GREAY BACK SAV",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Avery Matt Lamination 40inch - roll",
+        "label": "Avery Matt Lamination 40inch - roll",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Avery Matt Lamination 50inch - roll",
+        "label": "Avery Matt Lamination 50inch - roll",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Avery Matt Lamination 60inch - roll",
+        "label": "Avery Matt Lamination 60inch - roll",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "AVERY MPI 3800 SAV",
+        "label": "AVERY MPI 3800 SAV",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "BACKLIT FABRIC",
+        "label": "BACKLIT FABRIC",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Backlit Fabric + Silicon Stich",
+        "label": "Backlit Fabric + Silicon Stich",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Backlit fabric board",
+        "label": "Backlit fabric board",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Backlit Flex",
+        "label": "Backlit Flex",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Flex"
+      },
+      {
+        "value": "Backlit GSB",
+        "label": "Backlit GSB",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Backlit LED Slim Fit Water Proof Clipon",
+        "label": "Backlit LED Slim Fit Water Proof Clipon",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Others"
+      },
+      {
+        "value": "Backlit Vinyl Gloss",
+        "label": "Backlit Vinyl Gloss",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Black Plotter Cut Vinyl media",
+        "label": "Black Plotter Cut Vinyl media",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "BLACK PLOTTUR CUT MEDIA",
+        "label": "BLACK PLOTTUR CUT MEDIA",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Bls Flex",
+        "label": "Bls Flex",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Flex"
+      },
+      {
+        "value": "Canvas",
+        "label": "Canvas",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "CANVAS 340 GSM GLOSS",
+        "label": "CANVAS 340 GSM GLOSS",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Paper"
+      },
+      {
+        "value": "Backlit Translite Film",
+        "label": "Backlit Translite Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "Glosy Lamination Film",
+        "label": "Glosy Lamination Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Gold Vinyl",
+        "label": "Gold Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Matt Lamination",
+        "label": "Matt Lamination",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Non Terable Vinyl",
+        "label": "Non Terable Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "One Way Vision",
+        "label": "One Way Vision",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "PP Matt Vinyl",
+        "label": "PP Matt Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "PullUp Standee",
+        "label": "PullUp Standee",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Standee"
+      },
+      {
+        "value": "RED Vinyl",
+        "label": "RED Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Self Adhesive Vinyl",
+        "label": "Self Adhesive Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Self Adhesive Vinyl(Greyback)",
+        "label": "Self Adhesive Vinyl(Greyback)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Silver Metalic Vinyl",
+        "label": "Silver Metalic Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Clear Film",
+        "label": "Clear Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "CLEAR FILM MATT ( FOR PRINT100 MICRON)",
+        "label": "CLEAR FILM MATT ( FOR PRINT100 MICRON)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Clear Film Max",
+        "label": "Clear Film Max",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "CROWN Matt Lamination",
+        "label": "CROWN Matt Lamination",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "DELTA Backlit Translite Film",
+        "label": "DELTA Backlit Translite Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "DELTAB acklit Translite Film",
+        "label": "DELTAB acklit Translite Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "FAB One Way Vision",
+        "label": "FAB One Way Vision",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "FABRIC",
+        "label": "FABRIC",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Front lit Flex",
+        "label": "Front lit Flex",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Flex"
+      },
+      {
+        "value": "Frontlit flex",
+        "label": "Frontlit flex",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Flex"
+      },
+      {
+        "value": "Frontlite Flex",
+        "label": "Frontlite Flex",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Flex"
+      },
+      {
+        "value": "Frosted Film",
+        "label": "Frosted Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Frosted Film (Electronic/Plotter cut)",
+        "label": "Frosted Film (Electronic/Plotter cut)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Frosted Film (Reverse Print)",
+        "label": "Frosted Film (Reverse Print)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Glass Graphics (Clear Media)",
+        "label": "Glass Graphics (Clear Media)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "HI-STAR Backlit Fabric",
+        "label": "HI-STAR Backlit Fabric",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "HI-STAR Glosy Lamination Film",
+        "label": "HI-STAR Glosy Lamination Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "HI-STAR Matt Lamination",
+        "label": "HI-STAR Matt Lamination",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "HI-STAR Non Terable VINYL",
+        "label": "HI-STAR Non Terable VINYL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "HI-STAR One Way Vision",
+        "label": "HI-STAR One Way Vision",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "HI-STAR OneWay Vision",
+        "label": "HI-STAR OneWay Vision",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "HI-STAR Self Adhesive Vinyl",
+        "label": "HI-STAR Self Adhesive Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "HI-STAR Self Adhesive Vinyl(Greyback)",
+        "label": "HI-STAR Self Adhesive Vinyl(Greyback)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "HI-STAR Silver Metalic Vinyl",
+        "label": "HI-STAR Silver Metalic Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "HP Backlit Translite Film",
+        "label": "HP Backlit Translite Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "Magnetic sheet roll Size - 50 x 15mtr",
+        "label": "Magnetic sheet roll Size - 50 x 15mtr",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Magnetic Vinyl Direct 50” x 20Mtr",
+        "label": "Magnetic Vinyl Direct 50” x 20Mtr",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Normal Canvas 42''X50M",
+        "label": "Normal Canvas 42''X50M",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "Normal Canvas 50''X50M",
+        "label": "Normal Canvas 50''X50M",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "Normal Canvas 60”X50M",
+        "label": "Normal Canvas 60”X50M",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "Novastar Glosy LaminationFilm",
+        "label": "Novastar Glosy LaminationFilm",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Novastar Magnetic Direct Pet Size - 50” x 15 Mtr",
+        "label": "Novastar Magnetic Direct Pet Size - 50” x 15 Mtr",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "Novastar Matt Lamination",
+        "label": "Novastar Matt Lamination",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Novastar One Way Vision",
+        "label": "Novastar One Way Vision",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "NOVASTAR OPTICAL CLEAR FILM",
+        "label": "NOVASTAR OPTICAL CLEAR FILM",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Novastar Self Adhesive Vinyl",
+        "label": "Novastar Self Adhesive Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Novastar Self Adhesive Vinyl(Greyback)",
+        "label": "Novastar Self Adhesive Vinyl(Greyback)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Novastar Silver Metalic VINYL",
+        "label": "Novastar Silver Metalic VINYL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "NovastarNonTerableVINYL",
+        "label": "NovastarNonTerableVINYL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "One Way Vision Graphics",
+        "label": "One Way Vision Graphics",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "ONYX Backlit Fabric",
+        "label": "ONYX Backlit Fabric",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Onyx Backlit Translite Film",
+        "label": "Onyx Backlit Translite Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "Onyx FLEX",
+        "label": "Onyx FLEX",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Flex"
+      },
+      {
+        "value": "Onyx Glosy Lamination Film",
+        "label": "Onyx Glosy Lamination Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Onyx GREEN LAMINATION",
+        "label": "Onyx GREEN LAMINATION",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Onyx Matt Lamination",
+        "label": "Onyx Matt Lamination",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Lamination"
+      },
+      {
+        "value": "Onyx Non Terable VINYL",
+        "label": "Onyx Non Terable VINYL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Onyx PPMatt Vinyl",
+        "label": "Onyx PPMatt Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Onyx Self Adhesive Vinyl",
+        "label": "Onyx Self Adhesive Vinyl",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Onyx Self Adhesive Vinyl(Greyback)",
+        "label": "Onyx Self Adhesive Vinyl(Greyback)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Onyx SelfAdhesive Vinyl(Greyback)",
+        "label": "Onyx SelfAdhesive Vinyl(Greyback)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Others",
+        "label": "Others",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Others"
+      },
+      {
+        "value": "Plotter Letter cut 3M 3630 series plotte",
+        "label": "Plotter Letter cut 3M 3630 series plotte",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "SANFA Backlit Fabric",
+        "label": "SANFA Backlit Fabric",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Satin",
+        "label": "Satin",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Satin Nova star",
+        "label": "Satin Nova star",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Star Backlit Translite Film",
+        "label": "Star Backlit Translite Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "Star FLEX",
+        "label": "Star FLEX",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Flex"
+      },
+      {
+        "value": "Star Non Terable VINYL",
+        "label": "Star Non Terable VINYL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "Star NonTerable VINYL",
+        "label": "Star NonTerable VINYL",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Star Self Adhesive Vinyl(Greyback)",
+        "label": "Star Self Adhesive Vinyl(Greyback)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Technova Backlit Polyster Translite",
+        "label": "Technova Backlit Polyster Translite",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "Technova Backlit Translite Film",
+        "label": "Technova Backlit Translite Film",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "Technova Glossy Canvas 375 GSM",
+        "label": "Technova Glossy Canvas 375 GSM",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Paper"
+      },
+      {
+        "value": "WONDER SIGN BACKLIT",
+        "label": "WONDER SIGN BACKLIT",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Translite"
+      },
+      {
+        "value": "WONDER SIGN FABRIC BLT",
+        "label": "WONDER SIGN FABRIC BLT",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Metal Fixure with Lit",
+        "label": "Metal Fixure with Lit",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Others"
+      },
+      {
+        "value": "Customized acrylic Table top",
+        "label": "Customized acrylic Table top",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Acrylic"
+      },
+      {
+        "value": "Wooden Frame",
+        "label": "Wooden Frame",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Wood"
+      },
+      {
+        "value": "Wooden Standee",
+        "label": "Wooden Standee",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Wood"
+      },
+      {
+        "value": "Plain Acrylic",
+        "label": "Plain Acrylic",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Acrylic"
+      },
+      {
+        "value": "Roll of Standee",
+        "label": "Roll of Standee",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Standee"
+      },
+      {
+        "value": "300 GSM offer card hot lamination",
+        "label": "300 GSM offer card hot lamination",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Paper"
+      },
+      {
+        "value": "Front lit fabric with 4 side wholes",
+        "label": "Front lit fabric with 4 side wholes",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Fabric"
+      },
+      {
+        "value": "Rollup standee with non tearbae (With Flex)",
+        "label": "Rollup standee with non tearbae (With Flex)",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Standee"
+      },
+      {
+        "value": "Rollup standee with non tearbae",
+        "label": "Rollup standee with non tearbae",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Banner"
+      },
+      {
+        "value": "Roller standee 1 per store",
+        "label": "Roller standee 1 per store",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Standee"
+      },
+      {
+        "value": "300 GSM Offer card",
+        "label": "300 GSM Offer card",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Paper"
+      },
+      {
+        "value": "300 GSM Wobbler",
+        "label": "300 GSM Wobbler",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Paper"
+      },
+      {
+        "value": "Static Film White",
+        "label": "Static Film White",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Clear Film Reverse",
+        "label": "Clear Film Reverse",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Clear Film Reverse with white SAV Back Site",
+        "label": "Clear Film Reverse with white SAV Back Site",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      },
+      {
+        "value": "Photo Glosy Paper",
+        "label": "Photo Glosy Paper",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Glosy"
+      },
+      {
+        "value": "Avery MPI Versa White Gloss CL Perm",
+        "label": "Avery MPI Versa White Gloss CL Perm",
+        "group": "Media",
+        "hsnSac": "39219099",
+        "productGroup": "Vinyl"
+      }
+    ],
+    "implementation": [
+      {
+        "value": "Yes",
+        "label": "Yes",
+        "group": "Implementation",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "No",
+        "label": "No",
+        "group": "Implementation",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Outsource",
+        "label": "Outsource",
+        "group": "Implementation",
+        "hsnSac": "",
+        "productGroup": ""
+      }
+    ],
+    "mounting": [
+      {
+        "value": "No Mounting",
+        "label": "No Mounting",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "No Mounting"
+      },
+      {
+        "value": "3 MM Sun Board",
+        "label": "3 MM Sun Board",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "Sun Board"
+      },
+      {
+        "value": "5 MM Sun Board",
+        "label": "5 MM Sun Board",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "Sun Board"
+      },
+      {
+        "value": "3 MM Black Sun Board",
+        "label": "3 MM Black Sun Board",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "Sun Board"
+      },
+      {
+        "value": "5 MM Black Sun Board",
+        "label": "5 MM Black Sun Board",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "Sun Board"
+      },
+      {
+        "value": "Acrylic",
+        "label": "Acrylic",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "Acrylic"
+      },
+      {
+        "value": "Polycarbonate Sheet",
+        "label": "Polycarbonate Sheet",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "Miscllaneous"
+      },
+      {
+        "value": "Pullup Standee",
+        "label": "Pullup Standee",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "Standee"
+      },
+      {
+        "value": "Magnetic Base",
+        "label": "Magnetic Base",
+        "group": "Mounting",
+        "hsnSac": "",
+        "productGroup": "Miscllaneous"
+      }
+    ],
+    "segments": [
+      {
+        "value": "Print",
+        "label": "Print",
+        "group": "Segment",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Retail",
+        "label": "Retail",
+        "group": "Segment",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Onsite",
+        "label": "Onsite",
+        "group": "Segment",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "Design",
+        "label": "Design",
+        "group": "Segment",
+        "hsnSac": "",
+        "productGroup": ""
+      }
+    ],
+    "billingLocations": [
+      {
+        "value": "East",
+        "label": "East",
+        "group": "Billing Location",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "North",
+        "label": "North",
+        "group": "Billing Location",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "South",
+        "label": "South",
+        "group": "Billing Location",
+        "hsnSac": "",
+        "productGroup": ""
+      },
+      {
+        "value": "West",
+        "label": "West",
+        "group": "Billing Location",
+        "hsnSac": "",
+        "productGroup": ""
+      }
+    ]
+  }
+}

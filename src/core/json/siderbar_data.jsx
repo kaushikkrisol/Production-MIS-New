@@ -1,7 +1,6 @@
 import React from "react";
 
 import * as Icon from "react-feather";
-import { label } from "yet-another-react-lightbox";
 
 
 const user=localStorage.getItem("users");
@@ -43,6 +42,9 @@ const rawUserId =
   "";
 
 
+  console.log("userID is here",rawUserId)
+
+
   // Extract userName
 const userName =
   userObj?.message?.user_name ||
@@ -51,24 +53,6 @@ const userName =
   userObj?.FullName ||
   "";
 const userId = extractMongoId(rawUserId);
-  const ALLOWED_TIMESHEET_USER_IDS = ["10137", "10150","10090"];
-const showTimesheetDashboard = ALLOWED_TIMESHEET_USER_IDS.includes(userId);
-
-const base64UrlEncode = (obj) => {
-  const json = JSON.stringify(obj);
-  const b64 = btoa(unescape(encodeURIComponent(json)));
-  return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-};
-
-const token = userId
-  ? base64UrlEncode({
-      userId,
-      ts: Date.now(),
-    })
-  : "";
-
-
-  
 
 console.log("User Role:", rolename, "rawUserId:", rawUserId, "resolved userId:", userId);
 export const SidebarData = [
@@ -86,20 +70,25 @@ export const SidebarData = [
 
         submenuItems: [
           { label: "Admin Dashboard", link: "/admin-dashboard" },
-          ...(showTimesheetDashboard ? [{ label: "Timesheet Dashboard", link: "/timesheet-dashboard" }] : []),
+          { label: "WhatsApp Dashboard", link: "/whatsapp-dashboard" },
+          { label: "Designer Dashboard", link: "/designer-dashboard" },
           {
         label: "CS Dashboard",
         link: "https://productiondashboard.comart.in/",
       },
-      {
+           {
   label: "Timesheet",
   link: `https://timesheet.comart.in/?userid=${encodeURIComponent(userId)}${userName ? `&userName=${encodeURIComponent(userName)}` : ""}`,
 },
-{
-  label:"Challan Dashboard",
-  link:"/challandashboard"
-}
-      
+           {
+    label: "Timesheet Dashboard",
+    link: `/timesheet-dashboard?userid=${encodeURIComponent(userId)}${userName ? `&userName=${encodeURIComponent(userName)}` : ""}`,
+  },
+    {
+      label:"Challan Dashboard",
+      link:"/challandashboard"
+    },
+  
           // { label: "Production Dashboard", link: "/sales-dashboard" },
         ],
       },
@@ -1077,13 +1066,18 @@ export const SidebarData = [
   showSubRoute: false,
   icon: <Icon.Columns />,
   submenuItems: [
+    { label: "Job Entry", link: "/jobs" },
     { label: "CS", link: "/data-tables" },
     { label: "Design", link: "/designn" },
     { label: "Printing", link: "/production" },
     { label: "Lamination/Mounting & Packing", link: "/printlaminpacking" },
+    { label: "Recce", link: "/recce" },
+    { label: "Retail Customer", link: "/retail-customer" },
     { label: "Pending Jobs With Hold", link: "/pending-jobs-with-hold" },
     { label: "Delivery", link: "/delivery" },
     { label: "Implementation", link: "/implementation" },
+    { label: "Invoice", link: "/invoice-preview-builder" },
+    { label: "All Invoices", link: "/invoice-list" },
     { label: "Implementation Download", link: "/implementationDownload" },
 
     // ✅ Conditionally add this item
@@ -1096,44 +1090,55 @@ export const SidebarData = [
 },
 
       {
-        label: "MIS Report",
-        submenu: false,
+        label: "Purchase",
+        submenu: true,
         showSubRoute: false,
-        icon: <Icon.Columns />,
-        link: "/misreport",
+        icon: <Icon.ShoppingBag />,
+        submenuItems: [
+          { label: "Material Requisition & PO", link: "/material-procurement" },
+        ],
       },
       {
-        label: "Consolidated MIS Report",
-        submenu: false,
+        label: "Finance",
+        submenu: true,
         showSubRoute: false,
-        icon: <Icon.Columns />,
-        link: "/ConsolidatedReport",
+        icon: <Icon.CreditCard />,
+        submenuItems: [
+          { label: "Expense Request & Reimbursement", link: "/expense-reimbursement" },
+        ],
       },
-
       {
-        label: "Billing Export",
-        submenu: false,
+        label: "Master",
+        submenu: true,
         showSubRoute: false,
-        icon: <Icon.Columns />,
-        link: "/BillingExport",
+        icon: <Icon.Database />,
+        submenuItems: [
+          { label: "Store Master", link: "/storemaster" },
+          { label: "Product Media Rates", link: "/product-media-rate-master" },
+        ],
       },
-
       {
-        label: "Job Tracker",
-        submenu: false,
+        label: "Reports",
+        submenu: true,
         showSubRoute: false,
-        icon: <Icon.Columns />,
-        link: "/jobtracker",
+        icon: <Icon.FileText />,
+        submenuItems: [
+          { label: "MIS Report", link: "/misreport" },
+          { label: "Weekly Audit Report", link: "/weekly-audit-report" },
+          { label: "Consolidated MIS Report", link: "/ConsolidatedReport" },
+          { label: "Billing Export", link: "/BillingExport" },
+          // { label: "Job Tracker", link: "/jobtracker" },
+        ],
       },
       
 
-      {
-        label: "Data Store Application",
-        submenu: false,
-        showSubRoute: false,
-        icon: <Icon.Columns />,
-        link: "/storedata",
-      },
+      // {
+      //   label: "Data Store Application",
+      //   submenu: false,
+      //   showSubRoute: false,
+      //   icon: <Icon.Columns />,
+      //   link: "/storedata",
+      // },
     ],
   },
   // {

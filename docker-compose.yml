@@ -1,0 +1,10 @@
+services:
+  comart-mis-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: comart-mis-ui:latest
+    container_name: comart-mis-ui
+    ports:
+      - "8181:80"
+    restart: unless-stopped

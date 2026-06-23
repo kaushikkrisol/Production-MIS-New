@@ -79,8 +79,8 @@ export const findCustomerRecord = (customers, source = {}) => {
     source?.customerName,
     source?.customername,
     source?.clientName,
-    source?.subClient,
     source?.client,
+    source?.subClient,
   ]
     .map(normalizeText)
     .filter(Boolean);

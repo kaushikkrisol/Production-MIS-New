@@ -240,3 +240,94 @@ h4 {
 .legend-box.implupload {
   background-color: #20c997;
 }
+
+.erp-threshold-tile {
+  min-width: 158px;
+  padding: 14px 16px;
+  border-radius: 8px;
+  display: grid;
+  gap: 4px;
+  line-height: 1.15;
+  animation: erp-threshold-flash 1.4s ease-in-out infinite;
+}
+
+.erp-threshold-tile b {
+  font-size: 1.12rem;
+}
+
+.erp-threshold-tile span {
+  font-size: 0.92rem;
+}
+
+.erp-threshold-tile strong {
+  font-size: 1.65rem;
+}
+
+.erp-threshold-tile--blue {
+  background: #0d6efd;
+  color: #fff;
+}
+
+.erp-threshold-tile--yellow {
+  background: #facc15;
+  color: #111827;
+}
+
+.erp-threshold-tile--orange {
+  background: #f97316;
+  color: #111827;
+}
+
+.erp-threshold-tile--dark-grey {
+  background: #3f3f46;
+  color: #fff;
+}
+
+@keyframes erp-threshold-flash {
+  0%,
+  100% {
+    filter: brightness(1);
+    transform: translateY(0);
+  }
+
+  50% {
+    filter: brightness(1.18);
+    transform: translateY(-1px);
+  }
+}
+.erp-alert-tile-blink {
+  animation: erpTileBlink 1s infinite;
+}
+
+@keyframes erpTileBlink {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.45;
+    transform: scale(1.05);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+@keyframes pulseBlink {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.78;
+    transform: scale(1.03);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}

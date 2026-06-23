@@ -53,7 +53,6 @@ const DeliveryTimestampCell = (props) => {
     "";
 
   const [draft, setDraft] = useState(initialIso ? new Date(initialIso) : null);
-  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     const iso =
@@ -64,18 +63,15 @@ const DeliveryTimestampCell = (props) => {
       data?.DeliveryTimestamp ||
       "";
 
-    if (!dirty) setDraft(iso ? new Date(iso) : null);
+    setDraft(iso ? new Date(iso) : null);
   }, [
     context,
     rowId,
-    dirty,
     data?.deliveryTimestampUtc,
     data?.DeliveryTimestampUtc,
     data?.deliveryTimestamp,
     data?.DeliveryTimestamp,
   ]);
-
-  const canSave = !isLocked && draft && dirty;
 
   return (
     <div
@@ -88,7 +84,10 @@ const DeliveryTimestampCell = (props) => {
         onChange={(date) => {
           if (isLocked) return;
           setDraft(date);
-          setDirty(true);
+          context.setRowTimestamps((prev) => ({
+            ...prev,
+            [rowId]: date ? date.toISOString() : "",
+          }));
         }}
         showTimeSelect
         timeIntervals={15}
@@ -102,30 +101,48 @@ const DeliveryTimestampCell = (props) => {
         popperPlacement="bottom-start"
         popperContainer={({ children }) => createPortal(children, document.body)}
       />
-
-      {!isLocked && (
-        <button
-          type="button"
-          className="btn btn-sm btn-primary"
-          disabled={!canSave}
-          onClick={() => {
-            if (!draft) return;
-            const isoUtc = draft.toISOString();
-
-            context.setRowTimestamps((prev) => ({
-              ...prev,
-              [rowId]: isoUtc,
-            }));
-
-            context.saveTimestamp(rowId, isoUtc, data);
-            setDirty(false);
-          }}
-        >
-          Save
-        </button>
-      )}
     </div>
   );
+};
+
+const getAnyField = (row, keys) => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return "";
+};
+
+const isTruthyFlag = (value) => {
+  const normalized = String(value ?? "").trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+};
+
+const getDeliveryChallanMeta = (row) => {
+  const id = getAnyField(row, [
+    "deliveryChallanId",
+    "DeliveryChallanId",
+    "challanId",
+    "ChallanId",
+  ]);
+  const no = getAnyField(row, [
+    "deliveryChallanNo",
+    "DeliveryChallanNo",
+    "challanNo",
+    "ChallanNo",
+  ]);
+  const created = getAnyField(row, [
+    "isDeliveryChallanCreated",
+    "IsDeliveryChallanCreated",
+  ]);
+
+  return {
+    id,
+    no,
+    isCreated: Boolean(id || no || isTruthyFlag(created)),
+  };
 };
 
 const Delivery = () => {
@@ -157,8 +174,8 @@ const Delivery = () => {
     items: [],
   });
 
-  const [bulkTimestamp, setBulkTimestamp] = useState(null);
-  const [bulkSaving, setBulkSaving] = useState(false);
+  // const [bulkTimestamp, setBulkTimestamp] = useState(null);
+  // const [bulkSaving, setBulkSaving] = useState(false);
 
   const [showTopToast, setShowTopToast] = useState(false);
   const [topToastMessage, setTopToastMessage] = useState("");
@@ -302,9 +319,9 @@ const Delivery = () => {
           customer?.customeR_NAME ||
           row?.customerName ||
           row?.customername ||
-          row?.subClient ||
           row?.clientName ||
           row?.client ||
+          row?.subClient ||
           ""
       )
         .trim()
@@ -492,172 +509,182 @@ const Delivery = () => {
     }
   };
 
-  const handleCreateDeliveryChallan = async () => {
-    try {
-      if (!validateDeliveryChallanForm()) return;
+const handleCreateDeliveryChallan = async () => {
+  try {
+    if (!validateDeliveryChallanForm()) return;
 
-      const selectedData = getSelectedExactRows();
-      const effectiveSelectedData = selectedData.length ? selectedData : selectedRows;
+    const selectedData = getSelectedExactRows();
+    const effectiveSelectedData = selectedData.length ? selectedData : selectedRows;
 
-      if (!effectiveSelectedData.length) {
-        triggerTopToast("Please select at least one row", "danger");
-        return;
-      }
-
-      const firstRow = effectiveSelectedData[0];
-
-      const selectedCustomerId =
-        firstRow.customerId ||
-        firstRow.CUSTOMER_ID ||
-        firstRow.customeR_ID ||
-        firstRow.customer_id ||
-        firstRow.CustomerId ||
-        "";
-
-      const customer = findCustomerRecord(customers, firstRow);
-      const branchDetails = getCompanyBranchDetails(
-        firstRow.region || firstRow.productionLocation
-      );
-
-  const challanPayload = {
-  challanDate: moment().format("DD-MM-YYYY"),
-
-  companyName: branchDetails.companyName,
-  companyAddress: branchDetails.companyAddress,
-  companyPhone: branchDetails.companyPhone,
-  companyGst: branchDetails.companyGst,
-  companyLogo: branchDetails.companyLogo,
-
-  customerId: String(selectedCustomerId || ""),
-  customerName: customer?.customeR_NAME || firstRow.client || "",
-
-  // ✅ FIXED ADDRESS (PROPER FORMAT)
-  customerAddress: challanForm.customerAddress,
-
-  customerGstNo: challanForm.customerGstNo,
-
-  projectName: firstRow.visualCode || "",
-  cpName: challanForm.cpName,
-  contactPersonPhone: firstRow.contactPersonPhone || "",
-
-  jobNo: getUniqueJobNos(effectiveSelectedData),
-  jobValue: challanForm.jobValue,
-  poNo: firstRow.poNo || "",
-  poDate: formatDisplayDate(firstRow.poDate),
-
-  storeName: firstRow.storeName || firstRow.city || "",
-  storeAddress: challanForm.storeAddress,
-  productionLocation: firstRow.region || firstRow.productionLocation || "",
-  dispatchAddress: firstRow.dispatchAddress || "",
-  remarks: firstRow.remarks || "",
-
-  preparedBy: username || "",
-  receivedBy: "",
-  receivedDate: "",
-
-  locationId: String(locationId || ""),
-  createdBy: username || "",
-
-  items: challanForm.items.map((item) => ({
-    ...item,
-    hsnCode: item.hsnCode || "",
-    unitPrice: Number(item.unitPrice || 0),
-    lineJobValue: Number(item.lineJobValue || 0),
-  })),
-};
-
-      const response = await axios.post(
-        config.Delivery.URL.CreateDeliveryChallan,
-        challanPayload,
-        { headers: { "Content-Type": "application/json" } }
-      );
-
-      const savedChallan = response.data;
-
-      localStorage.setItem(
-  "challanPreviewData",
-  JSON.stringify({
-    companyName:
-      savedChallan.companyName || savedChallan.CompanyName || challanPayload.companyName,
-    companyAddress:
-      savedChallan.companyAddress ||
-      savedChallan.CompanyAddress ||
-      challanPayload.companyAddress,
-    companyPhone:
-      savedChallan.companyPhone || savedChallan.CompanyPhone || challanPayload.companyPhone,
-    companyGst:
-      savedChallan.companyGst || savedChallan.CompanyGst || challanPayload.companyGst,
-    companyLogo:
-      savedChallan.companyLogo || savedChallan.CompanyLogo || challanPayload.companyLogo,
-
-    name:
-      savedChallan.customerName ||
-      savedChallan.CustomerName ||
-      challanPayload.customerName,
-    address:
-      savedChallan.customerAddress ||
-      savedChallan.CustomerAddress ||
-      challanPayload.customerAddress,
-    gstNo:
-      savedChallan.customerGstNo ||
-      savedChallan.CustomerGstNo ||
-      challanPayload.customerGstNo,
-
-    projectName:
-      savedChallan.projectName ||
-      savedChallan.ProjectName ||
-      challanPayload.projectName,
-    cpName: savedChallan.cpName || savedChallan.CpName || challanPayload.cpName,
-    contactPersonPhone:
-      savedChallan.contactPersonPhone ||
-      savedChallan.ContactPersonPhone ||
-      challanPayload.contactPersonPhone,
-
-    challanNo: savedChallan.challanNo || savedChallan.ChallanNo,
-    challanDt: savedChallan.challanDate || savedChallan.ChallanDate,
-    jobNo: savedChallan.jobNo || savedChallan.JobNo || challanPayload.jobNo,
-    jobValue: savedChallan.jobValue || savedChallan.JobValue || challanPayload.jobValue,
-    poNo: savedChallan.poNo || savedChallan.PoNo || challanPayload.poNo,
-    poDate: savedChallan.poDate || savedChallan.PoDate || challanPayload.poDate,
-
-    storeName:
-      savedChallan.storeName || savedChallan.StoreName || challanPayload.storeName,
-    storeAddress:
-      savedChallan.storeAddress ||
-      savedChallan.StoreAddress ||
-      challanPayload.storeAddress,
-    productionLocation:
-      savedChallan.productionLocation ||
-      savedChallan.ProductionLocation ||
-      challanPayload.productionLocation,
-    dispatchAddress:
-      savedChallan.dispatchAddress ||
-      savedChallan.DispatchAddress ||
-      challanPayload.dispatchAddress,
-    remarks: savedChallan.remarks || savedChallan.Remarks || challanPayload.remarks,
-
-    preparedBy:
-      savedChallan.preparedBy || savedChallan.PreparedBy || challanPayload.preparedBy,
-    receivedBy: savedChallan.receivedBy || savedChallan.ReceivedBy,
-    receivedDate: savedChallan.receivedDate || savedChallan.ReceivedDate,
-
-    items: savedChallan.items || savedChallan.Items || challanPayload.items || []
-  })
-);
-
-      setShowChallanModal(false);
-      window.open(`/deliverychallan/`, '_blank');
-      await fetchDeliveryByLocation();
-
-      triggerTopToast(
-        `Delivery challan created: ${savedChallan.challanNo || savedChallan.ChallanNo}`,
-        "success"
-      );
-    } catch (error) {
-      console.error("Error creating delivery challan:", error);
-      triggerTopToast("Failed to create delivery challan", "danger");
+    if (!effectiveSelectedData.length) {
+      triggerTopToast("Please select at least one row", "danger");
+      return;
     }
-  };
+
+    // save timestamp + mark done before challan creation
+    await saveTimestampBeforeDeliveryChallan(effectiveSelectedData);
+
+    const firstRow = effectiveSelectedData[0];
+
+    const selectedCustomerId =
+      firstRow.customerId ||
+      firstRow.CUSTOMER_ID ||
+      firstRow.customeR_ID ||
+      firstRow.customer_id ||
+      firstRow.CustomerId ||
+      "";
+
+    const customer = findCustomerRecord(customers, firstRow);
+    const branchDetails = getCompanyBranchDetails(
+      firstRow.region || firstRow.productionLocation
+    );
+
+    const challanPayload = {
+      challanDate: moment().format("DD-MM-YYYY"),
+
+      companyName: branchDetails.companyName,
+      companyAddress: branchDetails.companyAddress,
+      companyPhone: branchDetails.companyPhone,
+      companyGst: branchDetails.companyGst,
+      companyLogo: branchDetails.companyLogo,
+
+      customerId: String(selectedCustomerId || ""),
+      customerName: customer?.customeR_NAME || firstRow.client || "",
+      customerAddress: challanForm.customerAddress,
+      customerGstNo: challanForm.customerGstNo,
+
+      projectName: firstRow.visualCode || "",
+      cpName: challanForm.cpName,
+      contactPersonPhone: firstRow.contactPersonPhone || "",
+
+      jobNo: getUniqueJobNos(effectiveSelectedData),
+      jobValue: challanForm.jobValue,
+      poNo: firstRow.poNo || "",
+      poDate: formatDisplayDate(firstRow.poDate),
+
+      storeName: firstRow.storeName || firstRow.city || "",
+      storeAddress: challanForm.storeAddress,
+      productionLocation: firstRow.region || firstRow.productionLocation || "",
+      dispatchAddress: firstRow.dispatchAddress || "",
+      remarks: firstRow.remarks || "",
+
+      preparedBy: username || "",
+      receivedBy: "",
+      receivedDate: "",
+
+      locationId: String(locationId || ""),
+      createdBy: username || "",
+
+      items: challanForm.items.map((item) => ({
+        ...item,
+        csId: item.csId || item.rowId,
+        hsnCode: item.hsnCode || "",
+        unitPrice: Number(item.unitPrice || 0),
+        lineJobValue: Number(item.lineJobValue || 0),
+      })),
+    };
+
+    const response = await axios.post(
+      config.Delivery.URL.CreateDeliveryChallan,
+      challanPayload,
+      { headers: { "Content-Type": "application/json" } }
+    );
+
+    const savedChallan = response.data;
+    const savedItems = savedChallan.items || savedChallan.Items || [];
+    const previewItems = (Array.isArray(savedItems) && savedItems.length ? savedItems : challanPayload.items || []).map(
+      (item, index) => ({
+        ...(challanPayload.items?.[index] || {}),
+        ...item,
+        hsnCode: item.hsnCode || item.HsnCode || challanPayload.items?.[index]?.hsnCode || "",
+        unitPrice: item.unitPrice ?? item.UnitPrice ?? challanPayload.items?.[index]?.unitPrice ?? 0,
+        totalSqFt: item.totalSqFt ?? item.TotalSqFt ?? challanPayload.items?.[index]?.totalSqFt ?? 0,
+        lineJobValue:
+          item.lineJobValue ??
+          item.LineJobValue ??
+          item.jobValue ??
+          item.JobValue ??
+          challanPayload.items?.[index]?.lineJobValue ??
+          0,
+      })
+    );
+
+    localStorage.setItem(
+      "challanPreviewData",
+      JSON.stringify({
+        companyName:
+          savedChallan.companyName || savedChallan.CompanyName || challanPayload.companyName,
+        companyAddress:
+          savedChallan.companyAddress ||
+          savedChallan.CompanyAddress ||
+          challanPayload.companyAddress,
+        companyPhone:
+          savedChallan.companyPhone || savedChallan.CompanyPhone || challanPayload.companyPhone,
+        companyGst:
+          savedChallan.companyGst || savedChallan.CompanyGst || challanPayload.companyGst,
+        companyLogo:
+          savedChallan.companyLogo || savedChallan.CompanyLogo || challanPayload.companyLogo,
+        name:
+          savedChallan.customerName || savedChallan.CustomerName || challanPayload.customerName,
+        address:
+          savedChallan.customerAddress ||
+          savedChallan.CustomerAddress ||
+          challanPayload.customerAddress,
+        gstNo:
+          savedChallan.customerGstNo ||
+          savedChallan.CustomerGstNo ||
+          challanPayload.customerGstNo,
+        projectName:
+          savedChallan.projectName || savedChallan.ProjectName || challanPayload.projectName,
+        cpName: savedChallan.cpName || savedChallan.CpName || challanPayload.cpName,
+        contactPersonPhone:
+          savedChallan.contactPersonPhone ||
+          savedChallan.ContactPersonPhone ||
+          challanPayload.contactPersonPhone,
+        challanNo: savedChallan.challanNo || savedChallan.ChallanNo,
+        challanDt: savedChallan.challanDate || savedChallan.ChallanDate,
+        jobNo: savedChallan.jobNo || savedChallan.JobNo || challanPayload.jobNo,
+        jobValue: savedChallan.jobValue || savedChallan.JobValue || challanPayload.jobValue,
+        poNo: savedChallan.poNo || savedChallan.PoNo || challanPayload.poNo,
+        poDate: savedChallan.poDate || savedChallan.PoDate || challanPayload.poDate,
+        storeName: savedChallan.storeName || savedChallan.StoreName || challanPayload.storeName,
+        storeAddress:
+          savedChallan.storeAddress ||
+          savedChallan.StoreAddress ||
+          challanPayload.storeAddress,
+        productionLocation:
+          savedChallan.productionLocation ||
+          savedChallan.ProductionLocation ||
+          challanPayload.productionLocation,
+        dispatchAddress:
+          savedChallan.dispatchAddress ||
+          savedChallan.DispatchAddress ||
+          challanPayload.dispatchAddress,
+        remarks: savedChallan.remarks || savedChallan.Remarks || challanPayload.remarks,
+        preparedBy:
+          savedChallan.preparedBy || savedChallan.PreparedBy || challanPayload.preparedBy,
+        receivedBy: savedChallan.receivedBy || savedChallan.ReceivedBy,
+        receivedDate: savedChallan.receivedDate || savedChallan.ReceivedDate,
+        items: previewItems,
+      })
+    );
+
+    setShowChallanModal(false);
+    window.open(`/deliverychallan/`, "_blank");
+    await fetchDeliveryByLocation();
+
+    triggerTopToast(
+      `Delivery challan created: ${savedChallan.challanNo || savedChallan.ChallanNo}`,
+      "success"
+    );
+  } catch (error) {
+    console.error("Error creating delivery challan:", error);
+    triggerTopToast(
+      error?.response?.data || error?.message || "Failed to create delivery challan",
+      "danger"
+    );
+  }
+};
 
   const filteredData = useMemo(() => {
     return locationData.filter((row) =>
@@ -670,130 +697,183 @@ const Delivery = () => {
     setSelectedRows(selected);
   }, [getSelectedExactRows]);
 
-  const saveTimestamp = useCallback(
-    async (rowId, isoUtc, row) => {
-      try {
-        setError(null);
 
-        const alreadyLocked =
-          !!row?.deliveryTimestampUtc ||
-          !!row?.DeliveryTimestampUtc ||
-          !!row?.deliveryTimestamp ||
-          !!row?.DeliveryTimestamp;
+  const saveTimestampBeforeDeliveryChallan = useCallback(
+  async (rows) => {
+    const unlockedRows = rows.filter((row) => {
+      const locked =
+        !!row?.deliveryTimestampUtc ||
+        !!row?.DeliveryTimestampUtc ||
+        !!row?.deliveryTimestamp ||
+        !!row?.DeliveryTimestamp;
+      return !locked;
+    });
 
-        if (alreadyLocked) {
-          triggerTopToast(
-            `Timestamp already saved for Job ${row?.jobNo || rowId}`,
-            "warning"
-          );
-          return;
-        }
+    if (!unlockedRows.length) return;
 
-        await axios.post(config.Delivery.URL.UpdateTimestamp, {
-          id: rowId,
-          timestampUtc: isoUtc || null,
+    const nowIsoUtc = new Date().toISOString();
+
+    await Promise.all(
+      unlockedRows.map((row) =>
+        axios.post(config.Delivery.URL.UpdateTimestamp, {
+          id: row.id,
+          jobNo: row.jobNo,
+          timestampUtc: nowIsoUtc,
           updatedBy: username,
-        });
+        })
+      )
+    );
 
-        setNotificationMessage(`Delivery timestamp saved for Job ${row?.jobNo || rowId}`);
-        setShowNotification(true);
+    const selectedIds = new Set(unlockedRows.map((x) => x.id));
 
-        setLocationData((prev) =>
-          prev.map((r) =>
-            r.id === rowId
-              ? { ...r, deliveryTimestampUtc: isoUtc, deliveryTimestamp: isoUtc }
-              : r
-          )
-        );
-
-        setTimeout(() => {
-          gridRef.current?.api?.refreshCells({ force: true });
-        }, 0);
-      } catch (e) {
-        console.error(e);
-        setError(e?.response?.data?.toString?.() || "Failed to save timestamp");
-      }
-    },
-    [username, triggerTopToast]
-  );
-
-  const handleBulkSaveTimestamp = useCallback(async () => {
-    try {
-      setError(null);
-
-      if (!bulkTimestamp) {
-        triggerTopToast("Please select bulk delivery timestamp", "danger");
-        return;
-      }
-
-      const selected = getSelectedExactRows();
-
-      if (!selected.length) {
-        triggerTopToast("Please select at least one row", "danger");
-        return;
-      }
-
-      const unlockedRows = selected.filter((row) => {
-        const locked =
-          !!row?.deliveryTimestampUtc ||
-          !!row?.DeliveryTimestampUtc ||
-          !!row?.deliveryTimestamp ||
-          !!row?.DeliveryTimestamp;
-        return !locked;
+    setRowTimestamps((prev) => {
+      const updated = { ...prev };
+      unlockedRows.forEach((row) => {
+        updated[row.id] = nowIsoUtc;
       });
+      return updated;
+    });
 
-      if (!unlockedRows.length) {
-        triggerTopToast("All selected rows already have timestamp locked", "warning");
-        return;
-      }
+    setLocationData((prev) =>
+      prev.map((r) =>
+        selectedIds.has(r.id)
+          ? {
+              ...r,
+              deliveryTimestampUtc: nowIsoUtc,
+              deliveryTimestamp: nowIsoUtc,
+              IsDeliveryDone: "1",
+            }
+          : r
+      )
+    );
+  },
+  [username]
+);
 
-      setBulkSaving(true);
+  // const saveTimestamp = useCallback(
+  //   async (rowId, isoUtc, row) => {
+  //     try {
+  //       setError(null);
 
-      const isoUtc = bulkTimestamp.toISOString();
-      const selectedIds = new Set(unlockedRows.map((x) => x.id));
+  //       const alreadyLocked =
+  //         !!row?.deliveryTimestampUtc ||
+  //         !!row?.DeliveryTimestampUtc ||
+  //         !!row?.deliveryTimestamp ||
+  //         !!row?.DeliveryTimestamp;
 
-      setRowTimestamps((prev) => {
-        const updated = { ...prev };
-        unlockedRows.forEach((row) => {
-          updated[row.id] = isoUtc;
-        });
-        return updated;
-      });
+  //       if (alreadyLocked) {
+  //         triggerTopToast(
+  //           `Timestamp already saved for Job ${row?.jobNo || rowId}`,
+  //           "warning"
+  //         );
+  //         return;
+  //       }
 
-      await Promise.all(
-        unlockedRows.map((row) =>
-          axios.post(config.Delivery.URL.UpdateTimestamp, {
-            id: row.id,
-            timestampUtc: isoUtc,
-            updatedBy: username,
-          })
-        )
-      );
+  //       await axios.post(config.Delivery.URL.UpdateTimestamp, {
+  //         id: rowId,
+  //         timestampUtc: isoUtc || null,
+  //         updatedBy: username,
+  //       });
 
-      setLocationData((prev) =>
-        prev.map((r) =>
-          selectedIds.has(r.id)
-            ? { ...r, deliveryTimestampUtc: isoUtc, deliveryTimestamp: isoUtc }
-            : r
-        )
-      );
+  //       setNotificationMessage(`Delivery timestamp saved for Job ${row?.jobNo || rowId}`);
+  //       setShowNotification(true);
 
-      setNotificationMessage(
-        `Delivery timestamp saved for ${unlockedRows.length} selected row(s)`
-      );
-      setShowNotification(true);
-      setBulkTimestamp(null);
+  //       setLocationData((prev) =>
+  //         prev.map((r) =>
+  //           r.id === rowId
+  //             ? { ...r, deliveryTimestampUtc: isoUtc, deliveryTimestamp: isoUtc }
+  //             : r
+  //         )
+  //       );
 
-      setTimeout(() => {
-        gridRef.current?.api?.refreshCells({ force: true });
-      }, 0);
-    } catch (e) {
-      console.error(e);
-      setError(e?.response?.data?.toString?.() || "Failed to bulk save timestamp");
-    } finally {
-      setBulkSaving(false);
-    }
-  }, [bulkTimestamp, username, getSelectedExactRows, triggerTopToast]);
+  //       setTimeout(() => {
+  //         gridRef.current?.api?.refreshCells({ force: true });
+  //       }, 0);
+  //     } catch (e) {
+  //       console.error(e);
+  //       setError(e?.response?.data?.toString?.() || "Failed to save timestamp");
+  //     }
+  //   },
+  //   [username, triggerTopToast]
+  // );
+
+  // const handleBulkSaveTimestamp = useCallback(async () => {
+  //   try {
+  //     setError(null);
+
+  //     if (!bulkTimestamp) {
+  //       triggerTopToast("Please select bulk delivery timestamp", "danger");
+  //       return;
+  //     }
+
+  //     const selected = getSelectedExactRows();
+
+  //     if (!selected.length) {
+  //       triggerTopToast("Please select at least one row", "danger");
+  //       return;
+  //     }
+
+  //     const unlockedRows = selected.filter((row) => {
+  //       const locked =
+  //         !!row?.deliveryTimestampUtc ||
+  //         !!row?.DeliveryTimestampUtc ||
+  //         !!row?.deliveryTimestamp ||
+  //         !!row?.DeliveryTimestamp;
+  //       return !locked;
+  //     });
+
+  //     if (!unlockedRows.length) {
+  //       triggerTopToast("All selected rows already have timestamp locked", "warning");
+  //       return;
+  //     }
+
+  //     setBulkSaving(true);
+
+  //     const isoUtc = bulkTimestamp.toISOString();
+  //     const selectedIds = new Set(unlockedRows.map((x) => x.id));
+
+  //     setRowTimestamps((prev) => {
+  //       const updated = { ...prev };
+  //       unlockedRows.forEach((row) => {
+  //         updated[row.id] = isoUtc;
+  //       });
+  //       return updated;
+  //     });
+
+  //     await Promise.all(
+  //       unlockedRows.map((row) =>
+  //         axios.post(config.Delivery.URL.UpdateTimestamp, {
+  //           id: row.id,
+  //           timestampUtc: isoUtc,
+  //           updatedBy: username,
+  //         })
+  //       )
+  //     );
+
+  //     setLocationData((prev) =>
+  //       prev.map((r) =>
+  //         selectedIds.has(r.id)
+  //           ? { ...r, deliveryTimestampUtc: isoUtc, deliveryTimestamp: isoUtc }
+  //           : r
+  //       )
+  //     );
+
+  //     setNotificationMessage(
+  //       `Delivery timestamp saved for ${unlockedRows.length} selected row(s)`
+  //     );
+  //     setShowNotification(true);
+  //     setBulkTimestamp(null);
+
+  //     setTimeout(() => {
+  //       gridRef.current?.api?.refreshCells({ force: true });
+  //     }, 0);
+  //   } catch (e) {
+  //     console.error(e);
+  //     setError(e?.response?.data?.toString?.() || "Failed to bulk save timestamp");
+  //   } finally {
+  //     setBulkSaving(false);
+  //   }
+  // }, [bulkTimestamp, username, getSelectedExactRows, triggerTopToast]);
 
   const handleSelectFilteredRows = useCallback(() => {
     if (!gridRef.current?.api) return;
@@ -807,6 +887,81 @@ const Delivery = () => {
     gridRef.current?.api?.deselectAll();
     setSelectedRows([]);
   }, []);
+
+  const handleOpenInvoicePreview = useCallback(() => {
+    const selectedData = getSelectedExactRows();
+    const effectiveSelectedData = selectedData.length ? selectedData : selectedRows;
+
+    if (!effectiveSelectedData.length) {
+      triggerTopToast("Please select at least one row", "danger");
+      return;
+    }
+
+    localStorage.setItem(
+      "invoicePreviewBuilderData",
+      JSON.stringify({
+        sourceModule: "delivery",
+        selectedRows: effectiveSelectedData,
+        customers,
+        username,
+        locationId,
+        createdAt: new Date().toISOString(),
+      })
+    );
+
+    window.open(all_routes.invoicepreviewbuilder, "_blank");
+  }, [customers, getSelectedExactRows, locationId, selectedRows, triggerTopToast, username]);
+
+  const openDeliveryChallanFromRow = useCallback(
+    (row) => {
+      const meta = getDeliveryChallanMeta(row);
+      const customer = findCustomerRecord(customers, row);
+      const branchDetails = getCompanyBranchDetails(row?.region || row?.productionLocation);
+      const pricing = buildChallanItemPricing(row);
+
+      localStorage.setItem(
+        "challanPreviewData",
+        JSON.stringify({
+          companyName: branchDetails.companyName,
+          companyAddress: branchDetails.companyAddress,
+          companyPhone: branchDetails.companyPhone,
+          companyGst: branchDetails.companyGst,
+          companyLogo: branchDetails.companyLogo,
+          name: customer?.customeR_NAME || row?.client || "",
+          address: row?.customerAddress || row?.CustomerAddress || row?.salonAddress || "",
+          gstNo: customer?.gsT_NO || row?.customerGstNo || row?.CustomerGstNo || "",
+          challanNo: meta.no,
+          challanId: meta.id,
+          challanDt: row?.challanDate || row?.ChallanDate || formatDisplayDate(new Date()),
+          jobNo: row?.jobNo || "",
+          jobValue: formatAmount(pricing.lineJobValue || row?.jobValue || row?.JobValue || 0),
+          storeName: row?.storeName || row?.StoreName || row?.salonAddress || "",
+          storeAddress: row?.storeAddress || row?.StoreAddress || row?.salonAddress || "",
+          productionLocation: row?.productionLocation || row?.region || "",
+          dispatchAddress: row?.dispatchAddress || "",
+          remarks: row?.remarks || "",
+          preparedBy: username,
+          items: [
+            {
+              sno: 1,
+              details: buildItemDetails(row),
+              hsnCode: pricing.hsnCode,
+              unitPrice: pricing.unitPrice,
+              totalSqFt: pricing.totalSqFt,
+              width: row?.width || "",
+              height: row?.height || row?.length || "",
+              size: `${row?.width || ""} X ${row?.height || row?.length || ""}`,
+              quantity: String(row?.qty || 0),
+              lineJobValue: pricing.lineJobValue,
+            },
+          ],
+        })
+      );
+
+      window.open("/deliverychallan/", "_blank");
+    },
+    [customers, username]
+  );
 
   const columnDefs = useMemo(
     () => [
@@ -856,29 +1011,28 @@ const Delivery = () => {
         suppressMenu: true,
       },
       {
-        headerName: "View Challan",
-        minWidth: 160,
+        headerName: "Delivery Challan",
+        minWidth: 180,
         filter: false,
         sortable: false,
         cellRenderer: (params) => {
-          const challanId = params.data?.challanId || params.data?.ChallanId;
-          const challanNo = params.data?.challanNo || params.data?.ChallanNo;
+          const meta = getDeliveryChallanMeta(params.data);
 
-          if (!challanId) return "-";
+          if (!meta.isCreated) return "-";
 
           return (
             <button
               type="button"
               className="btn btn-sm btn-primary"
-              onClick={() => window.open(`/deliverychallan/${challanId}`, "_blank")}
+              onClick={() => openDeliveryChallanFromRow(params.data)}
             >
-              {challanNo || "View Challan"}
+              {meta.no || "View Challan"}
             </button>
           );
         },
       },
     ],
-    []
+    [openDeliveryChallanFromRow]
   );
 
   const defaultColDef = useMemo(
@@ -1003,41 +1157,25 @@ const Delivery = () => {
 
       
 
-        <Row className="mb-3 align-items-end">
-          <Col md={4}>
-            <Form.Label>Bulk Delivery Timestamp</Form.Label>
-            <DatePicker
-              selected={bulkTimestamp}
-              onChange={(date) => setBulkTimestamp(date)}
-              showTimeSelect
-              timeIntervals={15}
-              timeCaption="Time"
-              dateFormat="yyyy-MM-dd HH:mm"
-              placeholderText="Pick one timestamp for selected rows"
-              className="form-control"
-              popperPlacement="bottom-start"
-              popperContainer={({ children }) => createPortal(children, document.body)}
-            />
-          </Col>
+      <Row className="mb-3 align-items-end">
+  <Col md={12} className="d-flex gap-2 flex-wrap">
+    <Button variant="secondary" onClick={handleSelectFilteredRows}>
+      Select Filtered Rows
+    </Button>
 
-          <Col md={8} className="d-flex gap-2 flex-wrap">
-            <Button variant="secondary" onClick={handleSelectFilteredRows}>
-              Select Filtered Rows
-            </Button>
+    <Button variant="outline-secondary" onClick={handleClearSelection}>
+      Clear Selection
+    </Button>
 
-            <Button variant="outline-secondary" onClick={handleClearSelection}>
-              Clear Selection
-            </Button>
+    <Button variant="primary" onClick={handleOpenDeliveryChallanModal}>
+      Create Challan
+    </Button>
 
-            <Button variant="primary" onClick={handleBulkSaveTimestamp} disabled={bulkSaving}>
-              {bulkSaving ? "Saving..." : `Bulk Save Timestamp (${selectedRows.length})`}
-            </Button>
-
-              <Button variant="primary" onClick={handleOpenDeliveryChallanModal}>
-                Create Challan
-              </Button>
-          </Col>
-        </Row>
+    <Button variant="success" onClick={handleOpenInvoicePreview}>
+      Invoice Preview
+    </Button>
+  </Col>
+</Row>
 
         {loading && <Spinner animation="border" />}
         {error && <Alert variant="danger">{error}</Alert>}
@@ -1056,7 +1194,7 @@ const Delivery = () => {
             context={{
               rowTimestamps,
               setRowTimestamps,
-              saveTimestamp,
+              // saveTimestamp,
             }}
           />
         </div>

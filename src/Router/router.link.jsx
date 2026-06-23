@@ -1,226 +1,240 @@
-import React from "react";
+import React, { lazy } from "react";
 import { Route, Navigate } from "react-router-dom";
-import ProductList from "../feature-module/inventory/productlist";
-import Dashboard from "../feature-module/dashboard/Dashboard";
-import TimesheetDashboard from "../feature-module/dashboard/TimesheetDashboard";
-import AddProduct from "../feature-module/inventory/addproduct";
-import SalesDashbaord from "../feature-module/dashboard/salesdashbaord";
-import BrandList from "../feature-module/inventory/brandlist";
-import VariantAttributes from "../feature-module/inventory/variantattributes";
-import Warranty from "../feature-module/inventory/warranty";
-import PrintBarcode from "../feature-module/inventory/printbarcode";
-import Grid from "../feature-module/uiinterface/grid";
-import Images from "../feature-module/uiinterface/images";
-import Lightboxes from "../feature-module/uiinterface/lightbox";
-import Media from "../feature-module/uiinterface/media";
-import Modals from "../feature-module/uiinterface/modals";
-import Offcanvas from "../feature-module/uiinterface/offcanvas";
-import Pagination from "../feature-module/uiinterface/pagination";
+const ProductList = lazy(() => import("../feature-module/inventory/productlist"));
+const Dashboard = lazy(() => import("../feature-module/dashboard/Dashboard"));
+const TimesheetDashboard = lazy(() => import("../feature-module/dashboard/TimesheetDashboard"));
+const WhatsappDashboard = lazy(() => import("../feature-module/dashboard/WhatsappDashboard"));
+const DesignerDashboard = lazy(() => import("../feature-module/dashboard/DesignerDashboard"));
+const AddProduct = lazy(() => import("../feature-module/inventory/addproduct"));
+const SalesDashbaord = lazy(() => import("../feature-module/dashboard/salesdashbaord"));
+const BrandList = lazy(() => import("../feature-module/inventory/brandlist"));
+const VariantAttributes = lazy(() => import("../feature-module/inventory/variantattributes"));
+const Warranty = lazy(() => import("../feature-module/inventory/warranty"));
+const PrintBarcode = lazy(() => import("../feature-module/inventory/printbarcode"));
+const Grid = lazy(() => import("../feature-module/uiinterface/grid"));
+const Images = lazy(() => import("../feature-module/uiinterface/images"));
+const Lightboxes = lazy(() => import("../feature-module/uiinterface/lightbox"));
+const Media = lazy(() => import("../feature-module/uiinterface/media"));
+const Modals = lazy(() => import("../feature-module/uiinterface/modals"));
+const Offcanvas = lazy(() => import("../feature-module/uiinterface/offcanvas"));
+const Pagination = lazy(() => import("../feature-module/uiinterface/pagination"));
 
-import Alert from "../feature-module/uiinterface/alert";
-import Accordion from "../feature-module/uiinterface/accordion";
-import Avatar from "../feature-module/uiinterface/avatar";
-import Badges from "../feature-module/uiinterface/badges";
-import Borders from "../feature-module/uiinterface/borders";
-import Buttons from "../feature-module/uiinterface/buttons";
-import ButtonsGroup from "../feature-module/uiinterface/buttonsgroup";
-import Popovers from "../feature-module/uiinterface/popover";
+const Alert = lazy(() => import("../feature-module/uiinterface/alert"));
+const Accordion = lazy(() => import("../feature-module/uiinterface/accordion"));
+const Avatar = lazy(() => import("../feature-module/uiinterface/avatar"));
+const Badges = lazy(() => import("../feature-module/uiinterface/badges"));
+const Borders = lazy(() => import("../feature-module/uiinterface/borders"));
+const Buttons = lazy(() => import("../feature-module/uiinterface/buttons"));
+const ButtonsGroup = lazy(() => import("../feature-module/uiinterface/buttonsgroup"));
+const Popovers = lazy(() => import("../feature-module/uiinterface/popover"));
 
-import Breadcrumb from "../feature-module/uiinterface/breadcrumb";
-import Cards from "../feature-module/uiinterface/cards";
-import Dropdowns from "../feature-module/uiinterface/dropdowns";
-import Colors from "../feature-module/uiinterface/colors";
-import Carousel from "../feature-module/uiinterface/carousel";
-import Spinner from "../feature-module/uiinterface/spinner";
-import NavTabs from "../feature-module/uiinterface/navtabs";
-import Toasts from "../feature-module/uiinterface/toasts";
-import Typography from "../feature-module/uiinterface/typography";
-import Video from "../feature-module/uiinterface/video";
-import Tooltips from "../feature-module/uiinterface/tooltips";
-import DragDrop from "../feature-module/uiinterface/advancedui/dragdrop";
-import SweetAlert from "../feature-module/uiinterface/sweetalert";
-import Progress from "../feature-module/uiinterface/progress";
-import Placeholder from "../feature-module/uiinterface/placeholder";
-import Rating from "../feature-module/uiinterface/advancedui/rating";
-import TextEditor from "../feature-module/uiinterface/advancedui/texteditor";
-import Counter from "../feature-module/uiinterface/advancedui/counter";
-import Uiscrollbar from "../feature-module/uiinterface/advancedui/uiscrollbar";
-import Stickynote from "../feature-module/uiinterface/advancedui/stickynote";
-import Timeline from "../feature-module/uiinterface/advancedui/timeline";
-import Apexchart from "../feature-module/uiinterface/charts/apexcharts";
-import ChartJs from "../feature-module/uiinterface/charts/chartjs";
-import RangeSlides from "../feature-module/uiinterface/rangeslider";
-import FontawesomeIcons from "../feature-module/uiinterface/icons/fontawesome";
-import FeatherIcons from "../feature-module/uiinterface/icons/feathericon";
-import IonicIcons from "../feature-module/uiinterface/icons/ionicicons";
-import MaterialIcons from "../feature-module/uiinterface/icons/materialicon";
-import PE7Icons from "../feature-module/uiinterface/icons/pe7icons";
-import SimplelineIcons from "../feature-module/uiinterface/icons/simplelineicon";
-import ThemifyIcons from "../feature-module/uiinterface/icons/themify";
-import WeatherIcons from "../feature-module/uiinterface/icons/weathericons";
-import TypiconIcons from "../feature-module/uiinterface/icons/typicons";
-import FlagIcons from "../feature-module/uiinterface/icons/flagicons";
+const Breadcrumb = lazy(() => import("../feature-module/uiinterface/breadcrumb"));
+const Cards = lazy(() => import("../feature-module/uiinterface/cards"));
+const Dropdowns = lazy(() => import("../feature-module/uiinterface/dropdowns"));
+const Colors = lazy(() => import("../feature-module/uiinterface/colors"));
+const Carousel = lazy(() => import("../feature-module/uiinterface/carousel"));
+const Spinner = lazy(() => import("../feature-module/uiinterface/spinner"));
+const NavTabs = lazy(() => import("../feature-module/uiinterface/navtabs"));
+const Toasts = lazy(() => import("../feature-module/uiinterface/toasts"));
+const Typography = lazy(() => import("../feature-module/uiinterface/typography"));
+const Video = lazy(() => import("../feature-module/uiinterface/video"));
+const Tooltips = lazy(() => import("../feature-module/uiinterface/tooltips"));
+const DragDrop = lazy(() => import("../feature-module/uiinterface/advancedui/dragdrop"));
+const SweetAlert = lazy(() => import("../feature-module/uiinterface/sweetalert"));
+const Progress = lazy(() => import("../feature-module/uiinterface/progress"));
+const Placeholder = lazy(() => import("../feature-module/uiinterface/placeholder"));
+const Rating = lazy(() => import("../feature-module/uiinterface/advancedui/rating"));
+const TextEditor = lazy(() => import("../feature-module/uiinterface/advancedui/texteditor"));
+const Counter = lazy(() => import("../feature-module/uiinterface/advancedui/counter"));
+const Uiscrollbar = lazy(() => import("../feature-module/uiinterface/advancedui/uiscrollbar"));
+const Stickynote = lazy(() => import("../feature-module/uiinterface/advancedui/stickynote"));
+const Timeline = lazy(() => import("../feature-module/uiinterface/advancedui/timeline"));
+const Apexchart = lazy(() => import("../feature-module/uiinterface/charts/apexcharts"));
+const ChartJs = lazy(() => import("../feature-module/uiinterface/charts/chartjs"));
+const RangeSlides = lazy(() => import("../feature-module/uiinterface/rangeslider"));
+const FontawesomeIcons = lazy(() => import("../feature-module/uiinterface/icons/fontawesome"));
+const FeatherIcons = lazy(() => import("../feature-module/uiinterface/icons/feathericon"));
+const IonicIcons = lazy(() => import("../feature-module/uiinterface/icons/ionicicons"));
+const MaterialIcons = lazy(() => import("../feature-module/uiinterface/icons/materialicon"));
+const PE7Icons = lazy(() => import("../feature-module/uiinterface/icons/pe7icons"));
+const SimplelineIcons = lazy(() => import("../feature-module/uiinterface/icons/simplelineicon"));
+const ThemifyIcons = lazy(() => import("../feature-module/uiinterface/icons/themify"));
+const WeatherIcons = lazy(() => import("../feature-module/uiinterface/icons/weathericons"));
+const TypiconIcons = lazy(() => import("../feature-module/uiinterface/icons/typicons"));
+const FlagIcons = lazy(() => import("../feature-module/uiinterface/icons/flagicons"));
 
 const routes = all_routes;
 
-import DepartmentGrid from "../feature-module/hrm/departmentgrid";
-import DepartmentList from "../feature-module/hrm/departmentlist";
-import Designation from "../feature-module/hrm/designation";
-import Shift from "../feature-module/hrm/shift";
-import AttendanceEmployee from "../feature-module/hrm/attendance-employee";
-import ClipBoard from "../feature-module/uiinterface/advancedui/clipboard";
-import TablesBasic from "../feature-module/uiinterface/table/tables-basic";
-import DataTables from "../feature-module/uiinterface/table/data-tables";
+const DepartmentGrid = lazy(() => import("../feature-module/hrm/departmentgrid"));
+const DepartmentList = lazy(() => import("../feature-module/hrm/departmentlist"));
+const Designation = lazy(() => import("../feature-module/hrm/designation"));
+const Shift = lazy(() => import("../feature-module/hrm/shift"));
+const AttendanceEmployee = lazy(() => import("../feature-module/hrm/attendance-employee"));
+const ClipBoard = lazy(() => import("../feature-module/uiinterface/advancedui/clipboard"));
+const TablesBasic = lazy(() => import("../feature-module/uiinterface/table/tables-basic"));
+const DataTables = lazy(() => import("../feature-module/uiinterface/table/data-tables"));
+const JobEntry = lazy(() => import("../feature-module/uiinterface/table/JobEntry"));
 
-import Production from "../feature-module/uiinterface/table/Production";
-import Designn from "../feature-module/uiinterface/table/Designn";
-import Layout from "../feature-module/uiinterface/table/Layout";
-import Delivery from "../feature-module/uiinterface/table/Delivery";
-import Implementation from "../feature-module/uiinterface/table/Implementation";
-import MyPriority from "../feature-module/pages/myPriority/MyPriority";
-import ImplementationDownload from "../feature-module/uiinterface/table/ImplementationUpload";
-import PendingJobsWithHold from "../feature-module/uiinterface/table/PendingJobsWithHold";
+const Designn = lazy(() => import("../feature-module/uiinterface/table/Designn"));
+const Layout = lazy(() => import("../feature-module/uiinterface/table/Layout"));
+const Delivery = lazy(() => import("../feature-module/uiinterface/table/Delivery"));
+const Implementation = lazy(() => import("../feature-module/uiinterface/table/Implementation"));
+const MyPriority = lazy(() => import("../feature-module/pages/myPriority/MyPriority"));
+const ImplementationDownload = lazy(() => import("../feature-module/uiinterface/table/ImplementationUpload"));
+const PendingJobsWithHold = lazy(() => import("../feature-module/uiinterface/table/PendingJobsWithHold"));
 
 
-import MisReport from "../feature-module/uiinterface/report/MisReport";
-import ConsolidatedReport from "../feature-module/uiinterface/report/ConsolidatedReport";
-import BillingExport from "../feature-module/uiinterface/report/PrintingReport";
-import JobTracker from "../feature-module/uiinterface/summary/JobTrack";
-import Approval from "../.././src/approvalPage/Approval";
-import StoreData from "../kanbanview";
+const MisReport = lazy(() => import("../feature-module/uiinterface/report/MisReport"));
+const WeeklyAuditReport = lazy(() => import("../feature-module/uiinterface/report/WeeklyAuditReport"));
+const ConsolidatedReport = lazy(() => import("../feature-module/uiinterface/report/ConsolidatedReport"));
+const BillingExport = lazy(() => import("../feature-module/uiinterface/report/PrintingReport"));
+const JobTracker = lazy(() => import("../feature-module/uiinterface/summary/JobTrack"));
+const Approval = lazy(() => import("../.././src/approvalPage/Approval"));
+const StoreData = lazy(() => import("../kanbanview"));
 
-import FormBasicInputs from "../feature-module/uiinterface/forms/formelements/basic-inputs";
-import CheckboxRadios from "../feature-module/uiinterface/forms/formelements/checkbox-radios";
-import InputGroup from "../feature-module/uiinterface/forms/formelements/input-group";
-import GridGutters from "../feature-module/uiinterface/forms/formelements/grid-gutters";
-import FormSelect from "../feature-module/uiinterface/forms/formelements/form-select";
-import FileUpload from "../feature-module/uiinterface/forms/formelements/fileupload";
-import FormMask from "../feature-module/uiinterface/forms/formelements/form-mask";
-import FormHorizontal from "../feature-module/uiinterface/forms/formelements/layouts/form-horizontal";
-import FormVertical from "../feature-module/uiinterface/forms/formelements/layouts/form-vertical";
-import FloatingLabel from "../feature-module/uiinterface/forms/formelements/layouts/floating-label";
-import FormValidation from "../feature-module/uiinterface/forms/formelements/layouts/form-validation";
-import FormSelect2 from "../feature-module/uiinterface/forms/formelements/layouts/form-select2";
-import Ribbon from "../feature-module/uiinterface/advancedui/ribbon";
-import Chats from "../feature-module/Application/chat";
-import ExpensesList from "../feature-module/FinanceAccounts/expenseslist";
-import ExpenseCategory from "../feature-module/FinanceAccounts/expensecategory";
-import Calendar from "../feature-module/Application/calendar";
-import FormWizard from "../feature-module/uiinterface/forms/formelements/form-wizard";
-import ExpiredProduct from "../feature-module/inventory/expiredproduct";
-import LowStock from "../feature-module/inventory/lowstock";
-import CategoryList from "../feature-module/inventory/categorylist";
-import SubCategories from "../feature-module/inventory/subcategories";
-import EditProduct from "../feature-module/inventory/editproduct";
-import Videocall from "../feature-module/Application/videocall";
-import Audiocall from "../feature-module/Application/audiocall";
-import Email from "../feature-module/Application/email";
-import Callhistory from "../feature-module/Application/callhistory";
-import ToDo from "../feature-module/Application/todo";
-import QRcode from "../feature-module/inventory/qrcode";
-import PurchasesList from "../feature-module/purchases/purchaseslist";
-import PurchaseOrderReport from "../feature-module/purchases/purchaseorderreport";
-import PurchaseReturns from "../feature-module/purchases/purchasereturns";
-import Appearance from "../feature-module/settings/websitesettings/appearance";
-import SocialAuthentication from "../feature-module/settings/websitesettings/socialauthentication";
-import LanguageSettings from "../feature-module/settings/websitesettings/languagesettings";
-import InvoiceSettings from "../feature-module/settings/appsetting/invoicesettings";
-import PrinterSettings from "../feature-module/settings/appsetting/printersettings";
-import PosSettings from "../feature-module/settings/websitesettings/possettings";
-import CustomFields from "../feature-module/settings/websitesettings/customfields";
-import EmailSettings from "../feature-module/settings/systemsettings/emailsettings";
-import SmsGateway from "../feature-module/settings/systemsettings/smsgateway";
-import OtpSettings from "../feature-module/settings/systemsettings/otpsettings";
-import GdprSettings from "../feature-module/settings/systemsettings/gdprsettings";
-import PaymentGateway from "../feature-module/settings/financialsettings/paymentgateway";
-import BankSetting from "../feature-module/settings/financialsettings/banksetting";
-import Customers from "../feature-module/people/customers";
-import Suppliers from "../feature-module/people/suppliers";
-import StoreList from "../core/modals/peoples/storelist";
-import Managestock from "../feature-module/stock/managestock";
-import StockAdjustment from "../feature-module/stock/stockAdjustment";
-import StockTransfer from "../feature-module/stock/stockTransfer";
-import SalesReport from "../feature-module/Reports/salesreport";
-import PurchaseReport from "../feature-module/Reports/purchasereport";
-import InventoryReport from "../feature-module/Reports/inventoryreport";
-import Invoicereport from "../feature-module/Reports/invoicereport";
-import SupplierReport from "../feature-module/Reports/supplierreport";
-import CustomerReport from "../feature-module/Reports/customerreport";
-import ExpenseReport from "../feature-module/Reports/expensereport";
-import IncomeReport from "../feature-module/Reports/incomereport";
-import TaxReport from "../feature-module/Reports/taxreport";
-import ProfitLoss from "../feature-module/Reports/profitloss";
-import GeneralSettings from "../feature-module/settings/generalsettings/generalsettings";
-import SecuritySettings from "../feature-module/settings/generalsettings/securitysettings";
-import Notification from "../feature-module/settings/generalsettings/notification";
-import ConnectedApps from "../feature-module/settings/generalsettings/connectedapps";
-import SystemSettings from "../feature-module/settings/websitesettings/systemsettings";
-import CompanySettings from "../feature-module/settings/websitesettings/companysettings";
-import LocalizationSettings from "../feature-module/settings/websitesettings/localizationsettings";
-import Prefixes from "../feature-module/settings/websitesettings/prefixes";
-import Preference from "../feature-module/settings/websitesettings/preference";
-import BanIpaddress from "../feature-module/settings/othersettings/ban-ipaddress";
-import StorageSettings from "../feature-module/settings/othersettings/storagesettings";
-import Pos from "../feature-module/sales/pos";
-import AttendanceAdmin from "../feature-module/hrm/attendanceadmin";
-import Payslip from "../feature-module/hrm/payslip";
-import Holidays from "../feature-module/hrm/holidays";
-import SalesList from "../feature-module/sales/saleslist";
-import InvoiceReport from "../feature-module/sales/invoicereport";
-import SalesReturn from "../feature-module/sales/salesreturn";
-import QuotationList from "../feature-module/sales/quotationlist";
-import Notes from "../feature-module/Application/notes";
-import FileManager from "../feature-module/Application/filemanager";
-import Profile from "../feature-module/pages/profile";
-import Signin from "../feature-module/pages/login/signin";
-import SigninTwo from "../feature-module/pages/login/signinTwo";
-import SigninThree from "../feature-module/pages/login/signinThree";
-import RegisterTwo from "../feature-module/pages/register/registerTwo";
-import Register from "../feature-module/pages/register/register";
-import RegisterThree from "../feature-module/pages/register/registerThree";
-import Forgotpassword from "../feature-module/pages/forgotpassword/forgotpassword";
-import ForgotpasswordTwo from "../feature-module/pages/forgotpassword/forgotpasswordTwo";
-import ForgotpasswordThree from "../feature-module/pages/forgotpassword/forgotpasswordThree";
-import Resetpassword from "../feature-module/pages/resetpassword/resetpassword";
-import ResetpasswordTwo from "../feature-module/pages/resetpassword/resetpasswordTwo";
-import ResetpasswordThree from "../feature-module/pages/resetpassword/resetpasswordThree";
-import EmailVerification from "../feature-module/pages/emailverification/emailverification";
-import EmailverificationTwo from "../feature-module/pages/emailverification/emailverificationTwo";
-import EmailverificationThree from "../feature-module/pages/emailverification/emailverificationThree";
-import Twostepverification from "../feature-module/pages/twostepverification/twostepverification";
-import TwostepverificationTwo from "../feature-module/pages/twostepverification/twostepverificationTwo";
-import TwostepverificationThree from "../feature-module/pages/twostepverification/twostepverificationThree";
-import Lockscreen from "../feature-module/pages/lockscreen";
-import Error404 from "../feature-module/pages/errorpages/error404";
-import Error500 from "../feature-module/pages/errorpages/error500";
-import Blankpage from "../feature-module/pages/blankpage";
-import Comingsoon from "../feature-module/pages/comingsoon";
-import Undermaintainence from "../feature-module/pages/undermaintainence";
-import Users from "../feature-module/usermanagement/users";
-import RolesPermissions from "../feature-module/usermanagement/rolespermissions";
-import Permissions from "../feature-module/usermanagement/permissions";
-import DeleteAccount from "../feature-module/usermanagement/deleteaccount";
-import EmployeesGrid from "../feature-module/hrm/employeesgrid";
-import EditEmployee from "../feature-module/hrm/editemployee";
-import AddEmployee from "../feature-module/hrm/addemployee";
-import LeavesAdmin from "../feature-module/hrm/leavesadmin";
-import LeavesEmployee from "../feature-module/hrm/leavesemployee";
-import LeaveTypes from "../feature-module/hrm/leavetypes";
-import ProductDetail from "../feature-module/inventory/productdetail";
-import { Units } from "../feature-module/inventory/units";
-import TaxRates from "../feature-module/settings/financialsettings/taxrates";
-import CurrencySettings from "../feature-module/settings/financialsettings/currencysettings";
-import WareHouses from "../core/modals/peoples/warehouses";
-import Coupons from "../feature-module/coupons/coupons";
+const FormBasicInputs = lazy(() => import("../feature-module/uiinterface/forms/formelements/basic-inputs"));
+const CheckboxRadios = lazy(() => import("../feature-module/uiinterface/forms/formelements/checkbox-radios"));
+const InputGroup = lazy(() => import("../feature-module/uiinterface/forms/formelements/input-group"));
+const GridGutters = lazy(() => import("../feature-module/uiinterface/forms/formelements/grid-gutters"));
+const FormSelect = lazy(() => import("../feature-module/uiinterface/forms/formelements/form-select"));
+const FileUpload = lazy(() => import("../feature-module/uiinterface/forms/formelements/fileupload"));
+const FormMask = lazy(() => import("../feature-module/uiinterface/forms/formelements/form-mask"));
+const FormHorizontal = lazy(() => import("../feature-module/uiinterface/forms/formelements/layouts/form-horizontal"));
+const FormVertical = lazy(() => import("../feature-module/uiinterface/forms/formelements/layouts/form-vertical"));
+const FloatingLabel = lazy(() => import("../feature-module/uiinterface/forms/formelements/layouts/floating-label"));
+const FormValidation = lazy(() => import("../feature-module/uiinterface/forms/formelements/layouts/form-validation"));
+const FormSelect2 = lazy(() => import("../feature-module/uiinterface/forms/formelements/layouts/form-select2"));
+const Ribbon = lazy(() => import("../feature-module/uiinterface/advancedui/ribbon"));
+const Chats = lazy(() => import("../feature-module/Application/chat"));
+const ExpensesList = lazy(() => import("../feature-module/FinanceAccounts/expenseslist"));
+const ExpenseCategory = lazy(() => import("../feature-module/FinanceAccounts/expensecategory"));
+const ExpenseReimbursement = lazy(() => import("../feature-module/FinanceAccounts/expensereimbursement"));
+const Calendar = lazy(() => import("../feature-module/Application/calendar"));
+const FormWizard = lazy(() => import("../feature-module/uiinterface/forms/formelements/form-wizard"));
+const ExpiredProduct = lazy(() => import("../feature-module/inventory/expiredproduct"));
+const LowStock = lazy(() => import("../feature-module/inventory/lowstock"));
+const CategoryList = lazy(() => import("../feature-module/inventory/categorylist"));
+const SubCategories = lazy(() => import("../feature-module/inventory/subcategories"));
+const EditProduct = lazy(() => import("../feature-module/inventory/editproduct"));
+const Videocall = lazy(() => import("../feature-module/Application/videocall"));
+const Audiocall = lazy(() => import("../feature-module/Application/audiocall"));
+const Email = lazy(() => import("../feature-module/Application/email"));
+const Callhistory = lazy(() => import("../feature-module/Application/callhistory"));
+const ToDo = lazy(() => import("../feature-module/Application/todo"));
+const QRcode = lazy(() => import("../feature-module/inventory/qrcode"));
+const PurchasesList = lazy(() => import("../feature-module/purchases/purchaseslist"));
+const PurchaseOrderReport = lazy(() => import("../feature-module/purchases/purchaseorderreport"));
+const MaterialProcurement = lazy(() => import("../feature-module/purchases/materialprocurement"));
+const PurchaseReturns = lazy(() => import("../feature-module/purchases/purchasereturns"));
+const Appearance = lazy(() => import("../feature-module/settings/websitesettings/appearance"));
+const SocialAuthentication = lazy(() => import("../feature-module/settings/websitesettings/socialauthentication"));
+const LanguageSettings = lazy(() => import("../feature-module/settings/websitesettings/languagesettings"));
+const InvoiceSettings = lazy(() => import("../feature-module/settings/appsetting/invoicesettings"));
+const PrinterSettings = lazy(() => import("../feature-module/settings/appsetting/printersettings"));
+const PosSettings = lazy(() => import("../feature-module/settings/websitesettings/possettings"));
+const CustomFields = lazy(() => import("../feature-module/settings/websitesettings/customfields"));
+const EmailSettings = lazy(() => import("../feature-module/settings/systemsettings/emailsettings"));
+const SmsGateway = lazy(() => import("../feature-module/settings/systemsettings/smsgateway"));
+const OtpSettings = lazy(() => import("../feature-module/settings/systemsettings/otpsettings"));
+const GdprSettings = lazy(() => import("../feature-module/settings/systemsettings/gdprsettings"));
+const PaymentGateway = lazy(() => import("../feature-module/settings/financialsettings/paymentgateway"));
+const BankSetting = lazy(() => import("../feature-module/settings/financialsettings/banksetting"));
+const Customers = lazy(() => import("../feature-module/people/customers"));
+const Suppliers = lazy(() => import("../feature-module/people/suppliers"));
+const StoreList = lazy(() => import("../core/modals/peoples/storelist"));
+const Managestock = lazy(() => import("../feature-module/stock/managestock"));
+const StockAdjustment = lazy(() => import("../feature-module/stock/stockAdjustment"));
+const StockTransfer = lazy(() => import("../feature-module/stock/stockTransfer"));
+const SalesReport = lazy(() => import("../feature-module/Reports/salesreport"));
+const PurchaseReport = lazy(() => import("../feature-module/Reports/purchasereport"));
+const InventoryReport = lazy(() => import("../feature-module/Reports/inventoryreport"));
+const Invoicereport = lazy(() => import("../feature-module/Reports/invoicereport"));
+const SupplierReport = lazy(() => import("../feature-module/Reports/supplierreport"));
+const CustomerReport = lazy(() => import("../feature-module/Reports/customerreport"));
+const ExpenseReport = lazy(() => import("../feature-module/Reports/expensereport"));
+const IncomeReport = lazy(() => import("../feature-module/Reports/incomereport"));
+const TaxReport = lazy(() => import("../feature-module/Reports/taxreport"));
+const ProfitLoss = lazy(() => import("../feature-module/Reports/profitloss"));
+const GeneralSettings = lazy(() => import("../feature-module/settings/generalsettings/generalsettings"));
+const SecuritySettings = lazy(() => import("../feature-module/settings/generalsettings/securitysettings"));
+const Notification = lazy(() => import("../feature-module/settings/generalsettings/notification"));
+const ConnectedApps = lazy(() => import("../feature-module/settings/generalsettings/connectedapps"));
+const SystemSettings = lazy(() => import("../feature-module/settings/websitesettings/systemsettings"));
+const CompanySettings = lazy(() => import("../feature-module/settings/websitesettings/companysettings"));
+const LocalizationSettings = lazy(() => import("../feature-module/settings/websitesettings/localizationsettings"));
+const Prefixes = lazy(() => import("../feature-module/settings/websitesettings/prefixes"));
+const Preference = lazy(() => import("../feature-module/settings/websitesettings/preference"));
+const BanIpaddress = lazy(() => import("../feature-module/settings/othersettings/ban-ipaddress"));
+const StorageSettings = lazy(() => import("../feature-module/settings/othersettings/storagesettings"));
+const Pos = lazy(() => import("../feature-module/sales/pos"));
+const AttendanceAdmin = lazy(() => import("../feature-module/hrm/attendanceadmin"));
+const Payslip = lazy(() => import("../feature-module/hrm/payslip"));
+const Holidays = lazy(() => import("../feature-module/hrm/holidays"));
+const SalesList = lazy(() => import("../feature-module/sales/saleslist"));
+const InvoiceReport = lazy(() => import("../feature-module/sales/invoicereport"));
+const SalesReturn = lazy(() => import("../feature-module/sales/salesreturn"));
+const QuotationList = lazy(() => import("../feature-module/sales/quotationlist"));
+const Notes = lazy(() => import("../feature-module/Application/notes"));
+const FileManager = lazy(() => import("../feature-module/Application/filemanager"));
+const Profile = lazy(() => import("../feature-module/pages/profile"));
+const Signin = lazy(() => import("../feature-module/pages/login/signin"));
+const SigninTwo = lazy(() => import("../feature-module/pages/login/signinTwo"));
+const SigninThree = lazy(() => import("../feature-module/pages/login/signinThree"));
+const RegisterTwo = lazy(() => import("../feature-module/pages/register/registerTwo"));
+const Register = lazy(() => import("../feature-module/pages/register/register"));
+const RegisterThree = lazy(() => import("../feature-module/pages/register/registerThree"));
+const Forgotpassword = lazy(() => import("../feature-module/pages/forgotpassword/forgotpassword"));
+const ForgotpasswordTwo = lazy(() => import("../feature-module/pages/forgotpassword/forgotpasswordTwo"));
+const ForgotpasswordThree = lazy(() => import("../feature-module/pages/forgotpassword/forgotpasswordThree"));
+const Resetpassword = lazy(() => import("../feature-module/pages/resetpassword/resetpassword"));
+const ResetpasswordTwo = lazy(() => import("../feature-module/pages/resetpassword/resetpasswordTwo"));
+const ResetpasswordThree = lazy(() => import("../feature-module/pages/resetpassword/resetpasswordThree"));
+const EmailVerification = lazy(() => import("../feature-module/pages/emailverification/emailverification"));
+const EmailverificationTwo = lazy(() => import("../feature-module/pages/emailverification/emailverificationTwo"));
+const EmailverificationThree = lazy(() => import("../feature-module/pages/emailverification/emailverificationThree"));
+const Twostepverification = lazy(() => import("../feature-module/pages/twostepverification/twostepverification"));
+const TwostepverificationTwo = lazy(() => import("../feature-module/pages/twostepverification/twostepverificationTwo"));
+const TwostepverificationThree = lazy(() => import("../feature-module/pages/twostepverification/twostepverificationThree"));
+const Lockscreen = lazy(() => import("../feature-module/pages/lockscreen"));
+const Error404 = lazy(() => import("../feature-module/pages/errorpages/error404"));
+const Error500 = lazy(() => import("../feature-module/pages/errorpages/error500"));
+const Blankpage = lazy(() => import("../feature-module/pages/blankpage"));
+const Comingsoon = lazy(() => import("../feature-module/pages/comingsoon"));
+const Undermaintainence = lazy(() => import("../feature-module/pages/undermaintainence"));
+const Users = lazy(() => import("../feature-module/usermanagement/users"));
+const RolesPermissions = lazy(() => import("../feature-module/usermanagement/rolespermissions"));
+const Permissions = lazy(() => import("../feature-module/usermanagement/permissions"));
+const DeleteAccount = lazy(() => import("../feature-module/usermanagement/deleteaccount"));
+const EmployeesGrid = lazy(() => import("../feature-module/hrm/employeesgrid"));
+const EditEmployee = lazy(() => import("../feature-module/hrm/editemployee"));
+const AddEmployee = lazy(() => import("../feature-module/hrm/addemployee"));
+const LeavesAdmin = lazy(() => import("../feature-module/hrm/leavesadmin"));
+const LeavesEmployee = lazy(() => import("../feature-module/hrm/leavesemployee"));
+const LeaveTypes = lazy(() => import("../feature-module/hrm/leavetypes"));
+const ProductDetail = lazy(() => import("../feature-module/inventory/productdetail"));
+const Units = lazy(() => import("../feature-module/inventory/units").then(({ Units }) => ({ default: Units })));
+const TaxRates = lazy(() => import("../feature-module/settings/financialsettings/taxrates"));
+const CurrencySettings = lazy(() => import("../feature-module/settings/financialsettings/currencysettings"));
+const WareHouses = lazy(() => import("../core/modals/peoples/warehouses"));
+const Coupons = lazy(() => import("../feature-module/coupons/coupons"));
 import { all_routes } from "./all_routes";
-import BankSettingGrid from "../feature-module/settings/financialsettings/banksettinggrid";
-import PayrollList from "../feature-module/hrm/payroll-list";
-import Printlaminpacking from "../feature-module/uiinterface/table/Printlaminpacking";
-import { element } from "prop-types";
-import { id } from "date-fns/locale";
-import DeliveryChallanPreview from "../feature-module/uiinterface/table/DeliveryChallanPreview";
-import ImplementationChallanPreview from "../feature-module/uiinterface/table/ImplementationChallanPreview";
-import ChallanDashboard from "../feature-module/uiinterface/table/challan_dashboard";
+const BankSettingGrid = lazy(() => import("../feature-module/settings/financialsettings/banksettinggrid"));
+const PayrollList = lazy(() => import("../feature-module/hrm/payroll-list"));
+const Printlaminpacking = lazy(() => import("../feature-module/uiinterface/table/Printlaminpacking"));
+
+
+const DeliveryChallanPreview = lazy(() => import("../feature-module/uiinterface/table/DeliveryChallanPreview"));
+const ImplementationChallanPreview = lazy(() => import("../feature-module/uiinterface/table/ImplementationChallanPreview"));
+const ChallanDashboard = lazy(() => import("../feature-module/uiinterface/table/challan_dashboard"));
+const InvoicePreviewBuilder = lazy(() => import("../feature-module/uiinterface/table/InvoicePreviewBuilder"));
+const InvoiceList = lazy(() => import("../feature-module/uiinterface/table/InvoiceList"));
+const InvoicePrintPreview = lazy(() => import("../feature-module/uiinterface/table/InvoicePrintPreview"));
+const ProductMediaRateMaster = lazy(() => import("../feature-module/uiinterface/table/ProductMediaRateMaster"));
+const ElementGroupMaster = lazy(() => import("../feature-module/uiinterface/table/ElementGroupMaster"));
+const Production = lazy(() => import("../feature-module/uiinterface/table/Production"));
+const StoreMaster = lazy(() => import("../feature-module/uiinterface/table/store/StoreMaster"));
+const Recce = lazy(() => import("../feature-module/uiinterface/table/Recce"));
+const RetailCustomer = lazy(() => import("../feature-module/uiinterface/table/RetailCustomer"));
 export const publicRoutes = [
   {
     id: 1,
@@ -257,6 +271,20 @@ export const publicRoutes = [
     path: routes.timesheetdashboard,
     name: "timesheetdashboard",
     element: <TimesheetDashboard />,
+    route: Route,
+  },
+  {
+    id: 5.1,
+    path: routes.whatsappdashboard,
+    name: "whatsappdashboard",
+    element: <WhatsappDashboard />,
+    route: Route,
+  },
+  {
+    id: 5.2,
+    path: routes.designerdashboard,
+    name: "designerdashboard",
+    element: <DesignerDashboard />,
     route: Route,
   },
   {
@@ -665,6 +693,13 @@ export const publicRoutes = [
     element: <MisReport />,
     route: Route,
   },
+  {
+    id: 491,
+    path: routes.weeklyAuditReport,
+    name: "weeklyAuditReport",
+    element: <WeeklyAuditReport />,
+    route: Route,
+  },
     {
     id: 50,
     path: routes.ConsolidatedReport,
@@ -949,6 +984,13 @@ export const publicRoutes = [
     route: Route,
   },
   {
+    id: 621,
+    path: routes.expenseReimbursement,
+    name: "expenseReimbursement",
+    element: <ExpenseReimbursement />,
+    route: Route,
+  },
+  {
     id: 63,
     path: routes.calendar,
     name: "calendar",
@@ -1038,6 +1080,13 @@ export const publicRoutes = [
     path: routes.purchasereturn,
     name: "purchasereturn",
     element: <PurchaseReturns />,
+    route: Route,
+  },
+  {
+    id: 701,
+    path: routes.materialProcurement,
+    name: "materialProcurement",
+    element: <MaterialProcurement />,
     route: Route,
   },
   {
@@ -1544,6 +1593,90 @@ export const publicRoutes = [
     element: <PendingJobsWithHold />,
     route: Route,
   },
+  {
+    id: 121,
+    path: routes.invoicepreviewbuilder,
+    name: "invoicepreviewbuilder",
+    element: <InvoicePreviewBuilder />,
+    route: Route,
+  },
+  {
+    id: 122,
+    path: routes.invoiceList,
+    name: "invoiceList",
+    element: <InvoiceList />,
+    route: Route,
+  },
+  {
+    id: 123,
+    path: routes.deliverychallan,
+    name: "deliverychallan",
+    element: <DeliveryChallanPreview />,
+    route: Route,
+  },
+  {
+    id: 124,
+    path: routes.implementationchallan,
+    name: "implementationchallan",
+    element: <ImplementationChallanPreview />,
+    route: Route,
+  },
+  {
+    id: 125,
+    path: routes.challandashboard,
+    name: "challandashboard",
+    element: <ChallanDashboard />,
+    route: Route,
+  },
+  {
+    id: 126,
+    path: routes.invoiceprintpreview,
+    name: "invoiceprintpreview",
+    element: <InvoicePrintPreview />,
+    route: Route,
+  },
+  {
+    id: 127,
+    path: routes.productMediaRateMaster,
+    name: "productMediaRateMaster",
+    element: <ProductMediaRateMaster />,
+    route: Route,
+  },
+  {
+    id: 128,
+    path: routes.elementGroupMaster,
+    name: "elementGroupMaster",
+    element: <ElementGroupMaster />,
+    route: Route,
+  },
+  {
+    id: 129,
+    path: routes.jobs,
+    name: "jobs",
+    element: <JobEntry />,
+    route: Route,
+  },
+  {
+    id: 130,
+    path: routes.storeMaster,
+    name: "storeMaster",
+    element: <StoreMaster />,
+    route: Route,
+  },
+  {
+    id: 131,
+    path: routes.recce,
+    name: "recce",
+    element: <Recce />,
+    route: Route,
+  },
+  {
+    id: 132,
+    path: routes.retailCustomer,
+    name: "retailCustomer",
+    element: <RetailCustomer />,
+    route: Route,
+  },
   
 ];
 export const posRoutes = [
@@ -1741,7 +1874,7 @@ export const pagesRoute = [
     id:23,
     path:routes.csdashboard,
     name:"csdashboard",
-    element:"https://productiondashboard.comart.in/",
+    element:<Navigate to="/admin-dashboard" replace />,
     route:Route
   },
   {
@@ -1765,5 +1898,26 @@ export const pagesRoute = [
     element:<ChallanDashboard/>,
     route:Route
   },
- 
+  {
+    id:27,
+    path:routes.invoicepreviewbuilder,
+    name:"invoicepreviewbuilder",
+    element:<InvoicePreviewBuilder/>,
+    route:Route
+  },
+  {
+    id:28,
+    path:routes.invoiceList,
+    name:"invoiceList",
+    element:<InvoiceList/>,
+    route:Route
+  },
+  {
+    id:29,
+    path:routes.invoiceprintpreview,
+    name:"invoiceprintpreview",
+    element:<InvoicePrintPreview/>,
+    route:Route
+  },
 ];
+

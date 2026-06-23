@@ -45,5 +45,12 @@
   { "id": 44, "name": "Laser Cutting", "type": "Billable" },
   { "id": 45, "name": "Make ready for Laser cutting", "type": "Billable" },
   { "id": 46, "name": "Preparing design for Laser Cutting", "type": "Billable" },
-  { "id": 47, "name": "Downlaoding files", "type": "Billable" }
+  { "id": 47, "name": "Downlaoding files", "type": "Billable" },
+
+  { "id": 48, "name": "Flash Cut, Sorting and packing", "type": "Billable" },
+  { "id": 49, "name": "Fabrication/ Mockup/ Table takeover", "type": "Billable" },
+  { "id": 50, "name": "Flash Cut and packing", "type": "Billable" },
+  { "id": 51, "name": "Packing", "type": "Billable" },
+  { "id": 52, "name": "Stitching", "type": "Billable" },
+  { "id": 53, "name": "Data Entry for other tasks", "type": "Billable" }
 ]

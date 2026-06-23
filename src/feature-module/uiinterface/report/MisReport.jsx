@@ -94,14 +94,55 @@ const MisReport = () => {
     if (!v) return null;
     // Try a few common formats; moment can also parse ISO automatically
     const candidates = Array.isArray(v) ? v : [v];
+    const dateFormats = [
+      "DD-MM-YYYY HH:mm:ss",
+      "DD/MM/YYYY HH:mm:ss",
+      "DD/MMM/YYYY HH:mm:ss",
+      "DD-MMM-YYYY HH:mm:ss",
+      "DD/MMMM/YYYY HH:mm:ss",
+      "DD-MMMM-YYYY HH:mm:ss",
+      "YYYY-MM-DD HH:mm:ss",
+      "DD-MM-YYYY",
+      "DD/MM/YYYY",
+      "DD/MMM/YYYY",
+      "DD-MMM-YYYY",
+      "DD/MMMM/YYYY",
+      "DD-MMMM-YYYY",
+      "YYYY-MM-DD",
+    ];
+
     for (const c of candidates) {
       if (!c) continue;
-      const m =
-        moment(c, moment.ISO_8601, true).isValid() ? moment(c) :
-        moment(c, ["DD-MM-YYYY HH:mm:ss","DD/MM/YYYY HH:mm:ss","YYYY-MM-DD HH:mm:ss","DD-MM-YYYY","DD/MM/YYYY","YYYY-MM-DD"], true);
+      const isoDate = moment(c, moment.ISO_8601, true);
+      const m = isoDate.isValid() ? isoDate : moment(c, dateFormats, true);
       if (m.isValid()) return m;
     }
     return null;
+  };
+
+  const getReportRowDate = (row) => parseDateLoose([
+    row?.date,
+    row?.entereddt,
+    row?.enteredDate,
+    row?.lstupdatedt,
+    row?.lstupdatedate,
+    row?.startdate,
+    row?.enddate,
+    row?.id?.creationTime,
+  ]);
+
+  const filterReportDataByDateRange = (rows) => {
+    const from = parseDateLoose(fromDate);
+    const to = parseDateLoose(toDate);
+    if (!from || !to) return [];
+
+    const fromStart = from.clone().startOf("day");
+    const toEnd = to.clone().endOf("day");
+
+    return (Array.isArray(rows) ? rows : []).filter((row) => {
+      const rowDate = getReportRowDate(row);
+      return rowDate && rowDate.isBetween(fromStart, toEnd, null, "[]");
+    });
   };
 
   const formatOnlyDate = (v) => {
@@ -115,11 +156,7 @@ const MisReport = () => {
   };
 
   const getFormattedDate = (item) => {
-    const m =
-      parseDateLoose(item?.date) ||
-      parseDateLoose(item?.entereddt) ||
-      parseDateLoose(item?.enteredDate) ||
-      parseDateLoose(item?.lstupdatedt);
+    const m = getReportRowDate(item);
     return m ? m.format("DD/MMM/YYYY") : "-";
   };
 
@@ -157,7 +194,72 @@ const MisReport = () => {
     return Number.isFinite(n) ? n : 0;
   };
 
-  // ---------- API (old tab) ----------
+  const getFirstValue = (row, keys, fallback = "") => {
+  for (const key of keys) {
+    const value = row?.[key];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return fallback;
+};
+
+const normalizeReportRow = (row) => ({
+  ...row,
+  billingLocation: getFirstValue(row, [
+    "billingLocation",
+    "BillingLocation",
+    "billing_location",
+    "Location",
+    "location",
+  ]),
+  region: getFirstValue(row, [
+    "region",
+    "Region",
+    "productionLocation",
+    "ProductionLocation",
+    "production_location",
+    "Branch",
+    "branch",
+  ]),
+  userName: getFirstValue(row, [
+    "userName",
+    "UserName",
+    "username",
+    "Username",
+    "enteredby",
+    "Enteredby",
+    "Entrdby",
+    "csName",
+    "CSName",
+  ]),
+  operatorName: getFirstValue(row, [
+    "operatorName",
+    "OperatorName",
+    "operator",
+    "Operator",
+    "printerName",
+    "PrinterName",
+    "machineOperator",
+    "MachineOperator",
+  ]),
+});
+
+const isValidReportRow = (row) => {
+  return Boolean(
+    row?.subClient ||
+    row?.billingLocation ||
+    row?.region ||
+    row?.visualCode ||
+    row?.nameSubCode ||
+    row?.qty ||
+    row?.width ||
+    row?.height ||
+    row?.media
+  );
+};
+
+// ---------- API (old tab) ----------
   const fetchReport = async () => {
     setLoading(true);
     setError(null);
@@ -195,12 +297,17 @@ const MisReport = () => {
       });
 
       if (response.status === 200 && response.data) {
+        const normalizedData = (Array.isArray(response.data) ? response.data : [])
+          .map(normalizeReportRow)
+          .filter(isValidReportRow);
+
         switch (newProduction) {
           case "CS":
-            setCsData(response.data);
+            setCsData(normalizedData);
             break;
+
           case "Design": {
-            const dataWithTimeTaken = response.data.map((row) => {
+            const dataWithTimeTaken = normalizedData.map((row) => {
               if (row.startdate && row.enddate) {
                 const start = moment(row.startdate, "DD/MM/YYYY HH:mm:ss");
                 const end = moment(row.enddate, "DD/MM/YYYY HH:mm:ss");
@@ -214,31 +321,53 @@ const MisReport = () => {
             setDesignData(dataWithTimeTaken);
             break;
           }
+
           case "Printing":
-            setPrintingData(response.data);
+            setPrintingData(normalizedData);
             break;
+
           case "Delivery":
-            setDeliveryData(response.data);
+            setDeliveryData(normalizedData);
             break;
+
           case "Reprint": {
             const isTrueish = (v) => {
               const s = String(v ?? "").trim().toLowerCase();
               return s === "1" || s === "true" || s === "yes" || s === "y";
             };
-            const rows = response.data
-              .filter(r => isTrueish(r.isPrinitngdone ?? r.isPrintingdone ?? r.isPrintingDone ?? r.isReprinted))
-              .map(r => ({
+            const rows = normalizedData
+              .filter((r) =>
+                isTrueish(
+                  r.isPrinitngdone ??
+                    r.isPrintingdone ??
+                    r.isPrintingDone ??
+                    r.isReprinted
+                )
+              )
+              .map((r) => ({
                 ...r,
-                region: r.Region ?? r.region ?? "",
-                branch: r.Branch ?? r.branch ?? r.productionLocation ?? "",
+                region:
+                  r.region ||
+                  r.Region ||
+                  r.productionLocation ||
+                  r.ProductionLocation ||
+                  "",
+                branch:
+                  r.Branch ||
+                  r.branch ||
+                  r.productionLocation ||
+                  r.ProductionLocation ||
+                  "",
               }));
             setReprintData(rows);
             break;
           }
+
           default:
             console.warn("Unknown production type");
         }
-        setData(response.data);
+
+        setData(normalizedData);
       } else {
         setError(`Failed to fetch data, status: ${response.status}`);
         setData([]);
@@ -322,6 +451,83 @@ const MisReport = () => {
     const pct = ((mediaAreaSqFt - actualSqFt) / mediaAreaSqFt) * 100;
     return Number.isFinite(pct) ? `${pct.toFixed(2)} %` : '-';
   };
+
+  const getCellValue = (row, key) => {
+  const fallbackMap = {
+    billingLocation: [
+      "billingLocation",
+      "BillingLocation",
+      "billinG_LOCATION",
+      "BillingLocationName",
+      "billing_location",
+      "location",
+      "Location",
+    ],
+    region: [
+      "region",
+      "Region",
+      "productionLocation",
+      "ProductionLocation",
+      "production_location",
+      "Branch",
+      "branch",
+    ],
+    operatorName: [
+      "operatorName",
+      "OperatorName",
+      "operator",
+      "Operator",
+      "printerName",
+      "PrinterName",
+      "machineName",
+      "MachineName",
+      "machineOperator",
+      "MachineOperator",
+      "assignedTo",
+      "AssignedTo",
+      "assignName",
+      "AssignName",
+    ],
+    csName: [
+      "csName",
+      "CSName",
+      "userName",
+      "UserName",
+      "username",
+      "Username",
+      "enteredby",
+      "Enteredby",
+      "Entrdby",
+      "accountManager",
+      "AccountManager",
+    ],
+    userName: [
+      "userName",
+      "UserName",
+      "username",
+      "Username",
+      "enteredby",
+      "Enteredby",
+      "Entrdby",
+      "csName",
+      "CSName",
+      "accountManager",
+      "AccountManager",
+    ],
+  };
+
+  const keys = fallbackMap[key] || [key];
+
+  for (const field of keys) {
+    const value = row?.[field];
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+
+  return "-";
+};
+
 
   // ---------- Table Configs (old tab) ----------
   const tableConfigs = {
@@ -413,6 +619,8 @@ const MisReport = () => {
       { label: "Print Ready File", key: "printReadyAvailable" },
       { label: "Designer Name", key: "designerName" },
       { label: "Printing Machine", key: "printerName" },
+      { label: "Operator", key: "operatorName" },
+      { label: "CS", key: "userName" },
       { label: "Printer Deadline", key: "printerDeadline" },
       { label: "Client", key: "client" },
       { label: "User Name", key: "userName" },
@@ -511,7 +719,7 @@ const MisReport = () => {
         const v = row.isPrinitngdone ?? row.isPrintingdone ?? row.isPrintingDone ?? row.isReprinted;
         val = isTrueish(v) ? "Yes" : "No";
       } else {
-        val = row[key] ?? '';
+        val = getCellValue(row, key);
       }
 
       if (numericKeys.has(key)) {
@@ -523,14 +731,18 @@ const MisReport = () => {
     return out;
   };
 
+
+  // Export only the data currently displayed in the grid (filteredData)
   const exportToExcel = () => {
     const reportConfig = tableConfigs[newProduction];
     if (!reportConfig) return alert("Invalid report type selected.");
 
+    // Use the same filtering as in renderTable
     const reportData = pickReportData();
-    if (!Array.isArray(reportData) || reportData.length === 0) return alert("No data available for export.");
+    const filteredData = filterReportDataByDateRange(reportData);
+    if (!Array.isArray(filteredData) || filteredData.length === 0) return alert("No data available for export.");
 
-    const transformedData = reportData.map(item => mapRowForHeaders(item, reportConfig.headers));
+    const transformedData = filteredData.map(item => mapRowForHeaders(item, reportConfig.headers));
     const worksheet = XLSX.utils.json_to_sheet(transformedData);
     worksheet['!cols'] = reportConfig.headers.map(() => ({ wch: 20 }));
 
@@ -539,14 +751,17 @@ const MisReport = () => {
     XLSX.writeFile(workbook, "Report.xlsx");
   };
 
+
   const exportToCsv = () => {
     const reportConfig = tableConfigs[newProduction];
     if (!reportConfig) return alert("Invalid report type selected.");
 
+    // Use the same filtering as in renderTable
     const reportData = pickReportData();
-    if (!Array.isArray(reportData) || reportData.length === 0) return alert("No data available for export.");
+    const filteredData = filterReportDataByDateRange(reportData);
+    if (!Array.isArray(filteredData) || filteredData.length === 0) return alert("No data available for export.");
 
-    const transformedData = reportData.map(item => mapRowForHeaders(item, reportConfig.headers));
+    const transformedData = filteredData.map(item => mapRowForHeaders(item, reportConfig.headers));
     const worksheet = XLSX.utils.json_to_sheet(transformedData);
     const csv = XLSX.utils.sheet_to_csv(worksheet);
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -558,15 +773,18 @@ const MisReport = () => {
     document.body.removeChild(link);
   };
 
+
   const exportToPdf = () => {
     const reportConfig = tableConfigs[newProduction];
     if (!reportConfig) return alert("Invalid report type selected.");
 
+    // Use the same filtering as in renderTable
     const reportData = pickReportData();
-    if (!Array.isArray(reportData) || reportData.length === 0) return alert("No data available for export.");
+    const filteredData = filterReportDataByDateRange(reportData);
+    if (!Array.isArray(filteredData) || filteredData.length === 0) return alert("No data available for export.");
 
     const headerLabels = reportConfig.headers.map(h => h.label);
-    const transformedData = reportData.map(item => mapRowForHeaders(item, reportConfig.headers));
+    const transformedData = filteredData.map(item => mapRowForHeaders(item, reportConfig.headers));
     const tableRows = transformedData.map(row => headerLabels.map(lbl => row[lbl] || "-"));
 
     const doc = new jsPDF("landscape", "pt", "A2");
@@ -594,14 +812,15 @@ const MisReport = () => {
     if (!cfg) return null;
 
     const reportData = pickReportData();
+    const filteredData = filterReportDataByDateRange(reportData);
 
-    if (hasFetched && (!Array.isArray(reportData) || reportData.length === 0)) {
+    if (hasFetched && (!Array.isArray(filteredData) || filteredData.length === 0)) {
       return <div>No data available for the selected report type.</div>;
     }
 
     return (
       <>
-        {reportData.length > 0 && (
+        {filteredData.length > 0 && (
           <Card className="mt-4">
             <CardBody style={{ padding: "0" }}>
               <div style={{ overflowX: "auto", overflowY: "auto", maxHeight: "500px", border: "1px solid #ccc" }}>
@@ -620,7 +839,7 @@ const MisReport = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {reportData.map((row, rowIndex) => (
+                    {filteredData.map((row, rowIndex) => (
                       <tr key={rowIndex}>
                         {cfg.headers.map((header, colIndex) => (
                           <td key={colIndex}>
@@ -633,7 +852,7 @@ const MisReport = () => {
                                       const v = row.isPrinitngdone ?? row.isPrintingdone ?? row.isPrintingDone ?? row.isReprinted;
                                       return (String(v ?? "").trim().toLowerCase() === "1" || String(v ?? "").trim().toLowerCase() === "true" || String(v ?? "").trim().toLowerCase() === "yes" || String(v ?? "").trim().toLowerCase() === "y") ? "Yes" : "No";
                                     })()
-                                  : (row[header.key] ?? "-")}
+                                  : getCellValue(row, header.key)}
                           </td>
                         ))}
                       </tr>

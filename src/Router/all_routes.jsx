@@ -2,6 +2,8 @@ export const all_routes = {
   dashboard: "/admin-dashboard",
   table: "/",
   timesheetdashboard:"/timesheet-dashboard",
+  whatsappdashboard: "/whatsapp-dashboard",
+  designerdashboard: "/designer-dashboard",
   productlist: "/product-list",
   addproduct: "/add-product",
   salesdashboard: "/sales-dashboard",
@@ -42,6 +44,7 @@ export const all_routes = {
   popover: "/ui-popovers",
   tablebasic: "/tables-basic",
   datatable: "/data-tables",
+  jobs: "/jobs",
 
   designn: "/Designn",
   production: "/Production",
@@ -51,18 +54,27 @@ export const all_routes = {
   myPriority: "/myPriority",
   layout: "/layout",
 
-  csdashboard:'https://productiondashboard.comart.in/',
+  csdashboard: "/cs-dashboard",
   deliverychallan: "/deliverychallan",
   implementationchallan: "/implementationchallan",
+  invoicepreviewbuilder: "/invoice-preview-builder",
+  invoiceList: "/invoice-list",
+  invoiceprintpreview: "/invoice-print-preview",
   challandashboard:"/challandashboard",
 
   misreport: "/MisReport",
+  weeklyAuditReport: "/weekly-audit-report",
   ConsolidatedReport: "/ConsolidatedReport",
   billingexport: "/Billingexport",
   jobtracker: "/JobTracker",
   approval: "/approval",
   storedata:"/storedata",
   printlaminpacking:"/printlaminpacking",
+  productMediaRateMaster:"/product-media-rate-master",
+  elementGroupMaster:"/element-group-master",
+  recce: "/recce",
+  retailCustomer: "/retail-customer",
+  materialProcurement: "/material-procurement",
 
 
   Ajgrid:"/Ajgrid",
@@ -121,6 +133,7 @@ export const all_routes = {
   editproduct: "/edit-product",
   expenselist: "/expense-list",
   expensecategory: "/expense-category",
+  expenseReimbursement: "/expense-reimbursement",
   calendar: "/calendar",
   variantattributes: "/variant-attributes",
   qrcode: "/qrcode",
@@ -218,5 +231,5 @@ export const all_routes = {
   coupons:"/coupons",
   payrollList:"/payroll-list",
   pendingJobsWithHold:"/pending-jobs-with-hold",
-
+  storeMaster: "/storemaster",
 };

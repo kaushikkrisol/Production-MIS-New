@@ -1,27 +1,52 @@
-import React from 'react';
-import { image_path } from '../../environment';
+import React from "react";
+import { image_path } from "../../environment";
 
-interface Image {
-  className?: string;
-  src: string;
-  alt?: string;
-  height?: number;
-  width?: number;
-  id?:string;
-}
+const isCompleteImagePath = (src) =>
+  /^(https?:)?\/\//i.test(src) || /^(data|blob):/i.test(src);
 
-const ImageWithBasePath = (props: Image) => {
-  // Combine the base path and the provided src to create the full image source URL
-  const altText = String(props.alt);
-  const fullSrc = `${image_path}${props.src}`;
+const buildImageSrc = (src) => {
+  if (!src) {
+    return "";
+  }
+
+  const source = String(src);
+
+  if (isCompleteImagePath(source)) {
+    return source;
+  }
+
+  const basePath = String(image_path || "");
+  const cleanSource = source.replace(/^\.\//, "").replace(/^\/+/, "");
+
+  if (!basePath || basePath === "/") {
+    return `/${cleanSource}`;
+  }
+
+  return `${basePath.replace(/\/+$/, "")}/${cleanSource}`;
+};
+
+const ImageWithBasePath = ({
+  className,
+  src,
+  alt = "",
+  height,
+  width,
+  id,
+  loading = "lazy",
+  decoding = "async",
+  ...rest
+}) => {
   return (
     <img
-      className={props.className}
-      src={fullSrc}
-      height={props.height}
-      alt={altText}
-      width={props.width}
-      id={props.id}
+      {...rest}
+      className={className}
+      src={buildImageSrc(src)}
+      height={height}
+      alt={alt}
+      width={width}
+      id={id}
+      loading={loading}
+      decoding={decoding}
     />
   );
 };

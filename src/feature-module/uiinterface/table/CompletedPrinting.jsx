@@ -17,6 +17,27 @@ const CompletedPrinting = () => {
     const [detailedReason, setDetailedReason] = useState('');
     const [selectedRows, setSelectedRows] = useState({});
     const [error, setError] = useState('');
+
+    const getLoggedInUserName = () => {
+        try {
+            const users = localStorage.getItem('users');
+            if (!users) return '';
+
+            const usersObject = JSON.parse(users);
+            return (
+                usersObject?.message?.username ||
+                usersObject?.message?.userName ||
+                usersObject?.message?.name ||
+                usersObject?.username ||
+                usersObject?.userName ||
+                usersObject?.name ||
+                ''
+            );
+        } catch (error) {
+            console.error('Unable to read logged in user:', error);
+            return '';
+        }
+    };
     
     const reasonOptions = [
   { value: "Reprinting – Client Request", label: "Reprinting – Client Request" },
@@ -39,18 +60,10 @@ const CompletedPrinting = () => {
     const [user, setUser] = useState('');
     // Check if users data exists and is not null
     useEffect(() => {
-        const users = localStorage.getItem('users');
+        const username = getLoggedInUserName();
 
-        // Check if users data exists and is not null
-        if (users) {
-            // Parse the JSON string into an object
-            const usersObject = JSON.parse(users);
-
-            // Access the username
-            const username = usersObject.message && usersObject.message.username;
+        if (username) {
             setUser(username);
-
-            // Log the username to the console
             console.log('Username:', username);
         } else {
             console.log('No user data found in localStorage.');
@@ -139,9 +152,16 @@ const CompletedPrinting = () => {
             return;
         }
         try {
-            const selectedJobs = filteredData1
-                .filter(row => selectedRows[row.id]) // Include only selected rows
-                .map(row => ({
+            const rowsForReprint = filteredData1.filter(row => selectedRows[row.id]);
+            if (rowsForReprint.length === 0) {
+                setError('Please select at least one job for reprint!');
+                return;
+            }
+
+            const reprintEnteredBy = user || getLoggedInUserName();
+            const reprintEnteredDate = new Date().toISOString();
+
+            const selectedJobs = rowsForReprint.map(row => ({
                     id: row.id,
                     jobNo: row.jobNo, // Job Number
                     client: row.client,
@@ -154,7 +174,7 @@ const CompletedPrinting = () => {
                     city: row.city, // City
                     qty: row.qty, // Quantity
                     media: row.media,
-                    userName:row.userName,                  
+                    userName: reprintEnteredBy,                  
                     installation: row.installation,
                     deadline: row.deadline,
                     lamination: row.lamination, // Lamination
@@ -165,16 +185,23 @@ const CompletedPrinting = () => {
                     remarks: row.remarks, // Remarks
                     actualCompleteTime: row.actCompleteTime, // Actual Completion Time
                     onTimeDelayed: row.onTimeDelayed, // On Time or Delayed status
-                    enteredBy: row.enteredby, // Entered By
-                    enteredDate: row.entereddt, // Entered Date
+                    enteredBy: reprintEnteredBy, // Entered By
+                    enteredby: reprintEnteredBy,
+                    Enteredby: reprintEnteredBy,
+                    enteredDate: reprintEnteredDate, // Entered Date
+                    entereddt: reprintEnteredDate,
+                    Entereddt: reprintEnteredDate,
+                    Entereddat: reprintEnteredDate,
                    
                     width: row.width, // Width
                     length: row.height, // Height
                     actualSqFt: row.actualSqFt,
                     totalSqFt: row.totalSqFt, // Total Square Footage
-                    startdate: new Date().toISOString(), // Start Date for the job
-                    lastUpdated: new Date().toISOString(),
-                    ReprintReason: reason
+                    startdate: reprintEnteredDate, // Start Date for the job
+                    lastUpdated: reprintEnteredDate,
+                    lastUpdatedBy: reprintEnteredBy,
+                    ReprintReason: reason,
+                    ReprintDetailedReason: detailedReason
                    
                    
                 }));
@@ -189,6 +216,7 @@ const CompletedPrinting = () => {
 
             setReason('');
             setDetailedReason('');
+            setSelectedRows({});
             setError('');
 
             if (response.status === 200) {
@@ -277,7 +305,7 @@ const CompletedPrinting = () => {
       <Select
         options={reasonOptions}
         value={reasonOptions.find(o => o.value === reason) || null}
-        onChange={selected => setReason(selected?.value || "")}
+        onChange={handlereason}
         placeholder="Select reason"
       />
     </Col>

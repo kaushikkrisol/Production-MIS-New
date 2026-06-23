@@ -24,6 +24,7 @@ import {
   Trash2,
 } from "react-feather";
 import config from "../../../config";
+import erpMasterData from "../../../core/json/erpMasterData.json";
 import hsnRateData from "../../../core/json/hsnRateData.json";
 import indiaCities from "../../../core/json/indiaCities.json";
 import { mergeFallbackCustomers } from "./customerFallbacks";
@@ -34,9 +35,33 @@ const ELEMENT_GROUP_STORAGE_KEY = "elementGroupMasterRows";
 const JOB_DRAFT_KEY = "jobEntryDrafts";
 const TEMP_DRAFT_ID = "new-job-draft";
 
-const locationOptions = ["North", "South", "East", "West"];
+const getMasterGroup = (key) =>
+  Array.isArray(erpMasterData?.groups?.[key]) ? erpMasterData.groups[key] : [];
+
+const getMasterValues = (key) =>
+  getMasterGroup(key)
+    .map((item) => String(item?.value || item?.label || "").trim())
+    .filter(Boolean);
+
+const uniqueOptionValues = (values = []) => {
+  const seen = new Set();
+  return values.filter((value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+};
+
+const getMasterOptionValues = (key, fallback = []) => {
+  const masterValues = getMasterValues(key);
+  return uniqueOptionValues(masterValues.length ? masterValues : fallback);
+};
+
 const yesNoOptions = ["Yes", "No"];
-const businessTypeOptions = ["Print", "Retail", "Onsite"];
+const locationOptions = getMasterOptionValues("productionLocations", ["North", "South", "East", "West"]);
+const billingLocationOptions = getMasterOptionValues("billingLocations", locationOptions);
+const businessTypeOptions = getMasterOptionValues("segments", ["Print", "Retail", "Onsite"]);
 const poTypeOptions = [
   "PO Received",
   "PO not Received",
@@ -44,9 +69,11 @@ const poTypeOptions = [
   "Open PO",
   "Estimate Approval Pending",
 ];
-const laminationDefaults = ["Matt Lamination"];
-const mountingDefaults = ["3mm Sunboard", "5mm Sunboard"];
-const implementationDefaults = yesNoOptions;
+const laminationDefaults = getMasterOptionValues("lamination", ["Matt Lamination"]);
+const mountingDefaults = getMasterOptionValues("mounting", ["3 MM Sun Board", "5 MM Sun Board"]);
+const implementationDefaults = getMasterOptionValues("implementation", yesNoOptions);
+const printReadyDefaults = getMasterOptionValues("printReadyFiles", yesNoOptions);
+const printerMasterDefaults = getMasterOptionValues("machineNames");
 const elementGroupDefaults = [
   "ENDCAP",
   "SENSOMATIC PRINTS",
@@ -66,6 +93,8 @@ const productColumns = [
   "QTY",
   "Width",
   "Height",
+  "Billing Width",
+  "Billing Height",
   "Total Sq.f",
   "LAMINATION",
   "TYPE OF LAMINATION",
@@ -79,7 +108,9 @@ const productColumns = [
 const createLine = (index) => ({
   id: `${Date.now()}-${index}`,
   store: "",
+  panCard: "",
   city: "",
+  description: "",
   prodLoc: "",
   billLoc: "",
   salonAddress: "",
@@ -89,13 +120,17 @@ const createLine = (index) => ({
   printReadyFile: "",
   remarks: "",
   media: "",
+  hsn: "",
   internalMedia: "",
   externalMedia: "",
   elementGroup: "",
+  articleCode: "",
   visualCode: "",
   qty: "",
   width: "",
   height: "",
+  billingWidth: "",
+  billingHeight: "",
   sqft: "",
   rate: "",
   amount: "",
@@ -116,19 +151,118 @@ const normalizeText = (value) =>
 
 const getCustomerId = (customer) =>
   String(
-    customer?.customeR_ID ??
+      customer?.customeR_ID ??
       customer?.customerId ??
+      customer?.CustomerId ??
       customer?.customerid ??
       customer?.CUSTOMER_ID ??
+      customer?.id ??
+      customer?._id ??
       ""
   ).trim();
 
 const getCustomerName = (customer) =>
   customer?.customeR_NAME ||
   customer?.customerName ||
+  customer?.CustomerName ||
   customer?.client ||
   customer?.CUSTOMER_NAME ||
+  customer?.customername ||
+  customer?.name ||
+  customer?.Name ||
   "";
+
+const getCustomerGstNo = (customer) =>
+  String(
+    customer?.gsT_NO ??
+      customer?.gstNo ??
+      customer?.GSTNo ??
+      customer?.GST_NO ??
+      customer?.gst_number ??
+      customer?.gstin ??
+      customer?.GSTIN ??
+      ""
+  ).trim();
+
+const getPanFromGstin = (gstin) => {
+  const clean = String(gstin || "").trim().toUpperCase();
+  return clean.length >= 12 ? clean.substring(2, 12) : "";
+};
+
+const normalizePanCard = (value) => String(value || "").trim().toUpperCase();
+
+const getCustomerPanCard = (customer) =>
+  normalizePanCard(
+    customer?.panCard ??
+      customer?.PanCard ??
+      customer?.panNo ??
+      customer?.PANNo ??
+      customer?.PAN_NO ??
+      customer?.pan ??
+      customer?.PAN ??
+      getPanFromGstin(getCustomerGstNo(customer))
+  );
+
+const findCustomerForElementGroup = (customers, customerId, customerName) => {
+  const selectedCustomerId = String(customerId || "").trim();
+  const selectedCustomerName = normalizeText(customerName);
+
+  return (Array.isArray(customers) ? customers : []).find((customer) => {
+    const currentCustomerId = getCustomerId(customer);
+    const currentCustomerName = normalizeText(getCustomerName(customer));
+
+    return (
+      (selectedCustomerId &&
+        currentCustomerId &&
+        selectedCustomerId === currentCustomerId) ||
+      (selectedCustomerName &&
+        currentCustomerName &&
+        selectedCustomerName === currentCustomerName)
+    );
+  });
+};
+
+const getCustomerPanForElementGroup = (customers, customerId, customerName) => {
+  const customer = findCustomerForElementGroup(customers, customerId, customerName);
+  return customer ? getCustomerPanCard(customer) : "";
+};
+
+const hydrateElementGroupPanCards = (rows, customers) =>
+  (Array.isArray(rows) ? rows : []).map((row) => {
+    const panCard =
+      normalizePanCard(row?.panCard) ||
+      getCustomerPanForElementGroup(customers, row?.customerId, row?.customerName);
+
+    return panCard && panCard !== row?.panCard ? { ...row, panCard } : row;
+  });
+
+const masterCustomerRows = getMasterValues("clientList").map((name) => ({
+  customeR_ID: name,
+  customeR_NAME: name,
+  source: "erpMaster",
+}));
+
+const mergeMasterCustomers = (customers) => {
+  const merged = [];
+  const seenIds = new Set();
+  const seenNames = new Set();
+
+  [...mergeFallbackCustomers(customers), ...masterCustomerRows].forEach((customer) => {
+    const customerId = getCustomerId(customer);
+    const customerName = normalizeText(getCustomerName(customer));
+    const idKey = customerId ? customerId.toLowerCase() : "";
+
+    if ((idKey && seenIds.has(idKey)) || (customerName && seenNames.has(customerName))) {
+      return;
+    }
+
+    if (idKey) seenIds.add(idKey);
+    if (customerName) seenNames.add(customerName);
+    merged.push(customer);
+  });
+
+  return merged;
+};
 
 const roundAmount = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
@@ -147,8 +281,8 @@ const buildLineSequence = (line = {}) =>
 
 const calculateSqft = (row) => {
   const qty = Number(row.qty || 1);
-  const width = Number(row.width || 0);
-  const height = Number(row.height || 0);
+  const width = Number(getLineBillingWidth(row) || row.width || 0);
+  const height = Number(getLineBillingHeight(row) || row.height || 0);
 
   if (qty > 0 && width > 0 && height > 0) {
     return roundAmount((qty * width * height) / 144);
@@ -157,13 +291,77 @@ const calculateSqft = (row) => {
   return 0;
 };
 
+const getLineBillingWidth = (line = {}) =>
+  String(
+    line.billingWidth ||
+      line.BillingWidth ||
+      line["Billing Width"] ||
+      line.width ||
+      line.Width ||
+      ""
+  );
+
+const getLineBillingHeight = (line = {}) =>
+  String(
+    line.billingHeight ||
+      line.BillingHeight ||
+      line["Billing Height"] ||
+      line.height ||
+      line.Height ||
+      ""
+  );
+
+const withBillingDimensions = (line = {}) => ({
+  ...line,
+  billingWidth: getLineBillingWidth(line),
+  billingHeight: getLineBillingHeight(line),
+});
+
+const withoutMediaSelection = (line = {}) => ({
+  ...line,
+  media: "",
+  internalMedia: "",
+  externalMedia: "",
+  hsn: "",
+  rate: "",
+  amount: "",
+});
+
+const hasLineField = (line, field) =>
+  Object.prototype.hasOwnProperty.call(line || {}, field);
+
+const shouldSyncBillingDimension = (billingValue, sourceValue) => {
+  const billingText = String(billingValue || "").trim();
+  const sourceText = String(sourceValue || "").trim();
+  return !billingText || billingText === sourceText;
+};
+
+const applyDimensionPatch = (line, patch) => {
+  const nextLine = { ...line, ...patch };
+
+  if (hasLineField(patch, "width") && !hasLineField(patch, "billingWidth")) {
+    if (shouldSyncBillingDimension(line.billingWidth, line.width)) {
+      nextLine.billingWidth = patch.width;
+    }
+  }
+
+  if (hasLineField(patch, "height") && !hasLineField(patch, "billingHeight")) {
+    if (shouldSyncBillingDimension(line.billingHeight, line.height)) {
+      nextLine.billingHeight = patch.height;
+    }
+  }
+
+  return nextLine;
+};
+
 const recalculateLine = (row) => {
-  const sqft = calculateSqft(row);
+  const normalizedRow = withBillingDimensions(row);
+  const sqft = calculateSqft(normalizedRow);
   const rate = Number(row.rate || 0);
   const amount = roundAmount(sqft * rate);
 
   return {
-    ...row,
+    ...normalizedRow,
     sqft: sqft ? String(sqft) : "",
     rate: row.rate || "",
     amount: amount ? String(amount) : "0",
@@ -192,18 +390,47 @@ const parseSavedGroupElements = (value) => {
 
 const normalizeElementGroupItem = (item = {}) => ({
   id: String(item?.id || item?.elementId || item?.ElementId || item?.id || ""),
+
+  articleCode: String(
+    item?.articleCode ||
+      item?.ArticleCode ||
+      item?.articlecode ||
+      item?.ARTICLECODE ||
+      ""
+  ).trim(),
+
+  description: String(
+    item?.description ||
+    item?.Description ||
+    ""
+  ).trim(),
+
   visualCode: String(
-    item?.visualCode ||
-      item?.VisualCode ||
-      item?.elementName ||
-      item?.ElementName ||
-      item?.displayName ||
+    item?.articleCode ||
+      item?.ArticleCode ||
+      item?.articlecode ||
+      item?.ARTICLECODE ||
       ""
   ).trim(),
   qty: String(item?.qty ?? item?.Qty ?? item?.quantity ?? ""),
   width: String(item?.width ?? item?.Width ?? ""),
   height: String(item?.height ?? item?.Height ?? ""),
-  media: String(item?.media || item?.Media || "").trim(),
+  billingWidth: String(
+    item?.billingWidth ??
+      item?.BillingWidth ??
+      item?.["Billing Width"] ??
+      item?.width ??
+      item?.Width ??
+      ""
+  ),
+  billingHeight: String(
+    item?.billingHeight ??
+      item?.BillingHeight ??
+      item?.["Billing Height"] ??
+      item?.height ??
+      item?.Height ??
+      ""
+  ),
   rate: String(item?.rate ?? item?.Rate ?? ""),
   laminationFlag: String(
     item?.laminationFlag ||
@@ -233,7 +460,18 @@ const normalizeElementGroupRow = (row, index = 0) => ({
     String(
       row?.elementGroupName || row?.ElementGroupName || row?.groupName || row?.elementGroup || ""
     ).trim(),
-  customerName: "",
+  customerId: String(row?.customerId || row?.CustomerId || row?.CUSTOMER_ID || "").trim(),
+  customerName: String(row?.customerName || row?.CustomerName || row?.client || row?.CLIENT || "").trim(),
+  panCard: normalizePanCard(
+    row?.panCard ||
+      row?.PanCard ||
+      row?.panNo ||
+      row?.PANNo ||
+      row?.PAN_NO ||
+      row?.pan ||
+      row?.PAN ||
+      getPanFromGstin(row?.gstNo || row?.GSTNo || row?.GST_NO || row?.gstin || row?.GSTIN)
+  ),
   description: String(row?.description || row?.Description || "").trim(),
   isActive: String(row?.isActive ?? row?.IsActive ?? "1"),
   elements: parseSavedGroupElements(row?.elements || row?.Elements || row?.elementRows || row?.elementDetails || [])
@@ -258,7 +496,23 @@ const buildDefaultRateRows = () =>
     media: item.media || "",
     internalMedia: item.media || "",
     externalMedia: item.media || "",
+    hsn: item.hsnCode || "",
+    hsnCode: item.hsnCode || "",
     rate: item.ratePerSqft ?? "",
+  }));
+
+const buildMasterMediaRows = () =>
+  getMasterGroup("media").map((item, index) => ({
+    id: `erp-master-media-${index}`,
+    customerId: "",
+    customerName: "",
+    media: item.value || "",
+    internalMedia: item.value || "",
+    externalMedia: item.value || "",
+    hsn: item.hsnSac || "",
+    hsnCode: item.hsnSac || "",
+    productGroup: item.productGroup || "",
+    rate: "",
   }));
 
 const getRateMedia = (row) =>
@@ -285,23 +539,88 @@ const normalizeRateRow = (row, index) => ({
     row.internalMedia || row.InternalMedia || row.media || row.Media || "",
   externalMedia:
     row.externalMedia || row.ExternalMedia || row.media || row.Media || "",
-
+  description: String(
+    row?.description ??
+    row?.Description ??
+    row?.DESCRIPTION ??
+    ""
+  ).trim(),
+  hsn: String(
+    row.hsn ||
+      row.HSN ||
+      row.hsnCode ||
+      row.HsnCode ||
+      row.HSNCode ||
+      row.hsnSac ||
+      row["HSN / SAC"] ||
+      row["HSN Code"] ||
+      ""
+  ).trim(),
+  hsnCode: String(
+    row.hsnCode ||
+      row.HsnCode ||
+      row.HSNCode ||
+      row.hsn ||
+      row.HSN ||
+      row.hsnSac ||
+      row["HSN / SAC"] ||
+      row["HSN Code"] ||
+      ""
+  ).trim(),
   rate: row.ratePerSqft ?? row.RatePerSqft ?? row.rate ?? row.Rate ?? "",
 });
+
+const mergeRateRows = (...rowSets) => {
+  const seen = new Set();
+
+  return rowSets.flat().filter((row) => {
+    const media = normalizeText(getRateMedia(row));
+    if (!media) return false;
+
+    const customerKey = [
+      row.customerId || row.customerID || row.CustomerId || "",
+      normalizeText(row.customerName || row.CustomerName || row.client || ""),
+      media,
+    ].join("|");
+
+    if (seen.has(customerKey)) return false;
+    seen.add(customerKey);
+    return true;
+  });
+};
 
 const getRateRowsFromResponse = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.message)) return data.message;
+  if (Array.isArray(data?.$values)) return data.$values;
   return [];
 };
 
+const getCustomerRowsFromResponse = getRateRowsFromResponse;
+const validatePrinterDeadline = (selectedDate) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const printerDeadline = new Date(selectedDate);
+    printerDeadline.setHours(0, 0, 0, 0);
+
+    if (printerDeadline < today) {
+        toast.warning("Printer deadline cannot be back dated");
+        return false;
+    }
+
+    return true;
+};
 const getElementGroupRowsFromResponse = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.message)) return data.message;
+  if (Array.isArray(data?.$values)) return data.$values;
   return [];
 };
 
@@ -345,30 +664,27 @@ const getCustomerRates = (rows, customerId, customerName) => {
 const findPricingFromRows = (media, customerRows, allRows) => {
   const normalizedMedia = normalizeText(media);
 
-  if (normalizedMedia) {
-    const isMatch = (row) =>
-      [row.media, row.externalMedia, row.internalMedia].some(
-        (value) => normalizeText(value) === normalizedMedia
-      );
+  if (!normalizedMedia) return null;
 
-    return customerRows.find(isMatch) || allRows.find(isMatch) || null;
-  }
+  const isMatch = (row) =>
+    [row.media, row.externalMedia, row.internalMedia].some(
+      (value) => normalizeText(value) === normalizedMedia
+    );
 
-  return customerRows[0] || null;
+  return customerRows.find(isMatch) || allRows.find(isMatch) || null;
 };
 
 const getGeneralRateRows = (rows) =>
   rows.filter((row) => !row.customerId && !row.customerName);
 
-const getDefaultPricing = (customerRows, allRows) =>
-  customerRows[0] || getGeneralRateRows(allRows)[0] || allRows[0] || null;
-
 const formatDate = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  return date.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  }).replace(/ /g, "-");
 };
+
 
 const normalizeDateInputValue = (value) => {
   const text = String(value || "").trim();
@@ -382,6 +698,125 @@ const normalizeDateInputValue = (value) => {
   return `${match[3]}-${month}-${day}`;
 };
 
+const splitClipboardRow = (row = "") => {
+  const cells = [];
+  let cell = "";
+  let inQuotes = false;
+
+  for (let index = 0; index < row.length; index += 1) {
+    const char = row[index];
+    const nextChar = row[index + 1];
+
+    if (char === '"' && nextChar === '"') {
+      cell += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      inQuotes = !inQuotes;
+      continue;
+    }
+
+    if (char === "\t" && !inQuotes) {
+      cells.push(cell.trim());
+      cell = "";
+      continue;
+    }
+
+    cell += char;
+  }
+
+  cells.push(cell.trim());
+  return cells;
+};
+
+const parseClipboardGrid = (text = "") => {
+  const rows = String(text || "")
+    .replace(/\r\n/g, "\n")
+    .replace(/\r/g, "\n")
+    .split("\n");
+
+  if (rows[rows.length - 1] === "") rows.pop();
+
+  return rows
+    .map(splitClipboardRow)
+    .filter((row) => row.some((cell) => String(cell || "").trim()));
+};
+
+const padDatePart = (value) => String(value).padStart(2, "0");
+
+const isValidDateParts = (year, month, day) => {
+  const date = new Date(year, month - 1, day);
+  return (
+    date.getFullYear() === Number(year) &&
+    date.getMonth() === Number(month) - 1 &&
+    date.getDate() === Number(day)
+  );
+};
+
+const buildDateTimeLocalValue = (year, month, day, hour = "00", minute = "00", meridiem = "") => {
+  let parsedHour = Number(hour || 0);
+  const parsedMinute = Number(minute || 0);
+  const marker = String(meridiem || "").trim().toLowerCase();
+
+  if (marker === "pm" && parsedHour < 12) parsedHour += 12;
+  if (marker === "am" && parsedHour === 12) parsedHour = 0;
+
+  if (
+    !isValidDateParts(Number(year), Number(month), Number(day)) ||
+    parsedHour < 0 ||
+    parsedHour > 23 ||
+    parsedMinute < 0 ||
+    parsedMinute > 59
+  ) {
+    return "";
+  }
+
+  return `${year}-${padDatePart(month)}-${padDatePart(day)}T${padDatePart(parsedHour)}:${padDatePart(parsedMinute)}`;
+};
+
+const normalizeDateTimePasteValue = (value) => {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  const isoMatch = text.match(
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?)?$/i
+  );
+
+  if (isoMatch) {
+    return buildDateTimeLocalValue(
+      isoMatch[1],
+      isoMatch[2],
+      isoMatch[3],
+      isoMatch[4] || "00",
+      isoMatch[5] || "00",
+      isoMatch[6] || ""
+    );
+  }
+
+  const slashMatch = text.match(
+    /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?)?$/i
+  );
+
+  if (!slashMatch) return "";
+
+  const first = Number(slashMatch[1]);
+  const second = Number(slashMatch[2]);
+  const year = slashMatch[3].length === 2 ? `20${slashMatch[3]}` : slashMatch[3];
+  const day = first > 12 || second <= 12 ? first : second;
+  const month = first > 12 || second <= 12 ? second : first;
+
+  return buildDateTimeLocalValue(
+    year,
+    month,
+    day,
+    slashMatch[4] || "00",
+    slashMatch[5] || "00",
+    slashMatch[6] || ""
+  );
+};
+
 const getDatePickerValue = (value) => {
   const normalized = normalizeDateInputValue(value);
   if (!normalized) return null;
@@ -389,21 +824,6 @@ const getDatePickerValue = (value) => {
   const [year, month, day] = normalized.split("-").map(Number);
   const date = new Date(year, month - 1, day);
   return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const formatDateTimeLocal = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
-const getTodayDateTimeMin = () => {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return formatDateTimeLocal(today);
 };
 
 const getLoggedInUser = () => {
@@ -418,9 +838,14 @@ const getLoggedInUser = () => {
 const getJobNo = (job) =>
   String(
     job?.comartjobno ??
+      job?.comartJobNo ??
+      job?.ComartJobNo ??
+      job?.COMARTJOBNO ??
       job?.jobNo ??
       job?.jobno ??
       job?.JobNo ??
+      job?.jobNumber ??
+      job?.JobNumber ??
       job?.["Job No"] ??
       ""
   ).trim();
@@ -438,6 +863,9 @@ const getJobRows = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.message)) return data.message;
+  if (Array.isArray(data?.$values)) return data.$values;
   return [];
 };
 
@@ -446,7 +874,64 @@ const getStoreRows = (data) => {
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.$values)) return data.$values;
   return [];
+};
+
+const getPrinterRows = (data) => {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.result)) return data.result;
+  if (Array.isArray(data?.message)) return data.message;
+  if (Array.isArray(data?.$values)) return data.$values;
+  return [];
+};
+
+const printerNameKeys = new Set([
+  "printerName",
+  "PrinterName",
+  "printerPrintingName",
+  "PrinterPrintingName",
+  "printingMachine",
+  "PrintingMachine",
+  "machineName",
+  "MachineName",
+  "name",
+  "Name",
+]);
+
+const extractPrinterNames = (row) => {
+  if (!row) return [];
+  if (typeof row === "string") return [row];
+  if (typeof row !== "object") return [];
+
+  const names = [];
+  const visit = (value, key = "") => {
+    if (!value) return;
+    if (typeof value === "string" || typeof value === "number") {
+      if (printerNameKeys.has(key)) names.push(value);
+      return;
+    }
+    if (Array.isArray(value)) {
+      value.forEach((item) => visit(item, key));
+      return;
+    }
+    if (typeof value !== "object") return;
+
+    Object.entries(value).forEach(([childKey, childValue]) => {
+      if (printerNameKeys.has(childKey)) {
+        if (Array.isArray(childValue)) childValue.forEach((item) => visit(item, childKey));
+        else if (childValue && typeof childValue === "object") visit(childValue, childKey);
+        else names.push(childValue);
+        return;
+      }
+      visit(childValue, childKey);
+    });
+  };
+
+  visit(row);
+  return names;
 };
 
 const normalizeStoreRow = (store, index = 0) => ({
@@ -455,7 +940,16 @@ const normalizeStoreRow = (store, index = 0) => ({
   address: String(store?.address || store?.Address || store?.storeAddress || store?.StoreAddress || "").trim(),
   location: String(store?.location || store?.Location || "").trim(),
   city: String(store?.city || store?.City || "").trim(),
-  panCard: String(store?.panCard || store?.PanCard || store?.pan || store?.PAN || "").trim(),
+  panCard: normalizePanCard(
+    store?.panCard ||
+      store?.PanCard ||
+      store?.panNo ||
+      store?.PANNo ||
+      store?.PAN_NO ||
+      store?.pan ||
+      store?.PAN ||
+      getPanFromGstin(store?.gstNo || store?.GSTNo || store?.GST_NO || store?.gstin || store?.GSTIN)
+  ),
 });
 
 const formatStoreShipTo = (store) =>
@@ -467,6 +961,11 @@ const formatStoreShipTo = (store) =>
   ]
     .filter(Boolean)
     .join("\n");
+
+const extractPanFromText = (value) => {
+  const match = String(value || "").match(/\bPAN\s*:\s*([A-Z0-9]{10})\b/i);
+  return normalizePanCard(match?.[1] || "");
+};
 
 const buildJobOption = (job) => {
   const jobNo = getJobNo(job);
@@ -490,7 +989,6 @@ const isLineBlank = (line) =>
     line.billLoc,
     line.salonAddress,
     line.brandingLocation,
-    line.sequenceNo,
     line.printingMachine,
     line.printReadyFile,
     line.remarks,
@@ -502,6 +1000,8 @@ const isLineBlank = (line) =>
     line.qty,
     line.width,
     line.height,
+    line.billingWidth,
+    line.billingHeight,
     line.sqft,
     line.rate,
     line.amount,
@@ -525,6 +1025,99 @@ const buildValueOptions = (defaults, extraValues = []) =>
 
 const getSelectedOption = (options, value) =>
   options.find((option) => option.value === value) || null;
+
+const pasteableLineColumns = [
+  { key: "visualCode", label: "VISUAL CODE", aliases: ["visual code", "visualcode"] },
+  { key: "qty", label: "QTY", aliases: ["qty", "quantity"] },
+  { key: "width", label: "Width", aliases: ["width", "w"] },
+  { key: "height", label: "Height", aliases: ["height", "h"] },
+  { key: "billingWidth", label: "Billing Width", aliases: ["billing width", "billingwidth", "bw"] },
+  { key: "billingHeight", label: "Billing Height", aliases: ["billing height", "billingheight", "bh"] },
+  { key: "jobDeadline", label: "JOB DEADLINE", aliases: ["job deadline", "deadline"] },
+  { key: "printerDeadline", label: "PRINTER DEADLINE", aliases: ["printer deadline"] },
+  { key: "remarks", label: "REMARKS/INSTRUCTIONS", aliases: ["remarks", "instructions"] },
+];
+
+const deadlineLineFields = new Set(["jobDeadline", "printerDeadline"]);
+
+const isBackDatedDeadlineValue = (value) => {
+  if (!value) return false;
+
+  const date = value instanceof Date ? new Date(value) : new Date(value);
+  if (Number.isNaN(date.getTime())) return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  date.setHours(0, 0, 0, 0);
+
+  return date < today;
+};
+
+const getPasteColumnByHeader = (value) => {
+  const normalized = normalizeText(value);
+  if (!normalized) return null;
+
+  return (
+    pasteableLineColumns.find((column) =>
+      [column.key, column.label, ...column.aliases]
+        .map(normalizeText)
+        .includes(normalized)
+    ) || null
+  );
+};
+
+const getClipboardPasteData = (grid) => {
+  if (grid.length < 2) return { rows: grid, headerColumns: null };
+
+  const headerColumns = grid[0].map(getPasteColumnByHeader);
+  const filledHeaderCells = grid[0].filter((cell) => String(cell || "").trim()).length;
+  const headerMatches = headerColumns.filter(Boolean).length;
+
+  if (!filledHeaderCells || headerMatches < Math.min(2, filledHeaderCells)) {
+    return { rows: grid, headerColumns: null };
+  }
+
+  return { rows: grid.slice(1), headerColumns };
+};
+
+const normalizeNumericPasteValue = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/,/g, "")
+    .replace(/[^\d.-]/g, "");
+
+const normalizePastedLineValue = (field, value) => {
+  if (["width", "height", "billingWidth", "billingHeight"].includes(field)) {
+    return maskDimensionValue(value);
+  }
+  if (field === "qty") return normalizeNumericPasteValue(value);
+  if (deadlineLineFields.has(field)) {
+    return normalizeDateTimePasteValue(value);
+  }
+
+  return String(value || "").trim();
+};
+
+const clipboardCell = (value) => {
+  const text = String(value ?? "");
+  return /["\t\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+};
+
+const buildLineClipboardText = (rows, columns = pasteableLineColumns) => [
+  columns.map((column) => clipboardCell(column.label)).join("\t"),
+  ...rows.map((row) =>
+    columns.map((column) => clipboardCell(row[column.key])).join("\t")
+  ),
+].join("\n");
+
+const applyPastedLinePatch = (line, patch) => {
+  const nextLine = applyDimensionPatch(line, patch);
+  const shouldRecalculate = ["qty", "width", "height", "billingWidth", "billingHeight", "rate"].some((field) =>
+    Object.prototype.hasOwnProperty.call(patch, field)
+  );
+
+  return shouldRecalculate ? recalculateLine(nextLine) : nextLine;
+};
 
 const selectPortalTarget = () =>
   typeof document !== "undefined" ? document.body : null;
@@ -589,6 +1182,7 @@ const JobEntry = () => {
     jobNo: "",
     date: formatDate(new Date()),
     client: "",
+    panCard: "",
     clientName: "",
     userName: "",
     subClient: "",
@@ -617,7 +1211,8 @@ const JobEntry = () => {
   const [draftSyncDisabled, setDraftSyncDisabled] = useState(false);
   const [isDraftPanelOpen, setIsDraftPanelOpen] = useState(false);
   const [draftList, setDraftList] = useState([]);
-  const deadlineMin = useMemo(() => getTodayDateTimeMin(), []);
+  const [activeJobEntryTab, setActiveJobEntryTab] = useState("existing");
+  const [activePasteCell, setActivePasteCell] = useState({ lineId: "", field: "visualCode" });
 
   const getDraftId = () => header.jobNo || TEMP_DRAFT_ID;
 
@@ -673,7 +1268,9 @@ const JobEntry = () => {
 
   const loadDraft = (draft) => {
     if (draft?.header) setHeader(draft.header);
-    if (draft?.lines?.length) setLines(draft.lines);
+    if (draft?.lines?.length) {
+      setLines(draft.lines.map((line) => withoutMediaSelection(withBillingDimensions(line))));
+    }
     setDraftRestored(true);
     setDraftSyncDisabled(false);
     setIsDraftPanelOpen(false);
@@ -716,6 +1313,7 @@ const JobEntry = () => {
       ...prev,
       jobNo: "",
       client: "",
+      panCard: "",
       clientName: "",
       subClient: "",
       date: formatDate(new Date()),
@@ -757,7 +1355,7 @@ const JobEntry = () => {
     const fetchCustomers = async () => {
       try {
         if (!locationId) {
-          setCustomers(mergeFallbackCustomers([]));
+          setCustomers(mergeMasterCustomers([]));
           return;
         }
 
@@ -767,10 +1365,10 @@ const JobEntry = () => {
           { timeout: 10000, headers: { "Content-Type": "application/json" } }
         );
 
-        setCustomers(mergeFallbackCustomers(Array.isArray(response.data) ? response.data : []));
+        setCustomers(mergeMasterCustomers(getCustomerRowsFromResponse(response.data)));
       } catch (error) {
         console.error("Error fetching customers", error);
-        setCustomers(mergeFallbackCustomers([]));
+        setCustomers(mergeMasterCustomers([]));
       }
     };
 
@@ -781,36 +1379,39 @@ const JobEntry = () => {
         });
 
         const apiRows = getRateRowsFromResponse(response.data).map(normalizeRateRow);
+        const savedRows = getSavedRateRows().map(normalizeRateRow);
 
-        setRateRows(
-          apiRows.length
-            ? apiRows
-            : [...getSavedRateRows().map(normalizeRateRow), ...buildDefaultRateRows()]
-        );
+        setRateRows(mergeRateRows(apiRows, savedRows, buildDefaultRateRows(), buildMasterMediaRows()));
       } catch (error) {
         console.error("Unable to fetch product media rates", error);
-        setRateRows([...getSavedRateRows().map(normalizeRateRow), ...buildDefaultRateRows()]);
+        setRateRows(
+          mergeRateRows(getSavedRateRows().map(normalizeRateRow), buildDefaultRateRows(), buildMasterMediaRows())
+        );
       }
     };
 
     const fetchPrinterOptions = async () => {
       try {
-        if (!locationId) {
-          setPrinterOptions([]);
-          return;
-        }
-
-        const response = await axios.post(
-          config.Printing.URL.Getallprinting,
-          { location_id: locationId },
-          { timeout: 10000, headers: { "Content-Type": "application/json" } }
+        const payloads = locationId
+          ? [{ location_id: locationId }, { locationId }, { locationid: locationId }, {}]
+          : [{}];
+        const responses = await Promise.allSettled(
+          payloads.map((payload) =>
+            axios.post(config.Printing.URL.Getallprinting, payload, {
+              timeout: 10000,
+              headers: { "Content-Type": "application/json" },
+            })
+          )
         );
 
-        const names = (Array.isArray(response.data) ? response.data : [])
-          .flatMap((item) => {
-            if (Array.isArray(item?.printerName)) return item.printerName;
-            return item?.printerName ? [item.printerName] : [];
+        const names = responses
+          .flatMap((result) => {
+            if (result.status !== "fulfilled") return [];
+            const responseData = result.value.data;
+            const rows = getPrinterRows(responseData);
+            return rows.length ? rows : [responseData];
           })
+          .flatMap(extractPrinterNames)
           .map((name) => String(name || "").trim())
           .filter(Boolean);
 
@@ -841,22 +1442,33 @@ const JobEntry = () => {
     const users = getLoggedInUser();
     const locationId = users?.location_id || users?.locationId || "";
 
-    try {
-      if (!locationId) {
-        setJobOptions([]);
-        return [];
-      }
-
-      const response = await axios.post(config.JobSummary.URL.GetAllJobsFromSql, { locationId });
-
+    const toUniqueJobOptions = (rows) => {
       const seen = new Set();
-      const options = getJobRows(response.data)
+      return rows
         .map(buildJobOption)
         .filter((job) => {
           if (!job?.value || seen.has(job.value)) return false;
           seen.add(job.value);
           return true;
         });
+    };
+
+    try {
+      if (!locationId) {
+        setJobOptions([]);
+        return [];
+      }
+
+      const payload = { locationId, location_id: locationId, locationid: locationId };
+      const responses = await Promise.allSettled([
+        axios.post(config.JobSummary.URL.GetAllJobsFromSql, payload),
+        axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload),
+        axios.post(config.JobSummary.URL.Getalljob, payload),
+      ]);
+      const rows = responses.flatMap((result) =>
+        result.status === "fulfilled" ? getJobRows(result.value.data) : []
+      );
+      const options = toUniqueJobOptions(rows);
 
       setJobOptions(options);
       return options;
@@ -871,14 +1483,36 @@ const JobEntry = () => {
     fetchJobNumbers();
   }, [fetchJobNumbers]);
 
+  const selectedClientPanCard = useMemo(() => {
+    const selectedCustomer = customers.find(
+      (customer) =>
+        getCustomerId(customer) === header.client ||
+        normalizeText(getCustomerName(customer)) === normalizeText(header.clientName)
+    );
+
+    return selectedCustomer ? getCustomerPanCard(selectedCustomer) : "";
+  }, [customers, header.client, header.clientName]);
+
+  const hydratedElementGroupRows = useMemo(
+    () => hydrateElementGroupPanCards(elementGroupRows, customers),
+    [customers, elementGroupRows]
+  );
+
   useEffect(() => {
-    if (!header.client) {
+    const storePanCard = normalizePanCard(header.panCard) || selectedClientPanCard;
+    const storeListUrl = storePanCard
+      ? `${config.Store.URL.List}?panCard=${encodeURIComponent(storePanCard)}`
+      : header.client
+        ? `${config.Store.URL.List}?customerId=${encodeURIComponent(header.client)}`
+        : "";
+
+    if (!storeListUrl) {
       setStoreMasterRows([]);
       return;
     }
 
     axios
-      .get(`${config.Store.URL.List}?customerId=${encodeURIComponent(header.client)}`, {
+      .get(storeListUrl, {
         timeout: 10000,
       })
       .then((response) => {
@@ -888,51 +1522,122 @@ const JobEntry = () => {
         console.error("Unable to fetch stores from Store Master", error);
         setStoreMasterRows([]);
       });
-  }, [header.client]);
+  }, [header.client, header.panCard, selectedClientPanCard]);
 
-  const elementGroupLookup = useMemo(() => {
-    return elementGroupRows.reduce((lookup, row) => {
-      const keyName = normalizeText(row.elementGroupName);
-      const keyCode = normalizeText(row.elementGroupCode);
-      if (keyName) lookup[keyName] = row;
-      if (keyCode) lookup[keyCode] = row;
-      return lookup;
-    }, {});
-  }, [elementGroupRows]);
+  const getLinePanCard = useCallback(
+    (line = {}) => {
+      const directPan = normalizePanCard(line.panCard) || extractPanFromText(line.salonAddress);
+      if (directPan) return directPan;
 
-  const elementGroupSelectOptions = useMemo(() => {
-    const options = [];
-    const seen = new Set();
+      const selectedStore = storeMasterRows.find(
+        (store) =>
+          normalizeText(store.storeName) === normalizeText(line.store) ||
+          normalizeText(formatStoreShipTo(store)) === normalizeText(line.salonAddress)
+      );
 
-    elementGroupRows.filter((row) => row.isActive !== "0").forEach((row) => {
-      const labelParts = [row.elementGroupName];
-      if (row.elementGroupCode && row.elementGroupCode !== row.elementGroupName) {
-        labelParts.push(`code: ${row.elementGroupCode}`);
+      return selectedStore?.panCard || selectedClientPanCard || "";
+    },
+    [selectedClientPanCard, storeMasterRows]
+  );
+
+  const getElementGroupMatchRank = useCallback(
+    (row, line = {}) => {
+      const selectedCustomerId = String(header.client || "").trim();
+      const selectedCustomerName = normalizeText(header.clientName);
+      const linePanCard = getLinePanCard(line);
+      const groupCustomerId = String(row.customerId || "").trim();
+      const groupCustomerName = normalizeText(row.customerName);
+      const groupPanCard = normalizePanCard(row.panCard);
+      const isClientGroup =
+        (selectedCustomerId && groupCustomerId && groupCustomerId === selectedCustomerId) ||
+        (selectedCustomerName && groupCustomerName && groupCustomerName === selectedCustomerName);
+
+      if (groupPanCard) {
+        return linePanCard && linePanCard === groupPanCard ? 3 : 0;
       }
-      const label = labelParts.filter(Boolean).join(" • ");
-      const value = row.elementGroupName || row.elementGroupCode;
-      if (!value || seen.has(value)) return;
-      seen.add(value);
-      options.push({ value, label });
-    });
 
-    return options;
-  }, [elementGroupRows]);
+      if (isClientGroup) return 2;
+      const isCommonGroup = !groupCustomerId && !groupCustomerName;
+      if (isCommonGroup) return 1;
+      return 0;
+    },
+    [getLinePanCard, header.client, header.clientName]
+  );
 
-  const createGroupLine = (baseLine, item, suffix) => {
+  const getElementGroupSelectOptions = useCallback(
+    (line = {}) => {
+      const options = [];
+      const seen = new Set();
+
+      hydratedElementGroupRows
+        .filter((row) => row.isActive !== "0")
+        .map((row) => ({ row, rank: getElementGroupMatchRank(row, line) }))
+        .filter((item) => item.rank > 0)
+        .sort((a, b) => b.rank - a.rank)
+        .forEach(({ row }) => {
+          const labelParts = [row.elementGroupName];
+          if (row.elementGroupCode && row.elementGroupCode !== row.elementGroupName) {
+            labelParts.push(`code: ${row.elementGroupCode}`);
+          }
+          if (row.panCard) {
+            labelParts.push(`PAN: ${row.panCard}`);
+          }
+          if (row.customerName) {
+            labelParts.push(row.customerName);
+          }
+
+          const value = row.elementGroupName || row.elementGroupCode;
+          if (!value || seen.has(value)) return;
+
+          seen.add(value);
+          options.push({ value, label: labelParts.filter(Boolean).join(" - ") });
+        });
+
+      return options;
+    },
+    [hydratedElementGroupRows, getElementGroupMatchRank]
+  );
+
+  const findElementGroupForLine = useCallback(
+    (value, line = {}) => {
+      const key = normalizeText(value);
+      if (!key) return null;
+
+      const candidates = hydratedElementGroupRows
+        .filter((row) => row.isActive !== "0")
+        .filter(
+          (row) =>
+            normalizeText(row.elementGroupName) === key ||
+            normalizeText(row.elementGroupCode) === key
+        )
+        .map((row) => ({ row, rank: getElementGroupMatchRank(row, line) }))
+        .sort((a, b) => b.rank - a.rank);
+
+      return candidates.find((item) => item.rank > 0)?.row || candidates[0]?.row || null;
+    },
+    [hydratedElementGroupRows, getElementGroupMatchRank]
+  );
+
+  const getElementGroupDescription = (group, item, fallback = "") =>
+    String(item?.description || group?.description || fallback || "").trim();
+
+  const createGroupLine = (baseLine, item, suffix, group = null) => {
     const newLine = createLine(`${Date.now()}-${suffix}`);
     const width = Number(item.width || baseLine.width || 0);
     const height = Number(item.height || baseLine.height || 0);
     const qty = Number(item.qty || baseLine.qty || 0);
-    const media = baseLine.media || item.media || "";
+    const media = baseLine.media || "";
     const pricing = findPricing(media);
     const rateValue = Number(pricing?.rate ?? item.rate ?? baseLine.rate ?? 0);
     const sqft = width > 0 && height > 0 && qty > 0 ? roundAmount((qty * width * height) / 144) : 0;
     const amount = roundAmount(sqft * rateValue);
+    const widthText = item.width ? String(item.width) : baseLine.width || "";
+    const heightText = item.height ? String(item.height) : baseLine.height || "";
 
     return {
       ...newLine,
       store: baseLine.store,
+      panCard: getLinePanCard(baseLine),
       city: baseLine.city,
       prodLoc: baseLine.prodLoc,
       billLoc: baseLine.billLoc,
@@ -945,10 +1650,24 @@ const JobEntry = () => {
       internalMedia: pricing?.internalMedia || baseLine.internalMedia || "",
       externalMedia: pricing?.externalMedia || baseLine.externalMedia || "",
       elementGroup: baseLine.elementGroup,
-      visualCode: item.visualCode || baseLine.visualCode || "",
+      description: getElementGroupDescription(group, item, baseLine.description),
+      articleCode:
+        item.articleCode ||
+        item.ArticleCode ||
+        item.articlecode ||
+        item.ARTICLECODE ||
+        "",
+      visualCode:
+        item.articleCode ||
+        item.ArticleCode ||
+        item.articlecode ||
+        item.ARTICLECODE ||
+        "",
       qty: item.qty ? String(item.qty) : baseLine.qty || "",
-      width: item.width ? String(item.width) : baseLine.width || "",
-      height: item.height ? String(item.height) : baseLine.height || "",
+      width: widthText,
+      height: heightText,
+      billingWidth: widthText,
+      billingHeight: heightText,
       sqft: sqft ? String(sqft) : "",
       rate: rateValue ? String(rateValue) : baseLine.rate || "",
       amount: amount ? String(amount) : baseLine.amount || "",
@@ -974,8 +1693,17 @@ const JobEntry = () => {
   };
 
   const applyElementGroupToLine = (line, group) => {
-    if (!group || !group.elements?.length) {
+    if (!group) {
       return { ...line, elementGroup: line.elementGroup };
+    }
+
+    if (!group.elements?.length) {
+      return {
+        ...line,
+        elementGroup: line.elementGroup,
+        description: getElementGroupDescription(group, null, line.description),
+        visualCode: "",
+      };
     }
 
     const items = group.elements;
@@ -987,19 +1715,35 @@ const JobEntry = () => {
     const width = Number(firstItem.width || line.width || 0);
     const height = Number(firstItem.height || line.height || 0);
     const qty = Number(firstItem.qty || line.qty || 0);
-    const media = line.media || firstItem.media || "";
+    const media = line.media || "";
     const pricing = findPricing(media);
     const rateValue = Number(pricing?.rate ?? firstItem.rate ?? line.rate ?? 0);
     const sqft = width > 0 && height > 0 && qty > 0 ? roundAmount((qty * width * height) / 144) : 0;
     const amount = roundAmount(sqft * rateValue);
+    const widthText = firstItem.width ? String(firstItem.width) : line.width || "";
+    const heightText = firstItem.height ? String(firstItem.height) : line.height || "";
 
     return {
       ...line,
       elementGroup: line.elementGroup,
-      visualCode: firstItem.visualCode || line.visualCode,
+      description: getElementGroupDescription(group, firstItem, line.description),
+      articleCode:
+        firstItem.articleCode ||
+        firstItem.ArticleCode ||
+        firstItem.articlecode ||
+        firstItem.ARTICLECODE ||
+        "",
+      visualCode:
+        firstItem.articleCode ||
+        firstItem.ArticleCode ||
+        firstItem.articlecode ||
+        firstItem.ARTICLECODE ||
+        "",
       qty: firstItem.qty ? String(firstItem.qty) : line.qty || "",
-      width: firstItem.width ? String(firstItem.width) : line.width || "",
-      height: firstItem.height ? String(firstItem.height) : line.height || "",
+      width: widthText,
+      height: heightText,
+      billingWidth: widthText,
+      billingHeight: heightText,
       media,
       internalMedia: pricing?.internalMedia || line.internalMedia || "",
       externalMedia: pricing?.externalMedia || line.externalMedia || "",
@@ -1017,7 +1761,7 @@ const JobEntry = () => {
   const createAdditionalGroupLines = (baseLine, group) => {
     if (!group?.elements?.length || group.elements.length < 2) return [];
     return group.elements.slice(1).map((item, index) =>
-      createGroupLine(baseLine, item, `group-${index}`)
+      createGroupLine(baseLine, item, `group-${index}`, group)
     );
   };
 
@@ -1042,7 +1786,7 @@ const JobEntry = () => {
 
   const pricingOptions = useMemo(() => {
     const generalRows = getGeneralRateRows(rateRows);
-    const rows = customerRateRows.length ? customerRateRows : generalRows;
+    const rows = [...customerRateRows, ...generalRows];
     const seen = new Set();
 
     return rows.filter((row) => {
@@ -1053,7 +1797,21 @@ const JobEntry = () => {
     });
   }, [customerRateRows, rateRows]);
 
-  const jobSelectOptions = useMemo(() => jobOptions, [jobOptions]);
+  const jobSelectOptions = useMemo(() => {
+    if (!header.jobNo || jobOptions.some((option) => option.value === header.jobNo)) {
+      return jobOptions;
+    }
+
+    const fallbackOption = {
+      value: header.jobNo,
+      label: header.clientName ? `${header.jobNo} (${header.clientName})` : header.jobNo,
+      clientName: header.clientName,
+      subClient: header.subClient,
+      customerId: header.client,
+    };
+
+    return [fallbackOption, ...jobOptions];
+  }, [header.client, header.clientName, header.jobNo, header.subClient, jobOptions]);
 
   const customerSelectOptions = useMemo(
     () =>
@@ -1129,7 +1887,10 @@ const JobEntry = () => {
     return buildValueOptions(locations, lines.map((line) => line.brandingLocation));
   }, [storeMasterRows, lines]);
 
-  const locationSelectOptions = useMemo(() => buildValueOptions(locationOptions), []);
+  const locationSelectOptions = useMemo(
+    () => buildValueOptions(locationOptions, billingLocationOptions),
+    []
+  );
 
   const mediaSelectOptions = useMemo(
     () => pricingOptions.map((row) => ({ value: row.media, label: row.media })),
@@ -1146,13 +1907,13 @@ const JobEntry = () => {
       buildValueOptions(
         laminationDefaults,
         [
-          ...elementGroupRows.flatMap((group) =>
+          ...hydratedElementGroupRows.flatMap((group) =>
             (group.elements || []).map((item) => item.lamination)
           ),
           ...lines.map((line) => line.lamination),
         ]
       ),
-    [elementGroupRows, lines]
+    [hydratedElementGroupRows, lines]
   );
 
   const mountingFlagSelectOptions = useMemo(
@@ -1165,13 +1926,13 @@ const JobEntry = () => {
       buildValueOptions(
         mountingDefaults,
         [
-          ...elementGroupRows.flatMap((group) =>
+          ...hydratedElementGroupRows.flatMap((group) =>
             (group.elements || []).map((item) => item.mounting)
           ),
           ...lines.map((line) => line.mounting),
         ]
       ),
-    [elementGroupRows, lines]
+    [hydratedElementGroupRows, lines]
   );
 
   const implementationSelectOptions = useMemo(
@@ -1180,16 +1941,31 @@ const JobEntry = () => {
   );
 
   const printReadySelectOptions = useMemo(
-    () => buildValueOptions(yesNoOptions),
+    () => buildValueOptions(printReadyDefaults),
     []
   );
 
   const printerSelectOptions = useMemo(
-    () => buildValueOptions(printerOptions, lines.map((line) => line.printingMachine)),
+    () =>
+      buildValueOptions(
+        [...printerOptions, ...printerMasterDefaults],
+        lines.map((line) => line.printingMachine)
+      ),
     [printerOptions, lines]
   );
 
   const findPricing = (media) => findPricingFromRows(media, customerRateRows, rateRows);
+
+  const clearMediaPricing = (line) =>
+    recalculateLine({
+      ...line,
+      media: "",
+      internalMedia: "",
+      externalMedia: "",
+      hsn: "",
+      rate: "",
+      amount: "",
+    });
 
   const applyPricing = (line, pricing) => {
     if (!pricing) return recalculateLine(line);
@@ -1199,7 +1975,7 @@ const JobEntry = () => {
       media: pricing.media || line.media,
       internalMedia: pricing.internalMedia || line.internalMedia || pricing.media || "",
       externalMedia: pricing.externalMedia || line.externalMedia || pricing.media || "",
-      hsn: pricing.hsn || line.hsn,
+      hsn: pricing.hsn || pricing.hsnCode || line.hsn,
       rate:
         pricing.rate !== "" && pricing.rate !== null && pricing.rate !== undefined
           ? String(pricing.rate)
@@ -1214,11 +1990,10 @@ const JobEntry = () => {
       let changed = false;
 
       const nextLines = prev.map((line) => {
+        if (!String(line.media || "").trim()) return line;
         if (line.hsn && line.rate) return line;
 
-        const pricing =
-          findPricingFromRows(line.media, customerRateRows, rateRows) ||
-          getDefaultPricing(customerRateRows, rateRows);
+        const pricing = findPricingFromRows(line.media, customerRateRows, rateRows);
 
         if (!pricing) return line;
 
@@ -1241,17 +2016,19 @@ const JobEntry = () => {
     if (field === "client") {
       const customer = customers.find((item) => getCustomerId(item) === value);
       const clientName = customer ? getCustomerName(customer) : "";
+      const panCard = customer ? getCustomerPanCard(customer) : "";
       const nextCustomerRates = getCustomerRates(rateRows, value, clientName);
 
-      setHeader((prev) => ({ ...prev, client: value, clientName }));
+      setHeader((prev) => ({ ...prev, client: value, clientName, panCard }));
       setLines((prev) =>
         prev.map((line) => {
-          const pricing =
-            findPricingFromRows(
-              line.media,
-              nextCustomerRates,
-              nextCustomerRates.length ? nextCustomerRates : rateRows
-            ) || getDefaultPricing(nextCustomerRates, rateRows);
+          if (!String(line.media || "").trim()) return clearMediaPricing(line);
+
+          const pricing = findPricingFromRows(
+            line.media,
+            nextCustomerRates,
+            nextCustomerRates.length ? nextCustomerRates : rateRows
+          );
 
           if (pricing) return applyPricing(line, pricing);
 
@@ -1276,6 +2053,7 @@ const JobEntry = () => {
           normalizeText(getCustomerName(item)) === normalizeText(clientName)
       );
       const clientId = matchedCustomer ? getCustomerId(matchedCustomer) : selectedJob?.customerId || "";
+      const panCard = matchedCustomer ? getCustomerPanCard(matchedCustomer) : "";
       const savedDraft = value ? getAllDrafts()[value] : null;
 
       if (savedDraft) {
@@ -1287,6 +2065,7 @@ const JobEntry = () => {
         ...prev,
         jobNo: value,
         client: clientId,
+        panCard,
         clientName,
         subClient: selectedJob?.subClient || prev.subClient,
       }));
@@ -1294,10 +2073,7 @@ const JobEntry = () => {
       setLines((prev) => {
         if (prev.length) return prev;
 
-        const nextCustomerRates = getCustomerRates(rateRows, clientId, clientName);
-        const pricing = getDefaultPricing(nextCustomerRates, rateRows);
-        const newLine = createLine(0);
-        return [pricing ? applyPricing(newLine, pricing) : newLine];
+        return [createLine(0)];
       });
       return;
     }
@@ -1313,6 +2089,7 @@ const JobEntry = () => {
     const userName = header.userName || users?.username || users?.userName || "";
     const customerName = header.clientName || "";
     const customerId = header.client || "";
+    const customerPanCard = normalizePanCard(header.panCard) || selectedClientPanCard;
 
     if (!userId || !locationId) {
       toast.error("User or location details not found");
@@ -1381,11 +2158,15 @@ const JobEntry = () => {
         ...header,
         jobNo: createdJobNo,
         client: createdOption.customerId || customerId,
+        panCard: customerPanCard,
         clientName: createdOption.clientName || customerName,
         subClient: createdOption.subClient || header.subClient,
       };
 
       setHeader(nextHeader);
+      setJobOptions((prev) =>
+        prev.some((option) => option.value === createdJobNo) ? prev : [createdOption, ...prev]
+      );
       setDraftSyncDisabled(false);
 
       const allDrafts = getAllDrafts();
@@ -1401,6 +2182,7 @@ const JobEntry = () => {
       localStorage.setItem(JOB_DRAFT_KEY, JSON.stringify(allDrafts));
 
       setSaveStatus(`New job created: ${createdJobNo}`);
+      setActiveJobEntryTab("existing");
 
       toast.update(loadingToast, {
         render: `Created new job ${createdJobNo}`,
@@ -1423,16 +2205,14 @@ const JobEntry = () => {
   };
 
   const updateLine = (id, field, value) => {
-    if (
-      ["jobDeadline", "printerDeadline"].includes(field) &&
-      value &&
-      value < deadlineMin
-    ) {
+    if (deadlineLineFields.has(field) && isBackDatedDeadlineValue(value)) {
       toast.warning("Deadline cannot be back dated");
       return;
     }
 
-    const nextValue = ["width", "height"].includes(field) ? maskDimensionValue(value) : value;
+    const nextValue = ["width", "height", "billingWidth", "billingHeight"].includes(field)
+      ? maskDimensionValue(value)
+      : value;
 
     setDraftSyncDisabled(false);
 
@@ -1445,13 +2225,14 @@ const JobEntry = () => {
         prev.map((line) => {
           if (line.id !== id) return line;
           if (!selectedStore) {
-            const nextLine = { ...line, store: nextValue };
+            const nextLine = { ...line, store: nextValue, panCard: "" };
             return { ...nextLine, sequenceNo: buildLineSequence(nextLine) };
           }
 
           const nextLine = {
             ...line,
             store: selectedStore.storeName,
+            panCard: selectedStore.panCard || "",
             salonAddress: formatStoreShipTo(selectedStore) || line.salonAddress,
             brandingLocation: selectedStore.location || line.brandingLocation,
             city: selectedStore.city || line.city,
@@ -1466,15 +2247,63 @@ const JobEntry = () => {
       return;
     }
 
+    if (field === "salonAddress") {
+      const selectedStore = storeMasterRows.find(
+        (store) => normalizeText(formatStoreShipTo(store)) === normalizeText(nextValue)
+      );
+
+      setLines((prev) =>
+        prev.map((line) => {
+          if (line.id !== id) return line;
+
+          const nextLine = selectedStore
+            ? {
+                ...line,
+                salonAddress: formatStoreShipTo(selectedStore),
+                store: selectedStore.storeName || line.store,
+                panCard: selectedStore.panCard || extractPanFromText(nextValue),
+                brandingLocation: selectedStore.location || line.brandingLocation,
+                city: selectedStore.city || line.city,
+              }
+            : {
+                ...line,
+                salonAddress: nextValue,
+                panCard: extractPanFromText(nextValue) || line.panCard || "",
+              };
+
+          return {
+            ...nextLine,
+            sequenceNo: buildLineSequence(nextLine),
+          };
+        })
+      );
+      return;
+    }
+
     if (field === "elementGroup") {
-      const group = elementGroupLookup[normalizeText(nextValue)];
-      
       setLines((prev) => {
         const lineIndex = prev.findIndex((line) => line.id === id);
         if (lineIndex === -1) return prev;
 
         const line = prev[lineIndex];
-        const updatedLine = { ...line, [field]: nextValue };
+        const group = findElementGroupForLine(nextValue, line);
+        const updatedLine = {
+          ...line,
+          [field]: nextValue,
+          description: getElementGroupDescription(group, null, line.description),
+          articleCode:
+            group?.elements?.[0]?.articleCode ||
+            group?.elements?.[0]?.ArticleCode ||
+            group?.elements?.[0]?.articlecode ||
+            group?.elements?.[0]?.ARTICLECODE ||
+            "",
+          visualCode:
+            group?.elements?.[0]?.articleCode ||
+            group?.elements?.[0]?.ArticleCode ||
+            group?.elements?.[0]?.articlecode ||
+            group?.elements?.[0]?.ARTICLECODE ||
+            "",
+        };
 
         if (!group?.elements?.length) {
           return prev.map((l, idx) => (idx === lineIndex ? updatedLine : l));
@@ -1482,7 +2311,7 @@ const JobEntry = () => {
 
         // Replace the selected line with all elements from the group
         const groupLines = group.elements.map((item, index) =>
-          createGroupLine({ ...line, [field]: nextValue }, item, `group-${index}`)
+          createGroupLine({ ...line, [field]: nextValue }, item, `group-${index}`, group)
         );
 
         return [...prev.slice(0, lineIndex), ...groupLines, ...prev.slice(lineIndex + 1)];
@@ -1495,7 +2324,7 @@ const JobEntry = () => {
       const mapped = prev.map((line) => {
         if (line.id !== id) return line;
 
-        const nextLine = { ...line, [field]: nextValue };
+        const nextLine = applyDimensionPatch(line, { [field]: nextValue });
 
         if (["city", "brandingLocation"].includes(field)) {
           nextLine.sequenceNo = buildLineSequence(nextLine);
@@ -1509,9 +2338,11 @@ const JobEntry = () => {
           nextLine.mountingFlag = "Yes";
         }
 
-        if (field === "media") return applyPricing(nextLine, findPricing(nextValue));
+        if (field === "media") {
+          return nextValue ? applyPricing(nextLine, findPricing(nextValue)) : clearMediaPricing(nextLine);
+        }
 
-        if (["width", "height", "qty", "rate"].includes(field)) {
+        if (["width", "height", "billingWidth", "billingHeight", "qty", "rate"].includes(field)) {
           return recalculateLine(nextLine);
         }
 
@@ -1527,8 +2358,7 @@ const JobEntry = () => {
 
     setLines((prev) => {
       const newLine = createLine(prev.length);
-      const pricing = getDefaultPricing(customerRateRows, rateRows);
-      return [...prev, pricing ? applyPricing(newLine, pricing) : newLine];
+      return [...prev, newLine];
     });
   };
 
@@ -1537,8 +2367,7 @@ const JobEntry = () => {
 
     setLines((prev) => {
       const newLine = { ...createLine(prev.length), store: `Salon/Store ${prev.length + 1}` };
-      const pricing = getDefaultPricing(customerRateRows, rateRows);
-      return [...prev, pricing ? applyPricing(newLine, pricing) : newLine];
+      return [...prev, newLine];
     });
   };
 
@@ -1610,14 +2439,162 @@ const JobEntry = () => {
     setCopiedLines(rowsToCopy.map((line) => ({ ...line })));
 
     try {
-      await writeClipboardText(JSON.stringify(rowsToCopy));
+      const copied = await writeClipboardText(buildLineClipboardText(rowsToCopy));
+      if (!copied) throw new Error("Clipboard copy was blocked");
     } catch (error) {
       console.warn("Clipboard write failed", error);
+      toast.error("Could not copy to clipboard");
+      return;
     }
 
-    setSaveStatus(`Copied ${rowsToCopy.length} row(s).`);
+    setSaveStatus(`Copied ${rowsToCopy.length} row(s) for Excel.`);
     toast.success(`Copied ${rowsToCopy.length} row(s)`);
   };
+
+  const getDefaultPricedLine = (index) => {
+    return createLine(index);
+  };
+
+  const getExcelPasteSummary = (grid, startColumnIndex, headerColumns = null) => {
+    return grid.reduce(
+      (summary, row) => {
+        row.forEach((cell, columnOffset) => {
+          const column = headerColumns
+            ? headerColumns[columnOffset]
+            : pasteableLineColumns[startColumnIndex + columnOffset];
+          const hasText = String(cell || "").trim();
+
+          if (!column) {
+            if (hasText) summary.ignoredCells += 1;
+            return;
+          }
+
+          const nextValue = normalizePastedLineValue(column.key, cell);
+          if (deadlineLineFields.has(column.key) && isBackDatedDeadlineValue(nextValue)) {
+            summary.skippedDeadlines += 1;
+            return;
+          }
+
+          summary.cells += 1;
+        });
+
+        return summary;
+      },
+      { cells: 0, ignoredCells: 0, skippedDeadlines: 0 }
+    );
+  };
+
+  const applyExcelGridToLines = (rawGrid, options = {}) => {
+    const pasteData = getClipboardPasteData(rawGrid);
+    const grid = pasteData.rows.filter((row) =>
+      row.some((cell) => String(cell || "").trim())
+    );
+
+    if (!grid.length) {
+      toast.warning("No Excel data found in clipboard");
+      return;
+    }
+
+    const startColumnIndex = Math.max(
+      0,
+      pasteableLineColumns.findIndex((column) => column.key === (options.field || "visualCode"))
+    );
+    const startColumn =
+      (pasteData.headerColumns || []).find(Boolean) || pasteableLineColumns[startColumnIndex];
+    const summary = getExcelPasteSummary(grid, startColumnIndex, pasteData.headerColumns);
+
+    setDraftSyncDisabled(false);
+
+    setLines((prev) => {
+      const next = [...prev];
+      const targetIndex = next.findIndex((line) => line.id === options.lineId);
+      const hasOnlyBlankLine = next.length === 1 && isLineBlank(next[0]);
+      let startRowIndex = next.length;
+
+      if (options.append) {
+        startRowIndex = hasOnlyBlankLine ? 0 : next.length;
+      } else if (targetIndex >= 0) {
+        startRowIndex = targetIndex;
+      } else if (hasOnlyBlankLine) {
+        startRowIndex = 0;
+      }
+
+      const neededRows = startRowIndex + grid.length;
+
+      while (next.length < neededRows) {
+        next.push(getDefaultPricedLine(next.length));
+      }
+
+      grid.forEach((row, rowOffset) => {
+        const patch = {};
+
+        row.forEach((cell, columnOffset) => {
+          const column = pasteData.headerColumns
+            ? pasteData.headerColumns[columnOffset]
+            : pasteableLineColumns[startColumnIndex + columnOffset];
+          if (!column) return;
+
+          const nextValue = normalizePastedLineValue(column.key, cell);
+          if (deadlineLineFields.has(column.key) && isBackDatedDeadlineValue(nextValue)) {
+            return;
+          }
+
+          patch[column.key] = nextValue;
+        });
+
+        if (Object.keys(patch).length) {
+          const lineIndex = startRowIndex + rowOffset;
+          next[lineIndex] = applyPastedLinePatch(next[lineIndex], patch);
+        }
+      });
+
+      return next;
+    });
+
+    const status = `Pasted ${grid.length} Excel row(s) from ${startColumn.label}.`;
+    setSaveStatus(status);
+    toast.success(status);
+
+    if (summary.skippedDeadlines) {
+      toast.warning(`${summary.skippedDeadlines} back-dated deadline value(s) were skipped.`);
+    }
+  };
+
+  const pasteExcelRangeFromClipboard = async (targetOverride = null) => {
+    try {
+      if (!navigator.clipboard?.readText) {
+        toast.error("Clipboard access is not available in this browser.");
+        return;
+      }
+
+      const text = await navigator.clipboard.readText();
+      const grid = parseClipboardGrid(text);
+      const target = targetOverride || (activePasteCell?.lineId
+        ? activePasteCell
+        : { append: true, field: "visualCode" });
+
+      applyExcelGridToLines(grid, target);
+    } catch (error) {
+      console.error("Excel paste failed", error);
+      toast.error("Could not read Excel clipboard data");
+    }
+  };
+
+  const handleLineCellPaste = (event, lineId, field) => {
+    const text = event.clipboardData?.getData("text/plain") || "";
+    const isExcelRange = text.includes("\t") || /\r?\n/.test(text);
+
+    if (!isExcelRange) return;
+
+    event.preventDefault();
+    setActivePasteCell({ lineId, field });
+    applyExcelGridToLines(parseClipboardGrid(text), { lineId, field });
+  };
+
+  const getPasteCellProps = (lineId, field) => ({
+    onFocus: () => setActivePasteCell({ lineId, field }),
+    onPaste: (event) => handleLineCellPaste(event, lineId, field),
+  });
 
   const pasteLines = () => {
     if (!copiedLines.length) {
@@ -1656,9 +2633,10 @@ const JobEntry = () => {
       "Sub Client",
       "Job Date",
       "Salon/Store Name",
+      "PAN Card",
       "Branding Location",
-      "Sequence",
       "City",
+      "Description",
       "Production Location",
       "Billing Location",
       "Salon/Store Address",
@@ -1686,9 +2664,10 @@ const JobEntry = () => {
           header.subClient,
           header.date,
           line.store,
+          getLinePanCard(line),
           line.brandingLocation,
-          line.sequenceNo || buildLineSequence(line),
           line.city,
+          line.description,
           line.prodLoc,
           line.billLoc,
           line.salonAddress,
@@ -1701,6 +2680,8 @@ const JobEntry = () => {
           line.hsn,
           line.width,
           line.height,
+          getLineBillingWidth(line),
+          getLineBillingHeight(line),
           line.sqft,
           line.rate,
           line.amount,
@@ -1740,8 +2721,9 @@ const JobEntry = () => {
       const sqft = Number(line.sqft || 0);
       const rate = Number(line.rate || 0);
       const amount = roundAmount(sqft * rate);
+      const linePanCard = getLinePanCard(line);
 
-      return {
+     return {
         ISnewjob: "0",
         JobNo: header.jobNo,
         "Job No": header.jobNo,
@@ -1764,12 +2746,19 @@ const JobEntry = () => {
         "Salon/Store Name": line.store,
         SalonStoreName: line.store,
         Store: line.store,
+        panCard: linePanCard,
+        PanCard: linePanCard,
+        PANCard: linePanCard,
+        panNo: linePanCard,
+        PANNo: linePanCard,
         BrandingLocation: line.brandingLocation,
         "Branding Location": line.brandingLocation,
         SequenceNo: line.sequenceNo || buildLineSequence(line),
         Sequence: line.sequenceNo || buildLineSequence(line),
         City: line.city,
         CITY: line.city,
+        Description: line.description,
+        description: line.description,
         ProductionLocation: line.prodLoc,
         "Production Location": line.prodLoc,
         BillingLocation: line.billLoc,
@@ -1792,13 +2781,26 @@ const JobEntry = () => {
         "Element Group": line.elementGroup,
         ElementGroup: line.elementGroup,
         Subgroup: line.elementGroup,
+        Description: line.description,
+        description: line.description,
         VisualCode: line.visualCode,
         "VISUAL CODE": line.visualCode,
+        articleCode: line.visualCode,
+        ArticleCode: line.visualCode,
+
         Qty: line.qty,
         QTY: line.qty,
-       
+        HSN: line.hsn,
+        HsnCode: line.hsn,
+        "HSN / SAC": line.hsn,
         Width: line.width,
         Height: line.height,
+        BillingWidth: getLineBillingWidth(line),
+        BillingHeight: getLineBillingHeight(line),
+        billingWidth: getLineBillingWidth(line),
+        billingHeight: getLineBillingHeight(line),
+        "Billing Width": getLineBillingWidth(line),
+        "Billing Height": getLineBillingHeight(line),
         TotalSqFt: String(sqft),
         "Total Sq.ft": String(sqft),
         "Total Sq.f": String(sqft),
@@ -1881,6 +2883,8 @@ const JobEntry = () => {
       const tagName = event.target?.tagName?.toLowerCase();
       const isTyping = ["input", "select", "textarea"].includes(tagName);
 
+      if (activeJobEntryTab !== "existing") return;
+
       if (event.altKey && event.key.toLowerCase() === "n") {
         event.preventDefault();
         addLine();
@@ -1905,7 +2909,8 @@ const JobEntry = () => {
         copyLines();
       } else if (event.ctrlKey && event.key.toLowerCase() === "v") {
         event.preventDefault();
-        pasteLines();
+        if (copiedLines.length) pasteLines();
+        else pasteExcelRangeFromClipboard();
       } else if (event.ctrlKey && event.key.toLowerCase() === "a") {
         event.preventDefault();
         selectAllLines();
@@ -1933,238 +2938,312 @@ const JobEntry = () => {
           </div>
 
           <div className="job-entry-actions">
-            <div className="job-entry-summary" aria-label="Job totals">
-              <div>
-                <span>TOTAL SQ.F</span>
-                <strong>{totals.sqft.toLocaleString("en-IN")}</strong>
-              </div>
-            </div>
+            {activeJobEntryTab === "existing" ? (
+              <>
+                <div className="job-entry-summary" aria-label="Job totals">
+                  <div>
+                    <span>TOTAL SQ.F</span>
+                    <strong>{totals.sqft.toLocaleString("en-IN")}</strong>
+                  </div>
+                </div>
 
-            <button className="job-primary-btn" type="button" onClick={addLine}>
-              <Plus size={18} />
-              Add Row
-            </button>
+                <button className="job-primary-btn" type="button" onClick={addLine}>
+                  <Plus size={18} />
+                  Add Row
+                </button>
 
-            <button
-              className="job-secondary-btn job-new-job-top"
-              type="button"
-              onClick={handleCreateNewJob}
-              disabled={isCreatingJob}
-              title="Create new job"
-            >
-              <FilePlus size={16} />
-              <span>{isCreatingJob ? "Creating..." : "Add New Job"}</span>
-            </button>
+                <button
+                  className="job-secondary-btn job-new-job-top"
+                  type="button"
+                  onClick={() => setActiveJobEntryTab("new")}
+                  title="Open add new job"
+                >
+                  <FilePlus size={16} />
+                  <span>Add New Job</span>
+                </button>
 
-            <button className="job-secondary-btn" type="button" onClick={refreshElementGroups}>
-              <Plus size={14} />
-              Refresh Groups
-            </button>
+                <button className="job-secondary-btn" type="button" onClick={refreshElementGroups}>
+                  <Plus size={14} />
+                  Refresh Groups
+                </button>
 
-            <button className="job-secondary-btn" type="button" onClick={() => (window.location.href = "/element-group-master") }>
-              <Plus size={14} />
-              Manage Element Groups
-            </button>
+                <button className="job-secondary-btn" type="button" onClick={() => (window.location.href = "/element-group-master") }>
+                  <Plus size={14} />
+                  Manage Element Groups
+                </button>
 
-            <Link className="job-secondary-btn job-link-btn" to="/storemaster" title="Open Store Master">
-              <ExternalLink size={14} />
-              Store Master
-            </Link>
+                <Link className="job-secondary-btn job-link-btn" to="/storemaster" title="Open Store Master">
+                  <ExternalLink size={14} />
+                  Store Master
+                </Link>
 
-            <div className="job-icon-group" aria-label="Job actions">
-              <button type="button" title="New salon/store" onClick={addStore}>
-                <FolderPlus size={16} />
-                <span>Salon/Store</span>
+                <div className="job-icon-group" aria-label="Job actions">
+                  <button type="button" title="New salon/store" onClick={addStore}>
+                    <FolderPlus size={16} />
+                    <span>Salon/Store</span>
+                  </button>
+
+                  <button type="button" title="Show Drafts" onClick={showDrafts}>
+                    <Save size={16} />
+                    <span>Draft</span>
+                  </button>
+
+                  <button type="button" title="Copy selected rows for Excel" onClick={copyLines}>
+                    <Copy size={16} />
+                    <span>Copy</span>
+                  </button>
+
+                  <button type="button" title="Paste copied rows" onClick={pasteLines}>
+                    <Clipboard size={16} />
+                    <span>Paste</span>
+                  </button>
+                  <button
+                    type="button"
+                    title="Paste Excel column or range as new rows"
+                    onClick={() => pasteExcelRangeFromClipboard({ append: true, field: "visualCode" })}
+                  >
+                    <Clipboard size={16} />
+                    <span>Excel Range</span>
+                  </button>
+
+                  <button type="button" title="Delete selected" onClick={removeSelected} className="danger">
+                    <Trash2 size={16} />
+                    <span>Delete</span>
+                  </button>
+
+                  <button type="button" title="Save" onClick={saveExistingJobLines} disabled={isSaving}>
+                    <Save size={16} />
+                    <span>{isSaving ? "Saving" : "Save"}</span>
+                  </button>
+
+                  <button type="button" title="Download CSV" onClick={downloadCsv}>
+                    <Download size={16} />
+                    <span>CSV</span>
+                  </button>
+
+                  <button type="button" title="Clear job entry" onClick={clearJobEntry} className="danger">
+                    <RotateCcw size={16} />
+                    <span>Clear</span>
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                className="job-primary-btn job-create-job-btn"
+                type="button"
+                onClick={handleCreateNewJob}
+                disabled={isCreatingJob}
+                title="Create new job"
+              >
+                <FilePlus size={16} />
+                <span>{isCreatingJob ? "Creating..." : "Create Job"}</span>
               </button>
-
-              <button type="button" title="Show Drafts" onClick={showDrafts}>
-                <Save size={16} />
-                <span>Draft</span>
-              </button>
-
-              <button type="button" title="Copy selected rows" onClick={copyLines}>
-                <Copy size={16} />
-                <span>Copy</span>
-              </button>
-
-              <button type="button" title="Paste copied rows" onClick={pasteLines}>
-                <Clipboard size={16} />
-                <span>Paste</span>
-              </button>
-
-              <button type="button" title="Delete selected" onClick={removeSelected} className="danger">
-                <Trash2 size={16} />
-                <span>Delete</span>
-              </button>
-
-              <button type="button" title="Save" onClick={saveExistingJobLines} disabled={isSaving}>
-                <Save size={16} />
-                <span>{isSaving ? "Saving" : "Save"}</span>
-              </button>
-
-              <button type="button" title="Download CSV" onClick={downloadCsv}>
-                <Download size={16} />
-                <span>CSV</span>
-              </button>
-
-              <button type="button" title="Clear job entry" onClick={clearJobEntry} className="danger">
-                <RotateCcw size={16} />
-                <span>Clear</span>
-              </button>
-            </div>
+            )}
           </div>
         </section>
 
-        <section className="job-entry-form-grid">
-          <label>
-            <span>Job No</span>
-            <div className="job-jobno-row">
+        <nav className="job-entry-tabs" aria-label="Job entry mode">
+          <button
+            type="button"
+            className={`job-entry-tab ${activeJobEntryTab === "new" ? "active" : ""}`}
+            onClick={() => setActiveJobEntryTab("new")}
+          >
+            <FilePlus size={15} />
+            Add New Job
+          </button>
+          <button
+            type="button"
+            className={`job-entry-tab ${activeJobEntryTab === "existing" ? "active" : ""}`}
+            onClick={() => setActiveJobEntryTab("existing")}
+          >
+            <Clipboard size={15} />
+            Existing Job
+          </button>
+        </nav>
+
+        {activeJobEntryTab === "new" ? (
+          <section className="job-entry-form-grid job-new-job-grid">
+            <label>
+              <span>Job Date</span>
+              <div className="job-date-input">
+                <DatePicker
+                  selected={getDatePickerValue(header.date)}
+                  onChange={(date) => updateHeader("date", date ? formatDate(date) : "")}
+                  dateFormat="dd-MMM-yyyy"
+                  placeholderText="Select job date"
+                  className="job-date-picker-input"
+                  minDate={new Date()}
+                  maxDate={new Date()}
+                  isClearable={false}
+                  popperPlacement="bottom-start"
+                  popperContainer={({ children }) => createPortal(children, document.body)}
+                />
+                <Calendar size={15} />
+              </div>
+            </label>
+
+            <label>
+              <span>Client</span>
               <Select
                 classNamePrefix="job-form-select"
                 styles={formSelectStyles}
                 menuPortalTarget={selectPortalTarget()}
                 isClearable
-                options={jobSelectOptions}
-                value={getSelectedOption(jobSelectOptions, header.jobNo)}
-                onChange={(option) => updateHeader("jobNo", option?.value || "")}
-                placeholder="Search job number"
-                autoFocus
+                options={customerSelectOptions}
+                value={getSelectedOption(customerSelectOptions, header.client)}
+                onChange={(option) => updateHeader("client", option?.value || "")}
+                placeholder="Search customer"
               />
+              {header.client && (
+                <small className="job-rate-hint">
+                  {customerRateRows.length
+                    ? `${customerRateRows.length} customer rate(s) available`
+                    : "Using general product media rates"}
+                </small>
+              )}
+            </label>
+
+            <label>
+              <span>User Name</span>
+              <input value={header.userName} onChange={(event) => updateHeader("userName", event.target.value)} />
+            </label>
+
+            <label>
+              <span>Sub Client</span>
+              <input value={header.subClient} onChange={(event) => updateHeader("subClient", event.target.value)} />
+            </label>
+
+            <label>
+              <span>Business Type</span>
+              <select value={header.businessType} onChange={(event) => updateHeader("businessType", event.target.value)}>
+                <option value="">Select Business Type</option>
+                {businessTypeOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Contact Person</span>
+              <input value={header.contactPerson} onChange={(event) => updateHeader("contactPerson", event.target.value)} placeholder="Enter Contact Person" />
+            </label>
+
+            <label>
+              <span>PO No</span>
+              <input value={header.poNo} onChange={(event) => updateHeader("poNo", event.target.value)} placeholder="Enter PO No" />
+            </label>
+
+      <label>
+  <span>PO Date</span>
+  <DatePicker
+    selected={header.poDate ? new Date(header.poDate) : null}
+    onChange={(date) =>
+      updateHeader(
+        "poDate",
+        date ? formatDate(date) : ""
+      )
+    }
+    dateFormat="dd-MMM-yyyy"
+    placeholderText="Select PO Date"
+    className="job-date-picker-input"
+    isClearable
+    popperPlacement="bottom-start"
+    popperContainer={({ children }) =>
+      createPortal(children, document.body)
+    }
+  />
+</label>
+
+            <label>
+              <span>PO Type</span>
+              <select value={header.poType} onChange={(event) => updateHeader("poType", event.target.value)}>
+                <option value="">Select PO Type</option>
+                {poTypeOptions.map((option) => (
+                  <option key={option} value={option}>{option}</option>
+                ))}
+              </select>
+            </label>
+
+            <label>
+              <span>Customer Email</span>
+              <input type="email" value={header.customerEmail} onChange={(event) => updateHeader("customerEmail", event.target.value)} placeholder="Enter Customer Email" />
+            </label>
+
+            <label>
+              <span>Project Name</span>
+              <input value={header.projectName} onChange={(event) => updateHeader("projectName", event.target.value)} placeholder="Enter Project Name" />
+            </label>
+
+            <div className="job-new-job-submit">
+              <button
+                className="job-primary-btn job-create-job-btn"
+                type="button"
+                onClick={handleCreateNewJob}
+                disabled={isCreatingJob}
+              >
+                <FilePlus size={16} />
+                <span>{isCreatingJob ? "Creating..." : "Create Job"}</span>
+              </button>
             </div>
-          </label>
-
-          <label>
-            <span>Job Date</span>
-            <div className="job-date-input">
-              <DatePicker
-                selected={getDatePickerValue(header.date)}
-                onChange={(date) => updateHeader("date", date ? formatDate(date) : "")}
-                dateFormat="yyyy-MM-dd"
-                placeholderText="Select job date"
-                className="job-date-picker-input"
-                minDate={new Date()}
-                maxDate={new Date()}
-                isClearable={false}
-                popperPlacement="bottom-start"
-                popperContainer={({ children }) => createPortal(children, document.body)}
-              />
-              <Calendar size={15} />
-            </div>
-          </label>
-
-          <label>
-            <span>Client</span>
-            <Select
-              classNamePrefix="job-form-select"
-              styles={formSelectStyles}
-              menuPortalTarget={selectPortalTarget()}
-              isClearable
-              options={customerSelectOptions}
-              value={getSelectedOption(customerSelectOptions, header.client)}
-              onChange={(option) => updateHeader("client", option?.value || "")}
-              placeholder="Search customer"
-            />
-            {header.client && (
-              <small className="job-rate-hint">
-                {customerRateRows.length
-                  ? `${customerRateRows.length} customer rate(s) available`
-                  : "Using general product media rates"}
-              </small>
-            )}
-          </label>
-
-          <label>
-            <span>User Name</span>
-            <input value={header.userName} onChange={(event) => updateHeader("userName", event.target.value)} />
-          </label>
-
-          <label>
-            <span>Sub Client</span>
-            <input value={header.subClient} onChange={(event) => updateHeader("subClient", event.target.value)} />
-          </label>
-
-          <label>
-            <span>Business Type</span>
-            <select value={header.businessType} onChange={(event) => updateHeader("businessType", event.target.value)}>
-              <option value="">Select Business Type</option>
-              {businessTypeOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span>Contact Person</span>
-            <input value={header.contactPerson} onChange={(event) => updateHeader("contactPerson", event.target.value)} placeholder="Enter Contact Person" />
-          </label>
-
-          <label>
-            <span>PO No</span>
-            <input value={header.poNo} onChange={(event) => updateHeader("poNo", event.target.value)} placeholder="Enter PO No" />
-          </label>
-
-          <label>
-            <span>PO Date</span>
-            <input type="date" value={header.poDate} onChange={(event) => updateHeader("poDate", event.target.value)} />
-          </label>
-
-         
-
-          <label>
-            <span>PO Type</span>
-            <select value={header.poType} onChange={(event) => updateHeader("poType", event.target.value)}>
-              <option value="">Select PO Type</option>
-              {poTypeOptions.map((option) => (
-                <option key={option} value={option}>{option}</option>
-              ))}
-            </select>
-          </label>
-
-          <label>
-            <span>Customer Email</span>
-            <input type="email" value={header.customerEmail} onChange={(event) => updateHeader("customerEmail", event.target.value)} placeholder="Enter Customer Email" />
-          </label>
-
-          <label>
-            <span>Project Name</span>
-            <input value={header.projectName} onChange={(event) => updateHeader("projectName", event.target.value)} placeholder="Enter Project Name" />
-          </label>
-        </section>
-
-        {saveStatus && <div className="job-save-status">{saveStatus}</div>}
-        {header.jobNo && (
-          <section className="job-current-info" aria-label="Selected job information">
-            <strong>{header.jobNo}</strong>
-            <span>Job Date: {header.date || "-"}</span>
-            <span>Client: {header.clientName || "-"}</span>
-            <span>Sub Client: {header.subClient || "-"}</span>
-            <span>Business Type: {header.businessType || "-"}</span>
-            <span>PO No: {header.poNo || "-"}</span>
-            <span>PO Date: {header.poDate || "-"}</span>
-            <span>PO Type: {header.poType || "-"}</span>
-            <span>Project: {header.projectName || "-"}</span>
-            <span>Created / Edited By: {header.userName || "-"}</span>
+          </section>
+        ) : (
+          <section className="job-entry-form-grid job-existing-job-grid">
+            <label>
+              <span>Job No</span>
+              <div className="job-jobno-row">
+                <Select
+                  classNamePrefix="job-form-select"
+                  styles={formSelectStyles}
+                  menuPortalTarget={selectPortalTarget()}
+                  isClearable
+                  options={jobSelectOptions}
+                  value={getSelectedOption(jobSelectOptions, header.jobNo)}
+                  onChange={(option) => updateHeader("jobNo", option?.value || "")}
+                  placeholder="Search job number"
+                  autoFocus
+                />
+              </div>
+            </label>
           </section>
         )}
 
-        <section className="job-lines-wrap" aria-label="Job line items">
-          <div className="job-lines-scroll">
-            <table className="job-lines-table">
+        {saveStatus && <div className="job-save-status">{saveStatus}</div>}
+        {activeJobEntryTab === "existing" && (
+          <>
+            {header.jobNo && (
+              <section className="job-current-info" aria-label="Selected job information">
+                <strong>{header.jobNo}</strong>
+                <span>Job Date: {header.date || "-"}</span>
+                <span>Client: {header.clientName || "-"}</span>
+                <span>Sub Client: {header.subClient || "-"}</span>
+                <span>Business Type: {header.businessType || "-"}</span>
+                <span>PO No: {header.poNo || "-"}</span>
+                <span>PO Date: {header.poDate || "-"}</span>
+                <span>PO Type: {header.poType || "-"}</span>
+                <span>Project: {header.projectName || "-"}</span>
+                <span>Created / Edited By: {header.userName || "-"}</span>
+              </section>
+            )}
+
+            <section className="job-lines-wrap" aria-label="Job line items">
+              <div className="job-lines-scroll">
+                <table className="job-lines-table">
               <colgroup>
                 <col className="job-col-select" />
                 <col className="job-col-city" />
                 <col className="job-col-store" />
                 <col className="job-col-address" />
                 <col className="job-col-branding" />
-                <col className="job-col-sequence" />
                 <col className="job-col-small" />
                 <col className="job-col-small" />
                 <col className="job-col-machine" />
                 <col className="job-col-print-ready" />
                 <col className="job-col-medium" />
                 <col className="job-col-element" />
-                <col className="job-col-visual" />
-                <col className="job-col-qty" />
+                <col className="job-col-visual"style={{ width: "300px", minWidth: "300px" }}  />
+                <col className="job-col-qty" style={{ width: "120px", minWidth: "150px" }} />
+                <col className="job-col-number" />
+                <col className="job-col-number" />
                 <col className="job-col-number" />
                 <col className="job-col-number" />
                 <col className="job-col-number" />
@@ -2187,16 +3266,16 @@ const JobEntry = () => {
                       aria-label="Select all rows"
                     />
                   </th>
-                  <th colSpan="9">SALON / STORE DETAILS (SHARED ACROSS TS LINES)</th>
-                  <th colSpan={productColumns.length + 3}>LINE ITEM</th>
+                  <th colSpan="8">SALON / STORE DETAILS (SHARED ACROSS TS LINES)</th>
+                  <th colSpan={productColumns.length + 4}>LINE ITEM</th>
                 </tr>
                 <tr>
                   <th className="select-col"></th>
                   <th>CITY</th>
+                  <th>Description</th>
                   <th>SALON/STORE NAME</th>
                   <th>SALON/STORE ADDRESS</th>
                   <th>BRANDING LOCATION</th>
-                  <th>SEQUENCE</th>
                   <th>PROD LOC</th>
                   <th>BILL LOC</th>
                   <th>PRINTING MACHINE</th>
@@ -2234,6 +3313,16 @@ const JobEntry = () => {
                         placeholder="-"
                       />
                     </td>
+                    <td>
+                
+                  <input
+                    value={line.description || ""}
+                    onChange={(event) =>
+                      updateLine(line.id, "description", event.target.value)
+                    }
+                    placeholder="Description"
+                  />
+                </td>
 
                     <td>
                       <Select
@@ -2245,12 +3334,6 @@ const JobEntry = () => {
                         value={getSelectedOption(storeSelectOptions, line.store)}
                         onChange={(option) => updateLine(line.id, "store", option?.value || "")}
                         placeholder={header.client ? "Select store" : "Select client"}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        value={line.sequenceNo || buildLineSequence(line)}
-                        onChange={(event) => updateLine(line.id, "sequenceNo", event.target.value)}
                       />
                     </td>
                     <td>
@@ -2347,27 +3430,64 @@ const JobEntry = () => {
                         styles={compactSelectStyles}
                         menuPortalTarget={selectPortalTarget()}
                         isClearable
-                        options={elementGroupSelectOptions}
-                        value={getSelectedOption(elementGroupSelectOptions, line.elementGroup)}
+                        options={getElementGroupSelectOptions(line)}
+                        value={getSelectedOption(getElementGroupSelectOptions(line), line.elementGroup)}
                         onChange={(option) => updateLine(line.id, "elementGroup", option?.value || "")}
                         placeholder="-"
                       />
                     </td>
+<td>
+                      <input
+                        value={line.visualCode || ""}
+                        onChange={(event) => updateLine(line.id, "visualCode", event.target.value)}
+                        {...getPasteCellProps(line.id, "visualCode")}
+                      />
+                    </td>
+
 
                     <td>
-                      <input value={line.visualCode} onChange={(event) => updateLine(line.id, "visualCode", event.target.value)} />
+                      <input
+                        value={line.qty}
+                        type="number"
+                        onChange={(event) => updateLine(line.id, "qty", event.target.value)}
+                        {...getPasteCellProps(line.id, "qty")}
+                      />
                     </td>
 
                     <td>
-                      <input value={line.qty} type="number" onChange={(event) => updateLine(line.id, "qty", event.target.value)} />
+                      <input
+                        value={line.width}
+                        type="number"
+                        onChange={(event) => updateLine(line.id, "width", event.target.value)}
+                        {...getPasteCellProps(line.id, "width")}
+                      />
                     </td>
 
                     <td>
-                      <input value={line.width} type="number" onChange={(event) => updateLine(line.id, "width", event.target.value)} />
+                      <input
+                        value={line.height}
+                        type="number"
+                        onChange={(event) => updateLine(line.id, "height", event.target.value)}
+                        {...getPasteCellProps(line.id, "height")}
+                      />
                     </td>
 
                     <td>
-                      <input value={line.height} type="number" onChange={(event) => updateLine(line.id, "height", event.target.value)} />
+                      <input
+                        value={line.billingWidth ?? getLineBillingWidth(line)}
+                        type="number"
+                        onChange={(event) => updateLine(line.id, "billingWidth", event.target.value)}
+                        {...getPasteCellProps(line.id, "billingWidth")}
+                      />
+                    </td>
+
+                    <td>
+                      <input
+                        value={line.billingHeight ?? getLineBillingHeight(line)}
+                        type="number"
+                        onChange={(event) => updateLine(line.id, "billingHeight", event.target.value)}
+                        {...getPasteCellProps(line.id, "billingHeight")}
+                      />
                     </td>
 
                     <td>
@@ -2440,25 +3560,30 @@ const JobEntry = () => {
                     </td>
 
                     <td>
-                      <input
-                        value={line.jobDeadline}
-                        type="datetime-local"
-                        min={deadlineMin}
-                        onChange={(event) => updateLine(line.id, "jobDeadline", event.target.value)}
-                      />
+                     <DatePicker
+  selected={line.jobDeadline ? new Date(line.jobDeadline) : null}
+  onChange={(date) => updateLine(line.id, "jobDeadline", date)}
+  showTimeSelect
+  dateFormat="dd-MMM-yyyy hh:mm aa"
+/>
+                    </td>
+
+                    <td>
+                  <DatePicker
+  selected={line.printerDeadline ? new Date(line.printerDeadline) : null}
+  onChange={(date) => updateLine(line.id, "printerDeadline", date)}
+  showTimeSelect
+  dateFormat="dd-MMM-yyyy hh:mm aa"
+  minDate={new Date()}
+/>
                     </td>
 
                     <td>
                       <input
-                        value={line.printerDeadline}
-                        type="datetime-local"
-                        min={deadlineMin}
-                        onChange={(event) => updateLine(line.id, "printerDeadline", event.target.value)}
+                        value={line.remarks}
+                        onChange={(event) => updateLine(line.id, "remarks", event.target.value)}
+                        {...getPasteCellProps(line.id, "remarks")}
                       />
-                    </td>
-
-                    <td>
-                      <input value={line.remarks} onChange={(event) => updateLine(line.id, "remarks", event.target.value)} />
                     </td>
                   </tr>
                 )) : (
@@ -2490,6 +3615,8 @@ const JobEntry = () => {
         <p className="job-shortcuts">
           Shortcuts: Ctrl+S Save - Ctrl+E CSV - Ctrl+C/V Copy/Paste - Ctrl+A Select All - Ctrl+X Delete - Alt+N Add Line - Alt+M New Salon/Store - Esc Clear selection
         </p>
+          </>
+        )}
       </main>
 
       {isDraftPanelOpen && (
