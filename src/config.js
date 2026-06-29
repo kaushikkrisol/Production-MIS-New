@@ -1,7 +1,7 @@
 // https://production.comart.in
 
-// let BaseURL = "https://localhost:7035"; 
-let BaseURL = "https://productionapi.comart.in";                                                                                                                                                        
+let BaseURL = "https://localhost:7035";
+//  let BaseURL = "https://productionapi.comart.in";
 
 // let BaseURL = "https://testproductionapi.comart.in";
 let BaseURL1 = "https://stores.comart.in:3001";
@@ -34,7 +34,8 @@ const config ={
             UpdateProductionLocation: BaseURL + '/api/JobSummary/UpdateProductionLocation',
             GetDeletedData:BaseURL+'/api/JobSummary/GetDeletedData',
             RestoreJob:BaseURL+'/api/JobSummary/RestoreJob',
-            ResumeJobFromHold: "/api/JobSummary/ResumeJobFromHold"
+            ResumeJobFromHold: "/api/JobSummary/ResumeJobFromHold",
+            SaveEstimate:BaseURL+'/api/JobSummary/SaveEstimate',
 
         }
     },
@@ -54,6 +55,7 @@ const config ={
     Approval:{
         URL:{
             Sendmailforcustomer:BaseURL+'/api/Approval/Sendmailforcustomer',
+            SendEstimateMail:BaseURL+'/api/Approval/SendEstimateMail',
             getApprovalRequest:BaseURL+'/api/Approval/getApprovalRequest',
             ApproveLineItems: BaseURL + '/api/Approval/ApproveLineItems',
 
@@ -104,6 +106,13 @@ const config ={
             GetDeliveryChallanById: BaseURL+"/api/Delivery/GetDeliveryChallanById",
             GetDeliveryChallanByJobNo: BaseURL+"/api/Delivery/GetDeliveryChallanByJobNo",
             GetAllChallansDashboard: BaseURL+"/api/Delivery/GetAllChallansDashboard"
+        }
+    },
+    GoogleGmail:{
+        URL:{
+            SendMail:BaseURL+"/api/GoogleGmail/send-mail",
+            SendMailWithAttachment:BaseURL+"/api/GoogleGmail/SendMailWithAttachment",
+            AuthorizeUrl: BaseURL+"/api/GoogleGmail/authorize-url",
         }
     },
     Implementation: {

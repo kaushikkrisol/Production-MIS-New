@@ -1,10 +1,13 @@
 .job-entry-page {
   min-height: 100vh;
+  overflow-x: hidden;
+  overflow-y: auto;
   background: #f4f6f9;
   color: #1f2937;
   font-family: Inter, "Segoe UI", Arial, sans-serif;
- margin-left: 17rem;
- margin-top: 5rem;
+  margin-left: 17rem;
+  margin-top: 5rem;
+  padding-bottom: 24px;
 }
 
 .job-entry-tabs {
@@ -450,15 +453,18 @@
   border-radius: 7px;
   background: #ffffff;
   overflow: hidden;
+  display: block;
 }
 
 .job-lines-scroll {
   width: 100%;
-  max-height: calc(100vh - 330px);
-  min-height: 220px;
+  height: min(640px, calc(100vh - 270px));
+  min-height: 320px;
+  max-height: 640px;
   overflow: auto;
   overscroll-behavior: contain;
   padding-bottom: 3px;
+  scrollbar-gutter: stable;
 }
 
 .job-lines-scroll::-webkit-scrollbar {
@@ -476,7 +482,7 @@
 }
 
 .job-lines-table {
-  width: 3560px;
+  width: 3920px;
   table-layout: fixed;
   border-collapse: collapse;
 }
@@ -528,6 +534,10 @@
 
 .job-col-number {
   width: 105px;
+}
+
+.job-col-charge {
+  width: 120px;
 }
 
 .job-col-flag {
@@ -599,22 +609,28 @@
   cursor: not-allowed;
 }
 
-.job-lines-table td:nth-child(13) input,
 .job-lines-table td:nth-child(14) input,
 .job-lines-table td:nth-child(15) input,
 .job-lines-table td:nth-child(16) input,
 .job-lines-table td:nth-child(17) input,
-.job-lines-table td:nth-child(18) input {
+.job-lines-table td:nth-child(18) input,
+.job-lines-table td:nth-child(19) input,
+.job-lines-table td:nth-child(20) input,
+.job-lines-table td:nth-child(21) input,
+.job-lines-table td:nth-child(22) input {
   font-weight: 700;
   text-align: right;
 }
 
-.job-lines-table td:nth-child(13) input,
 .job-lines-table td:nth-child(14) input,
 .job-lines-table td:nth-child(15) input,
 .job-lines-table td:nth-child(16) input,
 .job-lines-table td:nth-child(17) input,
-.job-lines-table td:nth-child(18) input {
+.job-lines-table td:nth-child(18) input,
+.job-lines-table td:nth-child(19) input,
+.job-lines-table td:nth-child(20) input,
+.job-lines-table td:nth-child(21) input,
+.job-lines-table td:nth-child(22) input {
   color: #111827;
   background: #fbfdff;
 }
@@ -897,6 +913,255 @@
   font-size: 12px;
 }
 
+.job-mail-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1060;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.job-mail-panel {
+  width: min(820px, 100%);
+  max-height: min(840px, calc(100vh - 40px));
+  display: flex;
+  flex-direction: column;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.22);
+  overflow: hidden;
+}
+
+.job-mail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 14px;
+  border-bottom: 1px solid #e5e8ee;
+}
+
+.job-mail-header h2 {
+  margin: 0;
+  color: #1f2937;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.job-mail-header p {
+  margin: 4px 0 0;
+  color: #697386;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.job-mail-body {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow-y: auto;
+}
+
+.job-mail-body label {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+}
+
+.job-mail-body label > span {
+  color: #697386;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.job-mail-body input,
+.job-mail-body textarea {
+  width: 100%;
+  border: 1px solid #d5dbe5;
+  border-radius: 5px;
+  background: #f8fafc;
+  color: #232a36;
+  font-size: 14px;
+}
+
+.job-mail-body input {
+  height: 36px;
+  padding: 0 12px;
+}
+
+.job-mail-body textarea {
+  min-height: 148px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.job-mail-body input:focus,
+.job-mail-body textarea:focus {
+  border-color: #2f5ed9;
+  box-shadow: 0 0 0 2px rgba(47, 94, 217, 0.15);
+  outline: 0;
+}
+
+.job-mail-message {
+  min-height: 0;
+}
+
+.job-mail-attachment-list {
+  display: grid;
+  gap: 8px;
+  max-height: min(240px, 32vh);
+  overflow-y: auto;
+  padding-right: 3px;
+}
+
+.job-mail-attachment {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #dfe4ec;
+  border-radius: 6px;
+  background: #fbfcfe;
+  color: #253044;
+}
+
+.job-mail-attachment svg {
+  flex: 0 0 auto;
+  color: #2f5ed9;
+}
+
+.job-mail-attachment strong,
+.job-mail-attachment span {
+  display: block;
+}
+
+.job-mail-attachment strong {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.job-mail-attachment span {
+  margin-top: 3px;
+  color: #697386;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.job-mail-preview {
+  border: 1px solid #dfe4ec;
+  border-radius: 6px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.job-mail-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf1f7;
+  background: #fbfcfe;
+}
+
+.job-mail-preview-header strong {
+  color: #1f2937;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.job-mail-preview-header span {
+  color: #485366;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.job-mail-preview-table-wrap {
+  overflow-x: auto;
+}
+
+.job-mail-preview table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+}
+
+.job-mail-preview th,
+.job-mail-preview td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #edf1f7;
+  color: #253044;
+  font-size: 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.job-mail-preview th {
+  background: #f2f5f9;
+  color: #697386;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+.job-mail-preview td:nth-child(2) {
+  max-width: 260px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.job-mail-preview small {
+  display: block;
+  padding: 8px 12px 10px;
+  color: #697386;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.job-mail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 20px;
+  border-top: 1px solid #e5e8ee;
+  background: #fbfcfe;
+}
+
+.job-mail-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.job-mail-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 38px;
+  min-width: 112px;
+  padding: 0 13px;
+  border: 1px solid #d5dbe5;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #253044;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.job-mail-ghost:hover {
+  border-color: #2f5ed9;
+  background: #eef3ff;
+  color: #2f5ed9;
+}
+
 .job-float-toggle,
 .job-print-float {
   position: fixed;
@@ -989,4 +1254,135 @@
   .job-draft-details {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .job-mail-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .job-mail-footer-actions {
+    width: 100%;
+  }
+
+  .job-mail-footer-actions button,
+  .job-mail-ghost {
+    width: 100%;
+  }
+
+  .job-mail-preview-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
+.job-mail-panel {
+  width: min(95vw, 1400px);
+  max-width: 95vw;
+  max-height: 92vh;
+}
+
+.job-mail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+  padding: 16px 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.job-mail-attachment-list {
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.job-mail-preview {
+  flex: 0 0 auto;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.current-job-rows-container {
+  width: 100%;
+  max-width: 100%;
+  max-height: 260px;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.current-job-rows-container table {
+  min-width: 1250px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.current-job-rows-container th,
+.current-job-rows-container td {
+  white-space: nowrap;
+}
+
+.current-job-rows-container input {
+  min-width: 130px;
+}
+
+/* Estimate Mail charge rows */
+.job-mail-charge-edit-row td {
+  background: #fffdf7;
+}
+
+.job-mail-charge-line td {
+  background: #f8fafc;
+  font-weight: 700;
+}
+
+.job-mail-charge-edit-row input {
+  min-width: 140px;
+  height: 34px;
+  padding: 0 10px;
+  border: 1px solid #d5dbe5;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #232a36;
+}
+
+.current-job-rows-container {
+  width: 100%;
+  max-width: 100%;
+  max-height: 320px;
+  overflow-x: auto;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.current-job-rows-container table {
+  min-width: 1050px;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.job-mail-charge-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf1f7;
+  background: #fbfcfe;
+}
+
+.job-mail-charge-actions button {
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid #d5dbe5;
+  border-radius: 5px;
+  background: #ffffff;
+  color: #2f5ed9;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.job-mail-charge-actions button:hover {
+  border-color: #2f5ed9;
+  background: #eef3ff;
 }
