@@ -91,6 +91,12 @@
   color: #233248;
 }
 
+.dashboard-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .whatsapp-status-pill {
   background: #e5f8f5;
   border-radius: 999px;
@@ -102,6 +108,11 @@
   padding: 5px 9px;
 }
 
+.image-type-text {
+  color: #6b778c;
+  text-transform: capitalize;
+}
+
 .image-gallery {
   display: grid;
   gap: 8px;
@@ -110,10 +121,14 @@
 }
 
 .image-thumbnail {
+  align-items: center;
   aspect-ratio: 1;
   background: #eef2f6;
   border-radius: 6px;
+  display: flex;
+  justify-content: center;
   overflow: hidden;
+  position: relative;
 }
 
 .image-thumbnail img {
@@ -126,6 +141,23 @@
 
 .image-thumbnail img:hover {
   transform: scale(1.06);
+}
+
+.image-error-text {
+  color: #6b778c;
+  display: none;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 10px;
+  text-align: center;
+}
+
+.image-load-failed img {
+  display: none;
+}
+
+.image-load-failed .image-error-text {
+  display: inline-flex;
 }
 
 .whatsapp-modal-overlay {
@@ -179,10 +211,19 @@
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
 
-.detail-image {
+.detail-image-frame {
+  align-items: center;
+  background: #eef2f6;
   border: 1px solid #d8e0ea;
   border-radius: 6px;
+  display: flex;
   height: 150px;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.detail-image {
+  height: 100%;
   object-fit: cover;
   width: 100%;
 }
@@ -215,7 +256,7 @@
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
 
-  .detail-image {
+  .detail-image-frame {
     height: 120px;
   }
 }

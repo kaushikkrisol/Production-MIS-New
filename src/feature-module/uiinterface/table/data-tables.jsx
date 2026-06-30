@@ -151,6 +151,120 @@ const getRowsFromApiResponse = (data) => {
   return [];
 };
 
+const BOOTSTRAP_REQUEST_CACHE_TTL_MS = 15000;
+const IMPLEMENTATION_UPLOAD_STATUS_CACHE_TTL_MS = 30000;
+const PROGRESS_NOTIFICATION_SIGNATURE_TTL_MS = 60000;
+const SCHEDULER_ALERT_UNAVAILABLE_TTL_MS = 10 * 60 * 1000;
+
+const dashboardApiResponseCache = new Map();
+const recentProgressNotificationSignatures = new Map();
+const unavailableSchedulerAlertEndpoints = new Set();
+
+const getApiCacheKey = (endpoint, payload = {}) =>
+  `${endpoint || ""}|${JSON.stringify(payload || {})}`;
+
+const getSchedulerAlertUnavailableKey = (endpoint) =>
+  `schedulerAlertEndpointUnavailable:${endpoint || ""}`;
+
+const isDashboardUploadStatusLookupEnabled = () =>
+  config?.ImplementationUpload?.DashboardStatusLookupEnabled === true;
+
+const isSchedulerAlertPollingEnabled = () =>
+  config?.JobProgressAlert?.ActivePollingEnabled === true;
+
+const fetchCached = (
+  cache,
+  key,
+  requestFn,
+  { ttlMs = BOOTSTRAP_REQUEST_CACHE_TTL_MS, forceRefresh = false } = {}
+) => {
+  const now = Date.now();
+  const cached = cache.get(key);
+
+  if (!forceRefresh && cached?.promise) {
+    return cached.promise;
+  }
+
+  if (!forceRefresh && cached && now - cached.timestamp < ttlMs) {
+    return Promise.resolve(cached.data);
+  }
+
+  const promise = requestFn()
+    .then((data) => {
+      cache.set(key, { data, timestamp: Date.now() });
+      return data;
+    })
+    .catch((error) => {
+      if (cache.get(key)?.promise === promise) {
+        cache.delete(key);
+      }
+      throw error;
+    });
+
+  cache.set(key, { promise, timestamp: now });
+  return promise;
+};
+
+const wasProgressNotificationRecentlyProcessed = (signature) => {
+  const now = Date.now();
+
+  recentProgressNotificationSignatures.forEach((timestamp, key) => {
+    if (now - timestamp > PROGRESS_NOTIFICATION_SIGNATURE_TTL_MS) {
+      recentProgressNotificationSignatures.delete(key);
+    }
+  });
+
+  const lastProcessedAt = recentProgressNotificationSignatures.get(signature);
+  if (
+    lastProcessedAt &&
+    now - lastProcessedAt < PROGRESS_NOTIFICATION_SIGNATURE_TTL_MS
+  ) {
+    return true;
+  }
+
+  recentProgressNotificationSignatures.set(signature, now);
+  return false;
+};
+
+const isSchedulerAlertEndpointUnavailable = (endpoint) => {
+  if (unavailableSchedulerAlertEndpoints.has(endpoint)) return true;
+  if (typeof window === "undefined" || !window.sessionStorage) return false;
+
+  try {
+    const key = getSchedulerAlertUnavailableKey(endpoint);
+    const unavailableAt = Number(window.sessionStorage.getItem(key));
+
+    if (
+      Number.isFinite(unavailableAt) &&
+      Date.now() - unavailableAt < SCHEDULER_ALERT_UNAVAILABLE_TTL_MS
+    ) {
+      unavailableSchedulerAlertEndpoints.add(endpoint);
+      return true;
+    }
+
+    window.sessionStorage.removeItem(key);
+  } catch (error) {
+    console.warn("Could not read scheduler alert endpoint cache", error);
+  }
+
+  return false;
+};
+
+const rememberSchedulerAlertEndpointUnavailable = (endpoint) => {
+  unavailableSchedulerAlertEndpoints.add(endpoint);
+
+  if (typeof window === "undefined" || !window.sessionStorage) return;
+
+  try {
+    window.sessionStorage.setItem(
+      getSchedulerAlertUnavailableKey(endpoint),
+      String(Date.now())
+    );
+  } catch (error) {
+    console.warn("Could not cache scheduler alert endpoint failure", error);
+  }
+};
+
 const normalizeStoredProgressAlert = (row = {}) => {
   const percentValue = getMongoValue(
     row.percent ??
@@ -226,6 +340,9 @@ const DataTables = () => {
   // const [isJobRunning, setIsJobRunning] = useState(false); // Job status
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const activeLoadingRequestsRef = useRef(0);
+  const latestJobsRequestRef = useRef(0);
+  const isMountedRef = useRef(false);
   const [totalValues, setTotalValues] = useState({ width: 0, height: 0 });
   const [rolename,setRolename]=useState('');
   const gridRef = useRef();
@@ -306,6 +423,15 @@ const DataTables = () => {
   const [actualSqFt, setActualSqFt] = useState(0);
   const [isAlertAccepted, setIsAlertAccepted] = useState(false);
 
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+      latestJobsRequestRef.current += 1;
+    };
+  }, []);
+
 
 
   const [acceptorders,setAcceptedorders]=useState([]);
@@ -338,6 +464,22 @@ const DataTables = () => {
     printerDeadline: '',
     remarks: '',
   });
+
+  const startLoading = useCallback(() => {
+    activeLoadingRequestsRef.current += 1;
+    setLoading(true);
+  }, []);
+
+  const stopLoading = useCallback(() => {
+    activeLoadingRequestsRef.current = Math.max(
+      0,
+      activeLoadingRequestsRef.current - 1
+    );
+
+    if (activeLoadingRequestsRef.current === 0) {
+      setLoading(false);
+    }
+  }, []);
 
   const headerMapping = {
     "Job No": "Job No",
@@ -1054,7 +1196,10 @@ const onSelectionChanged = () => {
     ),
   });
 
- const enrichJobsWithImplementationUploadStatus = async (jobs = []) => {
+ const enrichJobsWithImplementationUploadStatus = async (
+  jobs = [],
+  { forceRefresh = false } = {}
+) => {
   if (!Array.isArray(jobs) || jobs.length === 0) {
     return [];
   }
@@ -1062,13 +1207,24 @@ const onSelectionChanged = () => {
   const jobsWithDefaults = jobs.map(withDefaultImplementationUploadStatus);
   const apiUrl = getImplementationUploadListUrl();
 
-  if (!apiUrl) {
+  if (!apiUrl || !isDashboardUploadStatusLookupEnabled()) {
     return jobsWithDefaults;
   }
 
   try {
-    const response = await axios.get(apiUrl);
-    const uploadStatusLookup = buildImplementationUploadStatusLookup(response.data);
+    const uploadStatusData = await fetchCached(
+      dashboardApiResponseCache,
+      getApiCacheKey(apiUrl),
+      async () => {
+        const response = await axios.get(apiUrl);
+        return response.data;
+      },
+      {
+        forceRefresh,
+        ttlMs: IMPLEMENTATION_UPLOAD_STATUS_CACHE_TTL_MS,
+      }
+    );
+    const uploadStatusLookup = buildImplementationUploadStatusLookup(uploadStatusData);
 
     return jobsWithDefaults.map((job) => {
       const uploadStatus = getUploadStatusFromLookup(job, uploadStatusLookup);
@@ -1161,7 +1317,7 @@ const onSelectionChanged = () => {
   axios.post(config.JobSummary.URL.Addjobdetails, orderItems)
     .then(res => {
       toast.success("Accepted orders added as jobs");
-      GetAllJobAccToLocation(); // Refresh grid
+      GetAllJobAccToLocation({ forceRefresh: true }); // Refresh grid
     })
     .catch(err => {
       toast.error("Failed to add job details");
@@ -1379,7 +1535,7 @@ const onSelectionChanged = () => {
         );
         toast.success("Selected jobs deleted successfully.");
 
-        GetAllJobAccToLocation()
+        GetAllJobAccToLocation({ forceRefresh: true })
       } catch (error) {
         console.error("Error deleting jobs:", error);
         toast.error("Failed to delete jobs.");
@@ -1509,7 +1665,7 @@ const getRowsFromAnyResponse = (payload) => {
   return [];
 };
 
-const GetAllJobAccToLocation = async () => {
+const GetAllJobAccToLocation = async ({ forceRefresh = false } = {}) => {
   const users = localStorage.getItem("users");
   if (!users) {
     setData([]);
@@ -1539,22 +1695,61 @@ const GetAllJobAccToLocation = async () => {
   };
 
   try {
-    setLoading(true);
+    const requestId = latestJobsRequestRef.current + 1;
+    latestJobsRequestRef.current = requestId;
+    startLoading();
 
-    const response = await axios.post(
-      config.JobSummary.URL.GetAllJobsAccToLocation,
-      payload
+    const responseData = await fetchCached(
+      dashboardApiResponseCache,
+      getApiCacheKey(config.JobSummary.URL.GetAllJobsAccToLocation, payload),
+      async () => {
+        const response = await axios.post(
+          config.JobSummary.URL.GetAllJobsAccToLocation,
+          payload
+        );
+        return response.data;
+      },
+      { forceRefresh }
     );
 
-    const jobs = getRowsFromAnyResponse(response.data);
-    const jobsWithUploadStatus = await enrichJobsWithImplementationUploadStatus(jobs);
+    const jobs = getRowsFromAnyResponse(responseData);
+    const jobsWithDefaults = jobs.map(withDefaultImplementationUploadStatus);
 
-    setData(jobsWithUploadStatus);
+    if (isMountedRef.current && latestJobsRequestRef.current === requestId) {
+      setData(jobsWithDefaults);
+    }
+
+    if (!isDashboardUploadStatusLookupEnabled()) {
+      return;
+    }
+
+    const enrichJobsAfterInitialRender = () => {
+      enrichJobsWithImplementationUploadStatus(jobs, { forceRefresh })
+        .then((jobsWithUploadStatus) => {
+          if (isMountedRef.current && latestJobsRequestRef.current === requestId) {
+            setData(jobsWithUploadStatus);
+          }
+        })
+        .catch((error) => {
+          console.warn("Could not enrich jobs with implementation upload status", error);
+        });
+    };
+
+    if (typeof window !== "undefined" && window.requestIdleCallback) {
+      window.requestIdleCallback(enrichJobsAfterInitialRender, { timeout: 1500 });
+    } else if (typeof window !== "undefined") {
+      window.setTimeout(enrichJobsAfterInitialRender, 250);
+    } else {
+      enrichJobsAfterInitialRender();
+    }
   } catch (error) {
     console.error("Error fetching jobs according to location", error);
-    setData([]);
+    latestJobsRequestRef.current += 1;
+    if (isMountedRef.current) {
+      setData([]);
+    }
   } finally {
-    setLoading(false);
+    stopLoading();
   }
 };
 
@@ -1576,7 +1771,7 @@ const handleResumeSelectedJobs = async () => {
     }
 
     toast.success("Selected jobs resumed from Hold.");
-    GetAllJobAccToLocation();
+    GetAllJobAccToLocation({ forceRefresh: true });
   } catch (error) {
     console.error("Error resuming jobs:", error);
     toast.error("Failed to resume jobs.");
@@ -1589,9 +1784,16 @@ const handleResumeSelectedJobs = async () => {
       locationId: locationid,
     }
     try {
-      const response = await axios.post(config.JobSummary.URL.GetAllJobsFromSql, payload);
-      console.log('jobs from sql: ', response.data.comartjobno);
-      setJobsFromSql(response.data);
+      const responseData = await fetchCached(
+        dashboardApiResponseCache,
+        getApiCacheKey(config.JobSummary.URL.GetAllJobsFromSql, payload),
+        async () => {
+          const response = await axios.post(config.JobSummary.URL.GetAllJobsFromSql, payload);
+          return response.data;
+        }
+      );
+      console.log('jobs from sql: ', responseData.comartjobno);
+      setJobsFromSql(responseData);
     } catch (error) {
       console.error('Unable to fetch jobs for the location id', error);
     }
@@ -1906,7 +2108,13 @@ const saveProgressNotifications = useCallback(async (alerts) => {
     .sort()
     .join("||");
 
-  if (!signature || signature === lastSavedAlertSignatureRef.current) return;
+  if (
+    !signature ||
+    signature === lastSavedAlertSignatureRef.current ||
+    wasProgressNotificationRecentlyProcessed(signature)
+  ) {
+    return;
+  }
   lastSavedAlertSignatureRef.current = signature;
 
   try {
@@ -1928,19 +2136,39 @@ const saveProgressNotifications = useCallback(async (alerts) => {
 
 const fetchActiveSchedulerAlerts = useCallback(async () => {
   const endpoint = config.JobProgressAlert?.URL?.GetActive;
-  if (!endpoint) return;
+  if (
+    !endpoint ||
+    !isSchedulerAlertPollingEnabled() ||
+    isSchedulerAlertEndpointUnavailable(endpoint)
+  ) {
+    return false;
+  }
 
   try {
-    const response = await axios.get(endpoint);
-    const rows = getRowsFromApiResponse(response.data);
+    const responseData = await fetchCached(
+      dashboardApiResponseCache,
+      getApiCacheKey(endpoint),
+      async () => {
+        const response = await axios.get(endpoint);
+        return response.data;
+      }
+    );
+    const rows = getRowsFromApiResponse(responseData);
     setSchedulerAlertJobs(
       rows
         .map(normalizeStoredProgressAlert)
         .filter((alert) => alert.jobNoDisplay || alert.notificationSource)
     );
+    return true;
   } catch (error) {
-    console.warn("Could not load active ERP scheduler alerts", error);
+    if (error?.response?.status === 404) {
+      rememberSchedulerAlertEndpointUnavailable(endpoint);
+      console.warn("Active ERP scheduler alert endpoint was not found; polling disabled.", error);
+    } else {
+      console.warn("Could not load active ERP scheduler alerts", error);
+    }
     setSchedulerAlertJobs([]);
+    return false;
   }
 }, []);
 
@@ -2063,9 +2291,6 @@ const checkImplementationUploadNotifications = useCallback(() => {
   useEffect(() => {
     if (!locationid || !userName) return;
 
-    // fetchJobs();
-    fetchcustomers();
-    GetAllJobsFromSql();
     GetAllJobAccToLocation();
   }, [locationid, userName]);
 
@@ -2076,9 +2301,23 @@ const checkImplementationUploadNotifications = useCallback(() => {
   }, [checkDeadlines]);
 
   useEffect(() => {
-    fetchActiveSchedulerAlerts();
-    const interval = setInterval(fetchActiveSchedulerAlerts, 60000);
-    return () => clearInterval(interval);
+    let interval;
+    let cancelled = false;
+
+    const startSchedulerAlertPolling = async () => {
+      const shouldPoll = await fetchActiveSchedulerAlerts();
+
+      if (!cancelled && shouldPoll !== false) {
+        interval = setInterval(fetchActiveSchedulerAlerts, 60000);
+      }
+    };
+
+    startSchedulerAlertPolling();
+
+    return () => {
+      cancelled = true;
+      if (interval) clearInterval(interval);
+    };
   }, [fetchActiveSchedulerAlerts]);
 
   useEffect(() => {
@@ -2241,45 +2480,63 @@ const checkImplementationUploadNotifications = useCallback(() => {
 
       console.log('Payload for fetch customers:', payload);
 
-      const response = await axios.post(config.JobSummary.URL.Getallcustomer, payload, {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json'
+      const responseData = await fetchCached(
+        dashboardApiResponseCache,
+        getApiCacheKey(config.JobSummary.URL.Getallcustomer, payload),
+        async () => {
+          const response = await axios.post(config.JobSummary.URL.Getallcustomer, payload, {
+            timeout: 10000,
+            headers: {
+              'Content-Type': 'application/json'
+            }
+          });
+          return response.data;
         }
-      });
+      );
 
-      console.log('Get customer response:', response.data);
-      setcustomer(mergeFallbackCustomers(response.data));
+      console.log('Get customer response:', responseData);
+      setcustomer(mergeFallbackCustomers(responseData));
 
     } catch (error) {
       console.error("Error fetching customer data:", error.response ? error.response.data : error.message);
       // setError("Error fetching job data");
-    } finally {
-      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const fetchCustomerName = async () => {
-      if (!locationid) return;
+  const fetchCustomerNamesForLocation = useCallback(async () => {
+    if (!locationid) return;
 
-      const payload = {
-        locationId: locationid,
-      };
-
-      try {
-        const response = await axios.post(config.JobSummary.URL.GetCustomerNameAccToLocation, payload);
-        const rows = getRowsFromAnyResponse(response.data);
-        setCustomerNameAccLocation(rows);
-        console.log('customer names', rows);
-      } catch (error) {
-        console.error('Error fetching customer name', error);
-        setCustomerNameAccLocation([]);
-      }
+    const payload = {
+      locationId: locationid,
     };
 
-    fetchCustomerName();
+    try {
+      const responseData = await fetchCached(
+        dashboardApiResponseCache,
+        getApiCacheKey(config.JobSummary.URL.GetCustomerNameAccToLocation, payload),
+        async () => {
+          const response = await axios.post(config.JobSummary.URL.GetCustomerNameAccToLocation, payload);
+          return response.data;
+        }
+      );
+      const rows = getRowsFromAnyResponse(responseData);
+      setCustomerNameAccLocation(rows);
+      console.log('customer names', rows);
+    } catch (error) {
+      console.error('Error fetching customer name', error);
+      setCustomerNameAccLocation([]);
+    }
   }, [locationid]);
+
+  useEffect(() => {
+    if (!BulkAdd || activeTab !== "newJob") return;
+    fetchCustomerNamesForLocation();
+  }, [BulkAdd, activeTab, fetchCustomerNamesForLocation]);
+
+  useEffect(() => {
+    if (!BulkAdd || activeTab !== "existingJob" || !locationid) return;
+    GetAllJobsFromSql();
+  }, [BulkAdd, activeTab, locationid]);
 
   const normalizeHeader = (header) => header?.trim().toLowerCase();
 
@@ -2506,7 +2763,7 @@ setData(mappedData);
     //}
     e.preventDefault();
     try {
-      setLoading(true);
+      startLoading();
 
       const dataWithUsernames = data.map(item => ({
         ...item,  // Spread existing properties
@@ -2630,7 +2887,7 @@ setData(mappedData);
       }
       toast.error(error.message);
     } finally {
-      setLoading(false);
+      stopLoading();
     }
   };
 
@@ -2815,7 +3072,7 @@ setData(mappedData);
       }
   
       toast.success("Selected jobs marked as On Hold.");
-      GetAllJobAccToLocation(); // Refresh data
+      GetAllJobAccToLocation({ forceRefresh: true }); // Refresh data
     } catch (error) {
       console.error("Error marking jobs as on hold:", error);
       toast.error("Failed to mark jobs as on hold.");

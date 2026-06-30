@@ -1,7 +1,7 @@
 // https://production.comart.in
 
-let BaseURL = "https://localhost:7035";
-//  let BaseURL = "https://productionapi.comart.in";
+// let BaseURL = "https://localhost:7035";
+ let BaseURL = "https://productionapi.comart.in";
 
 // let BaseURL = "https://testproductionapi.comart.in";
 let BaseURL1 = "https://stores.comart.in:3001";
@@ -127,10 +127,10 @@ const config ={
             CreateImplementationChallan: BaseURL + "/api/Implementation/CreateImplementationChallan",
             GetImplementationChallanById: BaseURL + "/api/Implementation/GetImplementationChallanById",
             GetImplementationChallanByJobNo: BaseURL + "/api/Implementation/GetImplementationChallanByJobNo"
-            
         }
     },
     ImplementationUpload: {
+        DashboardStatusLookupEnabled: false,
         URL: {
             GetAllImplementationUpload: BaseURL + '/api/ImplementationUpload/GetAllImplementationUpload',
             GetImplementationUploadWithSalonAddress: BaseURL + '/api/ImplementationUpload/GetImplementationUploadWithSalonAddress',
@@ -138,6 +138,8 @@ const config ={
             GetPdfDataByCsId: BaseURL + '/api/ImplementationUpload/GetPdfDataByCsId',
              ImageStatusById: BaseURL + '/api/ImplementationUpload/ImageStatusById/',
             GetByJobNoAndStoreName: BaseURL + '/api/ImplementationUpload/GetByJobNoAndStoreName',
+            ImageBaseURL: 'https://productionapi.comart.in',
+            GetAllWithImages:BaseURL+'/api/ImplementationUpload/GetAllWithImages'
         }
     },
     DesignJobs: {
@@ -223,6 +225,7 @@ const config ={
         }
     },
     JobProgressAlert: {
+        ActivePollingEnabled: false,
         URL: {
             SaveBulk: BaseURL + '/api/JobProgressAlert/SaveBulk',
             GetActive: BaseURL + '/api/JobProgressAlert/GetActive',

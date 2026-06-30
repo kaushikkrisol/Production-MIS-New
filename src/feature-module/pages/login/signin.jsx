@@ -16,7 +16,7 @@ const Signin = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const navigate = useNavigate();
 
-  const redirectUri = "https://testproductionapi.comart.in/api/GoogleGmail/oauth2callback";
+  const redirectUri = "https://productionapi.comart.in/api/GoogleGmail/oauth2callback";
 
   const togglePasswordVisibility = () => {
     setPasswordVisible((prevState) => !prevState);
