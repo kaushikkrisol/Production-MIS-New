@@ -47,6 +47,9 @@ const AppRoutes = () => {
   const data = useSelector((state) => state.toggle_header);
   const location = useLocation();
   const [loadThemeSettings, setLoadThemeSettings] = useState(false);
+  const printRouteNames = new Set(["invoiceprintpreview"]);
+  const printRoutes = publicRoutes.filter((route) => printRouteNames.has(route.name));
+  const appPublicRoutes = publicRoutes.filter((route) => !printRouteNames.has(route.name));
 
   useEffect(() => {
     sessionStorage.removeItem("chunk-reload-attempted");
@@ -104,10 +107,21 @@ const AppRoutes = () => {
         ))}
       </Route>
       <Route path="/" element={<HeaderLayout />}>
-        {publicRoutes.map((route, id) => (
+        {appPublicRoutes.map((route, id) => (
           <Route path={route.path} element={route.element} key={id} />
         ))}
       </Route>
+      {printRoutes.map((route, id) => (
+        <Route
+          path={route.path}
+          element={
+            <ChunkErrorBoundary key={location.pathname}>
+              <Suspense fallback={<PageLoading />}>{route.element}</Suspense>
+            </ChunkErrorBoundary>
+          }
+          key={`print-${id}`}
+        />
+      ))}
       <Route path="/approval" element={<CustomerApproval />}>
         {ApprovalRoute.map((route, id) => (
           <Route path={route.path} element={route.element} key={id} />

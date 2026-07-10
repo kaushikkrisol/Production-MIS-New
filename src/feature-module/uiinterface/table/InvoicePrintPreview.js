@@ -1,9 +1,50 @@
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
+import axios from "axios";
+import { useParams } from "react-router-dom";
+import config from "../../../config";
 import { Alert } from "react-bootstrap";
-import QRCode from "react-qr-code";
 import { COMPANY_LOGO, getCompanyBranchDetails } from "./companyBranches";
 
 const GST_RATE_FALLBACK = 18;
+
+const GST_STATE_ALIASES = {
+  "01": ["jammuandkashmir", "jammu", "kashmir"],
+  "02": ["himachalpradesh", "himachal"],
+  "03": ["punjab"],
+  "04": ["chandigarh"],
+  "05": ["uttarakhand", "uttaranchal"],
+  "06": ["haryana", "gurgaon", "gurugram"],
+  "07": ["delhi", "newdelhi"],
+  "08": ["rajasthan"],
+  "09": ["uttarpradesh", "up"],
+  10: ["bihar"],
+  11: ["sikkim"],
+  12: ["arunachalpradesh", "arunachal"],
+  13: ["nagaland"],
+  14: ["manipur"],
+  15: ["mizoram"],
+  16: ["tripura"],
+  17: ["meghalaya"],
+  18: ["assam"],
+  19: ["westbengal", "bengal", "kolkata"],
+  20: ["jharkhand"],
+  21: ["odisha", "orissa"],
+  22: ["chhattisgarh"],
+  23: ["madhyapradesh", "mp"],
+  24: ["gujarat"],
+  26: ["dadraandnagarhaveli", "damananddiu"],
+  27: ["maharashtra", "mumbai", "pune"],
+  29: ["karnataka", "bengaluru", "bangalore"],
+  30: ["goa"],
+  31: ["lakshadweep"],
+  32: ["kerala"],
+  33: ["tamilnadu", "chennai"],
+  34: ["puducherry", "pondicherry"],
+  35: ["andamanandnicobar", "andaman"],
+  36: ["telangana", "hyderabad", "hydrabad"],
+  37: ["andhrapradesh", "andhra"],
+  38: ["ladakh"],
+};
 
 const toText = (value) => (value === undefined || value === null ? "" : String(value));
 
@@ -52,7 +93,7 @@ const parseMaybeArray = (value) => {
 const firstValue = (...values) => {
   for (const value of values) {
     const text = toText(value).trim();
-    if (text) return text;
+    if (text && text !== "-") return text;
   }
   return "";
 };
@@ -75,9 +116,6 @@ const normalizeDocumentTypeText = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const hasCreditNoteSignal = (...values) =>
-  values.some((value) => normalizeDocumentTypeText(value).toLowerCase().includes("credit note"));
-
 const getInvoiceDocumentType = (data) => {
   const typeText = normalizeDocumentTypeText(
     firstValue(
@@ -95,14 +133,13 @@ const getInvoiceDocumentType = (data) => {
 
   if (
     typeText.includes("credit note") ||
-    firstValue(data?.ParentInvoiceNo, data?.parentInvoiceNo)
+    firstValue(data?.ParentInvoiceNo, data?.parentInvoiceNo, data?.OriginalInvoiceNo, data?.originalInvoiceNo)
   ) {
     return "Credit Note";
   }
 
   return "Tax Invoice";
 };
-
 
 const splitAddressLines = (value) =>
   toText(value)
@@ -131,6 +168,93 @@ const firstArray = (...values) => {
   return [];
 };
 
+const parseMaybeObject = (value) => {
+  if (value && typeof value === "object" && !Array.isArray(value)) return value;
+  if (!value || typeof value !== "string") return {};
+
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+};
+
+const hasInvoiceHeaderSignal = (value) =>
+  Boolean(
+    value &&
+      typeof value === "object" &&
+      !Array.isArray(value) &&
+      firstValue(
+        value?.InvoiceNo,
+        value?.invoiceNo,
+        value?.CustomerInvoiceNo,
+        value?.customerInvoiceNo,
+        value?.CreditNoteNo,
+        value?.creditNoteNo,
+        value?.CNNo,
+        value?.cnNo,
+        value?.DocumentNo,
+        value?.documentNo,
+        value?.ParentInvoiceNo,
+        value?.parentInvoiceNo,
+        value?.InvoiceType,
+        value?.invoiceType,
+        value?.JobCards,
+        value?.jobCards,
+        value?.ClientBillAs,
+        value?.clientBillAs
+      )
+  );
+
+const unwrapInvoiceData = (payload) => {
+  const candidates = [
+    payload?.CustomerInvoice,
+    payload?.customerInvoice,
+    payload?.invoice,
+    payload?.Invoice,
+    payload?.salesInvoice,
+    payload?.SalesInvoice,
+    payload?.data?.CustomerInvoice,
+    payload?.data?.customerInvoice,
+    payload?.data?.invoice,
+    payload?.data?.Invoice,
+    payload?.data?.salesInvoice,
+    payload?.data?.SalesInvoice,
+    payload?.data,
+    payload?.result,
+    payload?.message,
+    payload,
+  ];
+
+  const directInvoice = candidates.find(hasInvoiceHeaderSignal);
+  if (directInvoice) return directInvoice;
+
+  const rows = firstArray(payload?.items, payload?.Items, payload?.data?.items, payload?.result, payload?.message);
+  for (const row of rows) {
+    const nestedInvoice = [
+      row?.CustomerInvoice,
+      row?.customerInvoice,
+      row?.invoice,
+      row?.Invoice,
+      row?.salesInvoice,
+      row?.SalesInvoice,
+      row,
+    ].find(hasInvoiceHeaderSignal);
+
+    if (nestedInvoice) return nestedInvoice;
+  }
+
+  return payload || {};
+};
+
+const getInvoiceByNoUrl = (invoiceNo) => {
+  const endpoint = config.SalesInvoice.URL.GetByInvoiceNo;
+  return typeof endpoint === "function"
+    ? endpoint(invoiceNo)
+    : `${endpoint}/${encodeURIComponent(invoiceNo || "")}`;
+};
+
 const normalizeAddress = (entry, fallbackLabel) => {
   const rawAddress = firstValue(entry?.address, entry?.Address);
   const name = firstValue(
@@ -155,6 +279,93 @@ const normalizeAddress = (entry, fallbackLabel) => {
     placeOfSupply: firstValue(entry?.placeOfSupply, entry?.PlaceOfSupply, entry?.state, entry?.State),
   };
 };
+
+const normalizeTransportMode = (value) => {
+  const rawMode = firstValue(value, "Road");
+  return ["Road", "Train", "Air", "Ship"].find((mode) => mode.toLowerCase() === rawMode.toLowerCase()) || rawMode;
+};
+
+const normalizeEwayBillDetails = (data = {}) => {
+  const ewayBill = parseMaybeObject(
+    data.ewayBill ||
+    data.EwayBill ||
+    data.EWayBill ||
+    data.EwayBillDetails ||
+    data.EWayBillDetails ||
+    {}
+  );
+
+  return {
+    transporterName: firstValue(
+      ewayBill.transporterName,
+      ewayBill.TransporterName,
+      data.transporterName,
+      data.TransporterName,
+      data.TransportName,
+      data.transport,
+      data.Transport
+    ),
+    transportMode: normalizeTransportMode(
+      firstValue(
+        ewayBill.transportMode,
+        ewayBill.TransportMode,
+        ewayBill.modeOfTransportation,
+        ewayBill.ModeOfTransportation,
+        data.transportMode,
+        data.TransportMode,
+        data.modeOfTransportation,
+        data.ModeOfTransportation
+      )
+    ),
+    transportDistanceKm: firstValue(
+      ewayBill.transportDistanceKm,
+      ewayBill.TransportDistanceKm,
+      ewayBill.TransportationDistanceKm,
+      ewayBill.distanceOfTransportation,
+      ewayBill.DistanceOfTransportation,
+      data.transportDistanceKm,
+      data.TransportDistanceKm,
+      data.TransportationDistanceKm,
+      data.distanceOfTransportation,
+      data.DistanceOfTransportation
+    ),
+    vehicleNo: firstValue(ewayBill.vehicleNo, ewayBill.VehicleNo, data.vehicleNo, data.VehicleNo),
+    transporterGstNo: firstValue(
+      ewayBill.transporterGstNo,
+      ewayBill.TransporterGstNo,
+      ewayBill.TransporterGSTNo,
+      data.transporterGstNo,
+      data.TransporterGstNo,
+      data.TransporterGSTNo,
+      data.transportId,
+      data.TransportId
+    ),
+  };
+};
+
+const normalizeStateText = (value) =>
+  toText(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const getStateCodeFromGst = (value) => {
+  const match = firstValue(value).match(/^([0-9]{2})[0-9A-Z]{13}$/i);
+  return match?.[1] || "";
+};
+
+const getStateCodeFromText = (...values) => {
+  const text = normalizeStateText(values.filter(Boolean).join(" "));
+  if (!text) return "";
+
+  for (const [code, aliases] of Object.entries(GST_STATE_ALIASES)) {
+    if (aliases.some((alias) => text.includes(alias))) return code;
+  }
+
+  return "";
+};
+
+const getStateCode = ({ gstNo, address, placeOfSupply }) =>
+  getStateCodeFromGst(gstNo) || getStateCodeFromText(placeOfSupply, address);
 
 const getRowAmount = (item) => {
   const savedAmount = toNumber(
@@ -278,7 +489,8 @@ const amountInWords = (amount) => {
   return `${parts.join(" ")} rupees only`.toUpperCase();
 };
 
-const normalizeInvoiceData = (data) => {
+const normalizeInvoiceData = (payload) => {
+  const data = unwrapInvoiceData(payload);
   const gstRate = toNumber(data?.gstRate || data?.GstRate || data?.GST_RATE || GST_RATE_FALLBACK);
   const backendItems = firstArray(
     data?._items,
@@ -351,6 +563,7 @@ const normalizeInvoiceData = (data) => {
     invoiceSubtotal + invoiceGstTotal;
   const invoiceType = getInvoiceDocumentType(data);
   const isCreditNote = invoiceType.toLowerCase() === "credit note";
+  const ewayBill = normalizeEwayBillDetails(data);
 
   return {
     companyDetails,
@@ -358,18 +571,64 @@ const normalizeInvoiceData = (data) => {
     billAsName: firstValue(data?._client, data?.ClientBillAs, data?.clientBillAs, data?.billAsName, data?.clientName, billToList[0]?.name, "Sales Invoice"),
     invoiceType,
     isCreditNote,
-    invoiceNo: firstValue(data?._invoiceNo, data?.InvoiceNo, data?.invoiceNo),
-    parentInvoiceNo: firstValue(data?.ParentInvoiceNo, data?.parentInvoiceNo),
+    invoiceNo: firstValue(
+      data?.InvoiceNo,
+      data?.invoiceNo,
+      data?.CustomerInvoiceNo,
+      data?.customerInvoiceNo,
+      data?.CreditNoteNo,
+      data?.creditNoteNo,
+      data?.CNNo,
+      data?.cnNo,
+      data?.DocumentNo,
+      data?.documentNo,
+      data?._invoiceNo
+    ),
+    parentInvoiceNo: firstValue(
+      data?.ParentInvoiceNo,
+      data?.parentInvoiceNo,
+      data?.OriginalInvoiceNo,
+      data?.originalInvoiceNo,
+      data?.AgainstInvoiceNo,
+      data?.againstInvoiceNo,
+      data?.RefInvoiceNo,
+      data?.refInvoiceNo
+    ),
     invoiceDate: formatDate(data?._invoiceDate || data?.InvoiceDate || data?.invoiceDate),
-    poNumber: firstValue(data?.PoNo, data?.poNo, data?.poNumber),
+    itrNo: firstValue(data?.ItrNo, data?.ITRNo, data?.itrNo, data?.ITR, data?.itr, data?._itrNo),
+    poNumber: firstValue(data?.PoNo, data?.poNo, data?.PONo, data?.poNumber, data?.PoNumber, data?.PONumber),
     projectName: firstValue(data?._project, data?.ProjectName, data?.projectName),
-    region,
+    region: firstValue(region, data?.productionLocation, data?.ProductionLocation, data?.billingLocation, data?.BillingLocation),
     selectedJobNo: firstValue(data?._jobCards, data?.JobCards, data?.jobCards, data?.selectedJobNo, data?.jobCardNo),
-    challanNo: firstValue(data?.ChallanNo, data?.challanNo, data?.DeliveryChallanNo, data?.deliveryChallanNo),
-    challanDate: formatDate(data?.ChallanDate || data?.challanDate),
-    eWayBillNo: firstValue(data?.EWayBillNo, data?.ewayBillNo),
-    transport: firstValue(data?.Transport, data?.transport, data?.TransportName, data?.transportName),
-    transportId: firstValue(data?.TransportId, data?.transportId),
+    challanNo: firstValue(
+      data?.ChallanNo,
+      data?.challanNo,
+      data?.DeliveryChallanNo,
+      data?.deliveryChallanNo,
+      data?.items?.[0]?.challanNo,
+      data?.items?.[0]?.ChallanNo,
+      data?.items?.[0]?.deliveryChallanNo,
+      data?.items?.[0]?.DeliveryChallanNo,
+      data?.items?.[0]?.implementationChallanNo,
+      data?.items?.[0]?.ImplementationChallanNo
+    ),
+    challanDate: formatDate(
+      firstValue(
+        data?.ChallanDate,
+        data?.challanDate,
+        data?.items?.[0]?.challanDate,
+        data?.items?.[0]?.ChallanDate,
+        data?.items?.[0]?.deliveryChallanDate,
+        data?.items?.[0]?.DeliveryChallanDate,
+        data?.items?.[0]?.implementationChallanDate,
+        data?.items?.[0]?.ImplementationChallanDate
+      )
+    ),
+    transporterName: ewayBill.transporterName,
+    transportMode: ewayBill.transportMode,
+    transportDistanceKm: ewayBill.transportDistanceKm,
+    vehicleNo: ewayBill.vehicleNo,
+    transporterGstNo: ewayBill.transporterGstNo,
     gstRate,
     invoiceRows,
     invoiceSubtotal,
@@ -396,7 +655,45 @@ const DataRow = ({ label, value }) => (
 );
 
 const InvoicePrintPreview = () => {
+  const { invoiceNo: routeInvoiceNo } = useParams();
+  const [apiInvoice, setApiInvoice] = useState(null);
+  const [isLoadingInvoice, setIsLoadingInvoice] = useState(Boolean(routeInvoiceNo));
+  const [loadError, setLoadError] = useState("");
+
+  useEffect(() => {
+    const invoiceNo = String(routeInvoiceNo || "").trim();
+    if (!invoiceNo) return;
+
+    let isMounted = true;
+    setIsLoadingInvoice(true);
+    setLoadError("");
+
+    axios
+      .get(getInvoiceByNoUrl(invoiceNo))
+      .then((response) => {
+        if (!isMounted) return;
+        setApiInvoice(response.data);
+
+        localStorage.setItem("invoicePrintPreviewData", JSON.stringify(response.data));
+        localStorage.removeItem("invoiceDraftData");
+      })
+      .catch((error) => {
+        if (!isMounted) return;
+        console.error("Failed to load invoice for print", error);
+        setLoadError(error?.response?.data?.message || error?.message || "Failed to load invoice for print.");
+      })
+      .finally(() => {
+        if (isMounted) setIsLoadingInvoice(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [routeInvoiceNo]);
+
   const previewData = useMemo(() => {
+    if (apiInvoice) return normalizeInvoiceData(apiInvoice);
+
     const readPreview = (storageKey) => {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return null;
@@ -410,21 +707,31 @@ const InvoicePrintPreview = () => {
     };
 
     const primaryPreview = readPreview("invoicePrintPreviewData");
-    if (primaryPreview?.invoiceRows?.length) return primaryPreview;
-
-    const draftPreview = readPreview("invoiceDraftData");
-    if (draftPreview?.invoiceRows?.length) return draftPreview;
-
     if (primaryPreview) return primaryPreview;
-    return draftPreview;
-  }, []);
+
+    return readPreview("invoiceDraftData");
+  }, [apiInvoice]);
+
+  if (isLoadingInvoice && !previewData) {
+    return (
+      <div className="classic-invoice-page">
+        <Alert variant="info">Loading invoice...</Alert>
+      </div>
+    );
+  }
+
+  if (loadError && !previewData) {
+    return (
+      <div className="classic-invoice-page">
+        <Alert variant="danger">{loadError}</Alert>
+      </div>
+    );
+  }
 
   if (!previewData) {
     return (
-      <div className="page-wrapper">
-        <div className="content container-fluid">
-          <Alert variant="warning">No bill preview data found.</Alert>
-        </div>
+      <div className="classic-invoice-page">
+        <Alert variant="warning">No bill preview data found.</Alert>
       </div>
     );
   }
@@ -438,15 +745,18 @@ const InvoicePrintPreview = () => {
     invoiceNo,
     parentInvoiceNo,
     invoiceDate,
+    itrNo,
     poNumber,
     projectName,
     region,
     selectedJobNo,
     challanNo,
     challanDate,
-    eWayBillNo,
-    transport,
-    transportId,
+    transporterName,
+    transportMode,
+    transportDistanceKm,
+    vehicleNo,
+    transporterGstNo,
     invoiceRows = [],
     invoiceSubtotal,
     invoiceGstTotal,
@@ -458,458 +768,511 @@ const InvoicePrintPreview = () => {
   } = previewData;
   const customer = billToList[0] || {};
   const shipTo = shipToList[0] || {};
+  const companyStateCode = getStateCode({
+    gstNo: companyDetails.companyGst,
+    address: companyDetails.companyAddress,
+  });
+  const customerStateCode = getStateCode({
+    gstNo: firstValue(customer.gstNo, shipTo.gstNo),
+    address: firstValue(customer.address, shipTo.address),
+    placeOfSupply: firstValue(customer.placeOfSupply, shipTo.placeOfSupply),
+  });
+  const useSplitGst = Boolean(companyStateCode && customerStateCode && companyStateCode === customerStateCode);
+  const isInterStateInvoice = Boolean(companyStateCode && customerStateCode && companyStateCode !== customerStateCode);
+  const ewayBillRequired = isInterStateInvoice || invoiceGrandTotal > 50000;
+  const hasEwayBillDetails =
+    [transporterName, transportDistanceKm, vehicleNo, transporterGstNo].some((value) => firstValue(value)) ||
+    (firstValue(transportMode) && transportMode !== "Road");
+  const taxColumnCount = useSplitGst ? 11 : 9;
+  const splitGstTotal = invoiceGstTotal / 2;
   const documentTitle = invoiceType || (isCreditNote ? "Credit Note" : "Tax Invoice");
   const documentNoun = isCreditNote ? "Credit Note" : "Invoice";
   const documentServiceLine = isCreditNote
     ? "Credit note for production and supply services"
     : "Tax invoice for production and supply services";
-  const qrValue =
-    bankDetails.upiId ||
-    `${documentNoun} No: ${invoiceNo || "-"} | Amount: ${formatAmount(invoiceGrandTotal)} | ${companyDetails.companyName}`;
 
   return (
-    <div className="page-wrapper">
-      <div className="content container-fluid classic-invoice-page">
-        <style>{`
+    <div className="classic-invoice-page">
+      <style>{`
+        .classic-invoice-page {
+          background: #eef1f5;
+          min-height: 100vh;
+          padding: 20px 12px 36px;
+          color: #000;
+        }
+        .classic-invoice-toolbar {
+          max-width: 210mm;
+          margin: 0 auto 12px;
+          text-align: right;
+        }
+        .classic-invoice-toolbar button {
+          border: 0;
+          background: #0f766e;
+          color: #fff;
+          font-weight: 700;
+          padding: 8px 16px;
+          border-radius: 4px;
+        }
+        .classic-invoice-canvas {
+          overflow-x: auto;
+        }
+        .classic-invoice-sheet {
+          width: 210mm;
+          min-height: 297mm;
+          margin: 0 auto;
+          background: #fff;
+          border: 1px solid #333;
+          box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
+          font-family: Arial, Helvetica, sans-serif;
+          font-size: 10px;
+          line-height: 1.25;
+        }
+        .classic-invoice-sheet table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+        .classic-invoice-sheet th,
+        .classic-invoice-sheet td {
+          border: 1px solid #555;
+          padding: 4px 5px;
+          vertical-align: top;
+        }
+        .classic-company-header {
+          display: grid;
+          grid-template-columns: 1fr 168px;
+          gap: 10px;
+          align-items: center;
+          padding: 12px 16px 8px;
+        }
+        .classic-company-name {
+          margin: 0 0 3px;
+          color: #20265d;
+          font-family: Georgia, "Times New Roman", serif;
+          font-size: 26px;
+          line-height: 1;
+          font-weight: 900;
+          letter-spacing: 0;
+          text-transform: uppercase;
+        }
+        .classic-company-strip {
+          display: inline-block;
+          min-width: 385px;
+          margin-bottom: 5px;
+          background: #009a9a;
+          color: #fff;
+          font-weight: 800;
+          padding: 4px 12px;
+        }
+        .classic-company-meta {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 10px;
+        }
+        .classic-company-logo {
+          width: 156px;
+          max-width: 156px;
+          max-height: 52px;
+          object-fit: contain;
+          justify-self: end;
+        }
+        .classic-title-strip {
+          display: grid;
+          grid-template-columns: 1fr 1fr 1fr;
+          align-items: center;
+          border-top: 1px solid #555;
+          border-bottom: 1px solid #555;
+        }
+        .classic-title-strip > div {
+          padding: 5px 8px;
+        }
+        .classic-title-main {
+          border-left: 1px solid #555;
+          border-right: 1px solid #555;
+          text-align: center;
+          font-size: 16px;
+          font-weight: 900;
+          text-transform: uppercase;
+        }
+        .classic-recipient-copy {
+          text-align: right;
+          font-size: 8px;
+          font-weight: 800;
+        }
+        .classic-details-grid {
+          display: grid;
+          grid-template-columns: 38% 32% 30%;
+          border-bottom: 1px solid #555;
+        }
+        .classic-details-grid table th,
+        .classic-details-grid table td {
+          border-width: 0 0 1px 0;
+        }
+        .classic-details-grid table tr:last-child th,
+        .classic-details-grid table tr:last-child td {
+          border-bottom: 0;
+        }
+        .classic-detail-panel + .classic-detail-panel {
+          border-left: 1px solid #555;
+        }
+        .classic-detail-panel-title {
+          text-align: center;
+          font-weight: 800;
+          border-bottom: 1px solid #555;
+          background: #f5f5f5;
+          padding: 3px;
+        }
+        .classic-detail-panel th {
+          width: 82px;
+          font-size: 8px;
+          font-weight: 800;
+        }
+        .classic-detail-panel td {
+          word-break: break-word;
+        }
+        .classic-eway-section {
+          border-bottom: 1px solid #555;
+        }
+        .classic-eway-section table th {
+          width: 118px;
+          font-size: 8px;
+          font-weight: 800;
+          background: #f7f7f7;
+        }
+        .classic-eway-section table td {
+          word-break: break-word;
+        }
+        .classic-items th {
+          text-align: center;
+          font-size: 8px;
+          font-weight: 900;
+          background: #f7f7f7;
+        }
+        .classic-items td {
+          height: 22px;
+        }
+        .classic-items .classic-description {
+          min-width: 185px;
+        }
+        .classic-items .classic-number {
+          text-align: right;
+          white-space: nowrap;
+        }
+        .classic-items .classic-center {
+          text-align: center;
+        }
+        .classic-total-row td {
+          height: auto;
+          font-weight: 800;
+          background: #fbfbfb;
+        }
+        .classic-bottom-grid {
+          display: grid;
+          grid-template-columns: 62% 38%;
+        }
+        .classic-bottom-grid > div {
+          min-height: 145px;
+        }
+        .classic-bottom-grid > div + div {
+          border-left: 1px solid #555;
+        }
+        .classic-section-title {
+          text-align: center;
+          font-weight: 900;
+          background: #f5f5f5;
+          border-bottom: 1px solid #555;
+          padding: 3px 5px;
+        }
+        .classic-amount-words {
+          display: grid;
+          grid-template-columns: 118px 1fr;
+          border-bottom: 1px solid #555;
+        }
+        .classic-amount-words div {
+          padding: 5px;
+        }
+        .classic-amount-words div:first-child {
+          border-right: 1px solid #555;
+          font-weight: 900;
+          text-align: center;
+        }
+        .classic-bank-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          min-height: 132px;
+        }
+        .classic-bank-details {
+          padding-bottom: 5px;
+        }
+        .classic-bank-details table th,
+        .classic-bank-details table td {
+          border: 0;
+          padding: 4px 8px;
+        }
+        .classic-bank-details table th {
+          width: 100px;
+          font-weight: 400;
+        }
+        .classic-tax-summary table th,
+        .classic-tax-summary table td {
+          padding: 5px 8px;
+        }
+        .classic-tax-summary table th {
+          width: 58%;
+          font-weight: 800;
+        }
+        .classic-tax-summary table td {
+          text-align: right;
+          white-space: nowrap;
+        }
+        .classic-tax-summary .classic-grand th,
+        .classic-tax-summary .classic-grand td {
+          font-size: 12px;
+          font-weight: 900;
+        }
+        .classic-declaration {
+          min-height: 84px;
+          display: grid;
+          grid-template-rows: auto 1fr auto;
+          border-top: 1px solid #555;
+          text-align: center;
+        }
+        .classic-declaration-text {
+          padding: 6px 8px;
+          font-size: 8px;
+        }
+        .classic-signature-company {
+          font-weight: 900;
+          padding: 4px 8px;
+        }
+        .classic-signature-label {
+          border-top: 1px solid #555;
+          padding: 4px 8px;
+          font-size: 8px;
+          font-weight: 800;
+        }
+        .classic-terms-sign {
+          display: grid;
+          grid-template-columns: 62% 38%;
+          border-top: 1px solid #555;
+        }
+        .classic-terms {
+          min-height: 82px;
+          border-right: 1px solid #555;
+        }
+        .classic-terms ul {
+          margin: 4px 8px 4px 18px;
+          padding: 0;
+        }
+        .classic-customer-sign {
+          display: grid;
+          grid-template-rows: 1fr auto;
+          min-height: 82px;
+        }
+        .classic-customer-sign div:last-child {
+          border-top: 1px solid #555;
+          text-align: center;
+          padding: 4px;
+          font-weight: 800;
+          font-size: 8px;
+        }
+        .classic-footer-note {
+          padding: 7px 8px;
+          border-top: 1px solid #555;
+        }
+        @media (max-width: 900px) {
+          .classic-invoice-toolbar,
+          .classic-invoice-sheet {
+            margin-left: 0;
+            margin-right: 0;
+          }
+        }
+        @media print {
+          body {
+            background: #fff !important;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+          .no-print {
+            display: none !important;
+          }
           .classic-invoice-page {
-            background: #eef1f5;
-            min-height: 100vh;
-            padding: 20px 12px 36px;
-            color: #000;
-          }
-          .classic-invoice-toolbar {
-            max-width: 210mm;
-            margin: 0 auto 12px;
-            text-align: right;
-          }
-          .classic-invoice-toolbar button {
-            border: 0;
-            background: #0f766e;
-            color: #fff;
-            font-weight: 700;
-            padding: 8px 16px;
-            border-radius: 4px;
+            padding: 0 !important;
+            margin: 0 !important;
+            background: #fff !important;
           }
           .classic-invoice-canvas {
-            overflow-x: auto;
+            overflow: visible !important;
           }
           .classic-invoice-sheet {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 0 auto;
-            background: #fff;
-            border: 1px solid #333;
-            box-shadow: 0 18px 42px rgba(15, 23, 42, 0.14);
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 10px;
-            line-height: 1.25;
-          }
-          .classic-invoice-sheet table {
             width: 100%;
-            border-collapse: collapse;
+            min-height: auto;
+            margin: 0;
+            border: 1px solid #000;
+            box-shadow: none;
+            page-break-after: avoid;
           }
           .classic-invoice-sheet th,
-          .classic-invoice-sheet td {
-            border: 1px solid #555;
-            padding: 4px 5px;
-            vertical-align: top;
-          }
-          .classic-company-header {
-            display: grid;
-            grid-template-columns: 1fr 168px;
-            gap: 10px;
-            align-items: center;
-            padding: 12px 16px 8px;
-          }
-          .classic-company-name {
-            margin: 0 0 3px;
-            color: #20265d;
-            font-family: Georgia, "Times New Roman", serif;
-            font-size: 26px;
-            line-height: 1;
-            font-weight: 900;
-            letter-spacing: 0;
-            text-transform: uppercase;
-          }
-          .classic-company-strip {
-            display: inline-block;
-            min-width: 385px;
-            margin-bottom: 5px;
-            background: #009a9a;
-            color: #fff;
-            font-weight: 800;
-            padding: 4px 12px;
-          }
-          .classic-company-meta {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-          }
-          .classic-company-logo {
-            width: 156px;
-            max-width: 156px;
-            max-height: 52px;
-            object-fit: contain;
-            justify-self: end;
-          }
-          .classic-title-strip {
-            display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
-            align-items: center;
-            border-top: 1px solid #555;
-            border-bottom: 1px solid #555;
-          }
-          .classic-title-strip > div {
-            padding: 5px 8px;
-          }
-          .classic-title-main {
-            border-left: 1px solid #555;
-            border-right: 1px solid #555;
-            text-align: center;
-            font-size: 16px;
-            font-weight: 900;
-            text-transform: uppercase;
-          }
-          .classic-recipient-copy {
-            text-align: right;
-            font-size: 8px;
-            font-weight: 800;
-          }
-          .classic-details-grid {
-            display: grid;
-            grid-template-columns: 38% 32% 30%;
-            border-bottom: 1px solid #555;
-          }
-          .classic-details-grid table th,
-          .classic-details-grid table td {
-            border-width: 0 0 1px 0;
-          }
-          .classic-details-grid table tr:last-child th,
-          .classic-details-grid table tr:last-child td {
-            border-bottom: 0;
-          }
-          .classic-details-grid table + table,
-          .classic-detail-panel + .classic-detail-panel {
-            border-left: 1px solid #555;
-          }
-          .classic-detail-panel-title {
-            text-align: center;
-            font-weight: 800;
-            border-bottom: 1px solid #555;
-            background: #f5f5f5;
-            padding: 3px;
-          }
-          .classic-detail-panel th {
-            width: 82px;
-            font-size: 8px;
-            font-weight: 800;
-          }
-          .classic-detail-panel td {
-            word-break: break-word;
-          }
-          .classic-items th {
-            text-align: center;
-            font-size: 8px;
-            font-weight: 900;
-            background: #f7f7f7;
-          }
-          .classic-items td {
-            height: 22px;
-          }
-          .classic-items .classic-description {
-            min-width: 185px;
-          }
-          .classic-items .classic-number {
-            text-align: right;
-            white-space: nowrap;
-          }
-          .classic-items .classic-center {
-            text-align: center;
-          }
-          .classic-total-row td {
-            height: auto;
-            font-weight: 800;
-            background: #fbfbfb;
-          }
-          .classic-bottom-grid {
-            display: grid;
-            grid-template-columns: 62% 38%;
-          }
-          .classic-bottom-grid > div {
-            min-height: 145px;
-          }
-          .classic-bottom-grid > div + div {
-            border-left: 1px solid #555;
-          }
-          .classic-section-title {
-            text-align: center;
-            font-weight: 900;
-            background: #f5f5f5;
-            border-bottom: 1px solid #555;
-            padding: 3px 5px;
-          }
-          .classic-amount-words {
-            display: grid;
-            grid-template-columns: 118px 1fr;
-            border-bottom: 1px solid #555;
-          }
-          .classic-amount-words div {
-            padding: 5px;
-          }
-          .classic-amount-words div:first-child {
-            border-right: 1px solid #555;
-            font-weight: 900;
-            text-align: center;
-          }
-          .classic-bank-grid {
-            display: grid;
-            grid-template-columns: 1fr 112px;
-            min-height: 132px;
-          }
-          .classic-bank-details {
-            padding-bottom: 5px;
-          }
-          .classic-bank-details table th,
-          .classic-bank-details table td {
-            border: 0;
-            padding: 4px 8px;
-          }
-          .classic-bank-details table th {
-            width: 100px;
-            font-weight: 400;
-          }
-          .classic-qr {
-            border-left: 1px solid #555;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 3px;
-            padding: 5px;
-            text-align: center;
-            font-size: 8px;
-            font-weight: 800;
-          }
-          .classic-tax-summary table th,
-          .classic-tax-summary table td {
-            padding: 5px 8px;
-          }
-          .classic-tax-summary table th {
-            width: 58%;
-            font-weight: 800;
-          }
-          .classic-tax-summary table td {
-            text-align: right;
-            white-space: nowrap;
-          }
-          .classic-tax-summary .classic-grand th,
-          .classic-tax-summary .classic-grand td {
-            font-size: 12px;
-            font-weight: 900;
-          }
-          .classic-declaration {
-            min-height: 84px;
-            display: grid;
-            grid-template-rows: auto 1fr auto;
-            border-top: 1px solid #555;
-            text-align: center;
-          }
-          .classic-declaration-text {
-            padding: 6px 8px;
-            font-size: 8px;
-          }
-          .classic-signature-company {
-            font-weight: 900;
-            padding: 4px 8px;
-          }
-          .classic-signature-label {
-            border-top: 1px solid #555;
-            padding: 4px 8px;
-            font-size: 8px;
-            font-weight: 800;
-          }
-          .classic-terms-sign {
-            display: grid;
-            grid-template-columns: 62% 38%;
-            border-top: 1px solid #555;
-          }
-          .classic-terms {
-            min-height: 82px;
-            border-right: 1px solid #555;
-          }
-          .classic-terms ul {
-            margin: 4px 8px 4px 18px;
-            padding: 0;
-          }
-          .classic-customer-sign {
-            display: grid;
-            grid-template-rows: 1fr auto;
-            min-height: 82px;
-          }
-          .classic-customer-sign div:last-child {
-            border-top: 1px solid #555;
-            text-align: center;
-            padding: 4px;
-            font-weight: 800;
-            font-size: 8px;
-          }
+          .classic-invoice-sheet td,
+          .classic-title-strip,
+          .classic-details-grid,
+          .classic-eway-section,
+          .classic-bottom-grid > div + div,
+          .classic-amount-words,
+          .classic-amount-words div:first-child,
+          .classic-declaration,
+          .classic-signature-label,
+          .classic-terms-sign,
+          .classic-terms,
           .classic-footer-note {
-            padding: 7px 8px;
-            border-top: 1px solid #555;
+            border-color: #000 !important;
           }
-          @media (max-width: 900px) {
-            .classic-invoice-toolbar,
-            .classic-invoice-sheet {
-              margin-left: 0;
-              margin-right: 0;
-            }
+          @page {
+            size: A4 portrait;
+            margin: 7mm;
           }
-          @media print {
-            body {
-              background: #fff !important;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            .no-print {
-              display: none !important;
-            }
-            .page-wrapper,
-            .content,
-            .container-fluid,
-            .classic-invoice-page {
-              padding: 0 !important;
-              margin: 0 !important;
-              background: #fff !important;
-            }
-            .classic-invoice-canvas {
-              overflow: visible !important;
-            }
-            .classic-invoice-sheet {
-              width: 100%;
-              min-height: auto;
-              margin: 0;
-              border: 1px solid #000;
-              box-shadow: none;
-              page-break-after: avoid;
-            }
-            .classic-invoice-sheet th,
-            .classic-invoice-sheet td,
-            .classic-title-strip,
-            .classic-details-grid,
-            .classic-bottom-grid > div + div,
-            .classic-amount-words,
-            .classic-amount-words div:first-child,
-            .classic-bank-grid .classic-qr,
-            .classic-declaration,
-            .classic-signature-label,
-            .classic-terms-sign,
-            .classic-terms,
-            .classic-footer-note {
-              border-color: #000 !important;
-            }
-            @page {
-              size: A4 portrait;
-              margin: 7mm;
-            }
-          }
-        `}</style>
+        }
+      `}</style>
 
-        <div className="classic-invoice-toolbar no-print">
-          <button type="button" onClick={() => window.print()}>
-            Print {documentNoun}
-          </button>
-        </div>
+      <div className="classic-invoice-toolbar no-print">
+        <button type="button" onClick={() => window.print()}>
+          Print {documentNoun}
+        </button>
+      </div>
 
-        <div className="classic-invoice-canvas">
-          <section className="classic-invoice-sheet">
-            <header className="classic-company-header">
-              <div>
-                <h1 className="classic-company-name">{companyDetails.companyName}</h1>
-                <div className="classic-company-strip">{documentServiceLine}</div>
-                <div className="classic-company-meta">
-                  <div>{companyDetails.companyAddress || "-"}</div>
-                  <div>
-                    <div>Tel: {companyDetails.companyPhone || "-"}</div>
-                    <div>GSTIN: {companyDetails.companyGst || "-"}</div>
-                  </div>
+      <div className="classic-invoice-canvas">
+        <section className="classic-invoice-sheet">
+          <header className="classic-company-header">
+            <div>
+              <h1 className="classic-company-name">{companyDetails.companyName}</h1>
+              <div className="classic-company-strip">{documentServiceLine}</div>
+              <div className="classic-company-meta">
+                <div>{companyDetails.companyAddress || "-"}</div>
+                <div>
+                  <div>Tel: {companyDetails.companyPhone || "-"}</div>
+                  <div>GSTIN: {companyDetails.companyGst || "-"}</div>
                 </div>
               </div>
-              {companyDetails.companyLogo ? (
-                <img className="classic-company-logo" src={companyDetails.companyLogo} alt="Company logo" />
-              ) : null}
-            </header>
+            </div>
+            {companyDetails.companyLogo ? (
+              <img className="classic-company-logo" src={companyDetails.companyLogo} alt="Company logo" />
+            ) : null}
+          </header>
 
-            <div className="classic-title-strip">
-              <div>
-                <strong>PAN :</strong> {companyPan || "-"}
-              </div>
-              <div className="classic-title-main">{documentTitle}</div>
-              <div className="classic-recipient-copy">ORIGINAL FOR RECIPIENT</div>
+          <div className="classic-title-strip">
+            <div>
+              <strong>PAN :</strong> {companyPan || "-"}
+            </div>
+            <div className="classic-title-main">{documentTitle}</div>
+            <div className="classic-recipient-copy">ORIGINAL FOR RECIPIENT</div>
+          </div>
+
+          <section className="classic-details-grid">
+            <div className="classic-detail-panel">
+              <div className="classic-detail-panel-title">Customer Detail</div>
+              <table>
+                <tbody>
+                  <DataRow label="M/S" value={customer.name || billAsName} />
+                  <DataRow label="Address" value={customer.address} />
+                  <DataRow label="Phone" value={customer.phone} />
+                  <DataRow label="GSTIN" value={customer.gstNo} />
+                  <DataRow label="Place of Supply" value={customer.placeOfSupply || region} />
+                </tbody>
+              </table>
             </div>
 
-            <section className="classic-details-grid">
-              <div className="classic-detail-panel">
-                <div className="classic-detail-panel-title">Customer Detail</div>
-                <table>
-                  <tbody>
-                    <DataRow label="M/S" value={customer.name || billAsName} />
-                    <DataRow label="Address" value={customer.address} />
-                    <DataRow label="Phone" value={customer.phone} />
-                    <DataRow label="GSTIN" value={customer.gstNo} />
-                    <DataRow label="Place of Supply" value={customer.placeOfSupply || region} />
-                  </tbody>
-                </table>
-              </div>
+            <div className="classic-detail-panel">
+              <table>
+                <tbody>
+                  <DataRow label={`${documentNoun} No.`} value={invoiceNo} />
+                  {isCreditNote ? (
+                    <DataRow label="Original Invoice No." value={parentInvoiceNo} />
+                  ) : (
+                    <DataRow label="Challan No" value={challanNo} />
+                  )}
+                  <DataRow label="ITR" value={itrNo} />
+                  <DataRow label="Transporter" value={transporterName} />
+                  <DataRow label="Vehicle No." value={vehicleNo} />
+                </tbody>
+              </table>
+            </div>
 
-              <div className="classic-detail-panel">
-                <table>
-                  <tbody>
-                    <DataRow label={`${documentNoun} No.`} value={invoiceNo} />
-                    {isCreditNote ? (
-                      <DataRow label="Original Invoice No." value={parentInvoiceNo} />
-                    ) : (
-                      <DataRow label="Challan No" value={challanNo} />
-                    )}
-                    <DataRow label="E-Way Bill No." value={eWayBillNo} />
-                    <DataRow label="Transport" value={transport} />
-                    <DataRow label="Transport ID" value={transportId} />
-                  </tbody>
-                </table>
-              </div>
+            <div className="classic-detail-panel">
+              <table>
+                <tbody>
+                  <DataRow label={`${documentNoun} Date`} value={invoiceDate} />
+                  <DataRow label="Challan Date" value={challanDate === "-" ? "" : challanDate} />
+                  <DataRow label="PO No." value={poNumber} />
+                  <DataRow label="Job No." value={selectedJobNo} />
+                  <DataRow label="Region" value={region} />
+                </tbody>
+              </table>
+            </div>
+          </section>
 
-              <div className="classic-detail-panel">
-                <table>
-                  <tbody>
-                    <DataRow label={`${documentNoun} Date`} value={invoiceDate} />
-                    <DataRow label="Challan Date" value={challanDate === "-" ? "" : challanDate} />
-                    <DataRow label="PO No." value={poNumber} />
-                    <DataRow label="Job No." value={selectedJobNo} />
-                    <DataRow label="Region" value={region} />
-                  </tbody>
-                </table>
+          {(ewayBillRequired || hasEwayBillDetails) ? (
+            <section className="classic-eway-section">
+              <div className="classic-section-title">
+                Eway Bill Details{ewayBillRequired ? " (Compulsory)" : ""}
               </div>
+              <table>
+                <tbody>
+                  <tr>
+                    <th>Transporter name</th>
+                    <td>{transporterName || "-"}</td>
+                    <th>Mode</th>
+                    <td>{transportMode || "-"}</td>
+                    <th>Distance (km)</th>
+                    <td>{transportDistanceKm || "-"}</td>
+                  </tr>
+                  <tr>
+                    <th>Vehicle no</th>
+                    <td>{vehicleNo || "-"}</td>
+                    <th>Transporter GstNo</th>
+                    <td>{transporterGstNo || "-"}</td>
+                    <td colSpan={2}></td>
+                  </tr>
+                </tbody>
+              </table>
             </section>
+          ) : null}
 
-            <table className="classic-items">
-              <thead>
-                <tr>
-                  <th rowSpan={2} style={{ width: 28 }}>Sr. No.</th>
-                  <th rowSpan={2} className="classic-description">Name of Product / Service</th>
-                  <th rowSpan={2} style={{ width: 72 }}>HSN / SAC</th>
-                  <th rowSpan={2} style={{ width: 48 }}>Qty</th>
-                  <th rowSpan={2} style={{ width: 72 }}>Rate</th>
-                  <th rowSpan={2} style={{ width: 88 }}>Taxable Value</th>
+          <table className="classic-items">
+            <thead>
+              <tr>
+                <th rowSpan={2} style={{ width: 28 }}>Sr. No.</th>
+                <th rowSpan={2} className="classic-description">Name of Product / Service</th>
+                <th rowSpan={2} style={{ width: 72 }}>HSN / SAC</th>
+                <th rowSpan={2} style={{ width: 48 }}>Qty</th>
+                <th rowSpan={2} style={{ width: 72 }}>Rate</th>
+                <th rowSpan={2} style={{ width: 88 }}>Taxable Value</th>
+                {useSplitGst ? (
+                  <>
+                    <th colSpan={2}>CGST</th>
+                    <th colSpan={2}>SGST</th>
+                  </>
+                ) : (
                   <th colSpan={2}>IGST</th>
-                  <th rowSpan={2} style={{ width: 88 }}>Total</th>
-                </tr>
-                <tr>
-                  <th style={{ width: 42 }}>%</th>
-                  <th style={{ width: 78 }}>Amount</th>
-                </tr>
-              </thead>
-              <tbody>
-                {invoiceRows.length ? (
-                  invoiceRows.map((row) => (
+                )}
+                <th rowSpan={2} style={{ width: 88 }}>Total</th>
+              </tr>
+              <tr>
+                <th style={{ width: 42 }}>%</th>
+                <th style={{ width: 78 }}>Amount</th>
+                {useSplitGst ? (
+                  <>
+                    <th style={{ width: 42 }}>%</th>
+                    <th style={{ width: 78 }}>Amount</th>
+                  </>
+                ) : null}
+              </tr>
+            </thead>
+            <tbody>
+              {invoiceRows.length ? (
+                invoiceRows.map((row) => {
+                  const splitRowRate = row.gstRate / 2;
+                  const splitRowAmount = row.gstAmount / 2;
+
+                  return (
                     <tr key={row.key}>
                       <td className="classic-center">{row.sno}</td>
                       <td>
@@ -922,107 +1285,132 @@ const InvoicePrintPreview = () => {
                       <td className="classic-center">{row.qty || "-"}</td>
                       <td className="classic-number">{formatAmount(row.rate)}</td>
                       <td className="classic-number">{formatAmount(row.taxableValue)}</td>
-                      <td className="classic-center">{formatAmount(row.gstRate)}</td>
-                      <td className="classic-number">{formatAmount(row.gstAmount)}</td>
+                      {useSplitGst ? (
+                        <>
+                          <td className="classic-center">{formatAmount(splitRowRate)}</td>
+                          <td className="classic-number">{formatAmount(splitRowAmount)}</td>
+                          <td className="classic-center">{formatAmount(splitRowRate)}</td>
+                          <td className="classic-number">{formatAmount(splitRowAmount)}</td>
+                        </>
+                      ) : (
+                        <>
+                          <td className="classic-center">{formatAmount(row.gstRate)}</td>
+                          <td className="classic-number">{formatAmount(row.gstAmount)}</td>
+                        </>
+                      )}
                       <td className="classic-number">{formatAmount(row.lineTotal)}</td>
                     </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td className="classic-center" colSpan={9}>No invoice items found</td>
-                  </tr>
-                )}
-                <tr className="classic-total-row">
-                  <td colSpan={3} className="classic-number">Total</td>
-                  <td className="classic-center">
-                    {invoiceRows.reduce((sum, row) => sum + toNumber(row.qty), 0) || "-"}
-                  </td>
-                  <td />
-                  <td className="classic-number">{formatAmount(invoiceSubtotal)}</td>
-                  <td />
-                  <td className="classic-number">{formatAmount(invoiceGstTotal)}</td>
-                  <td className="classic-number">{formatAmount(invoiceGrandTotal)}</td>
+                  );
+                })
+              ) : (
+                <tr>
+                  <td className="classic-center" colSpan={taxColumnCount}>No invoice items found</td>
                 </tr>
-              </tbody>
-            </table>
+              )}
+              <tr className="classic-total-row">
+                <td colSpan={3} className="classic-number">Total</td>
+                <td className="classic-center">
+                  {invoiceRows.reduce((sum, row) => sum + toNumber(row.qty), 0) || "-"}
+                </td>
+                <td />
+                <td className="classic-number">{formatAmount(invoiceSubtotal)}</td>
+                {useSplitGst ? (
+                  <>
+                    <td />
+                    <td className="classic-number">{formatAmount(splitGstTotal)}</td>
+                    <td />
+                    <td className="classic-number">{formatAmount(splitGstTotal)}</td>
+                  </>
+                ) : (
+                  <>
+                    <td />
+                    <td className="classic-number">{formatAmount(invoiceGstTotal)}</td>
+                  </>
+                )}
+                <td className="classic-number">{formatAmount(invoiceGrandTotal)}</td>
+              </tr>
+            </tbody>
+          </table>
 
-            <section className="classic-bottom-grid">
-              <div>
-                <div className="classic-amount-words">
-                  <div>Total in words</div>
-                  <div>{amountInWords(invoiceGrandTotal)}</div>
-                </div>
-
-                <div className="classic-bank-details">
-                  <div className="classic-section-title">Bank Details</div>
-                  <div className="classic-bank-grid">
-                    <table>
-                      <tbody>
-                        <DataRow label="Name" value={bankDetails.bankName} />
-                        <DataRow label="Branch" value={bankDetails.branch} />
-                        <DataRow label="Acc. Number" value={bankDetails.accountNo} />
-                        <DataRow label="IFSC" value={bankDetails.ifsc} />
-                        <DataRow label="UPI ID" value={bankDetails.upiId} />
-                      </tbody>
-                    </table>
-                    <div className="classic-qr">
-                      <QRCode value={qrValue} size={82} />
-                      <div>{bankDetails.upiId ? "Pay using UPI" : `${documentNoun} QR`}</div>
-                    </div>
-                  </div>
-                </div>
+          <section className="classic-bottom-grid">
+            <div>
+              <div className="classic-amount-words">
+                <div>Total in words</div>
+                <div>{amountInWords(invoiceGrandTotal)}</div>
               </div>
 
-              <div className="classic-tax-summary">
-                <table>
-                  <tbody>
-                    <DataRow label="Taxable Amount" value={formatAmount(invoiceSubtotal)} />
+              <div className="classic-bank-details">
+                <div className="classic-section-title">Bank Details</div>
+                <div className="classic-bank-grid">
+                  <table>
+                    <tbody>
+                      <DataRow label="Name" value={bankDetails.bankName} />
+                      <DataRow label="Branch" value={bankDetails.branch} />
+                      <DataRow label="Acc. Number" value={bankDetails.accountNo} />
+                      <DataRow label="IFSC" value={bankDetails.ifsc} />
+                      <DataRow label="UPI ID" value={bankDetails.upiId} />
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <div className="classic-tax-summary">
+              <table>
+                <tbody>
+                  <DataRow label="Taxable Amount" value={formatAmount(invoiceSubtotal)} />
+                  {useSplitGst ? (
+                    <>
+                      <DataRow label="Add : CGST" value={formatAmount(splitGstTotal)} />
+                      <DataRow label="Add : SGST" value={formatAmount(splitGstTotal)} />
+                    </>
+                  ) : (
                     <DataRow label="Add : IGST" value={formatAmount(invoiceGstTotal)} />
-                    <DataRow label="Total Tax" value={formatAmount(invoiceGstTotal)} />
-                    <tr className="classic-grand">
-                      <th>Total Amount After Tax</th>
-                      <td>{formatAmount(invoiceGrandTotal)}</td>
-                    </tr>
-                  </tbody>
-                </table>
+                  )}
+                  <DataRow label="Total Tax" value={formatAmount(invoiceGstTotal)} />
+                  <tr className="classic-grand">
+                    <th>Total Amount After Tax</th>
+                    <td>{formatAmount(invoiceGrandTotal)}</td>
+                  </tr>
+                </tbody>
+              </table>
 
-                <div className="classic-declaration">
-                  <div className="classic-declaration-text">
-                    Certified that the particulars given above are true and correct.
-                  </div>
-                  <div className="classic-signature-company">For {companyDetails.companyName || "-"}</div>
-                  <div className="classic-signature-label">Authorised Signatory</div>
+              <div className="classic-declaration">
+                <div className="classic-declaration-text">
+                  Certified that the particulars given above are true and correct.
                 </div>
+                <div className="classic-signature-company">For {companyDetails.companyName || "-"}</div>
+                <div className="classic-signature-label">Authorised Signatory</div>
               </div>
-            </section>
-
-            <section className="classic-terms-sign">
-              <div className="classic-terms">
-                <div className="classic-section-title">Terms and Conditions</div>
-                <ul>
-                  <li>Subject to jurisdiction applicable to the company branch.</li>
-                  <li>Our responsibility ceases as soon as goods leave our premises.</li>
-                  <li>Goods once sold will not be taken back.</li>
-                  {notes ? <li>{notes}</li> : null}
-                </ul>
-              </div>
-              <div className="classic-customer-sign">
-                <div>
-                  <div className="classic-section-title">Ship To</div>
-                  <div style={{ padding: 6 }}>
-                    <strong>{shipTo.name || "-"}</strong>
-                    <div>{shipTo.address || "-"}</div>
-                    {shipTo.gstNo ? <div>GSTIN: {shipTo.gstNo}</div> : null}
-                    {projectName ? <div>Project: {projectName}</div> : null}
-                  </div>
-                </div>
-                <div>Customer Signature</div>
-              </div>
-            </section>
-
-            <div className="classic-footer-note">Thank you for shopping with us!</div>
+            </div>
           </section>
-        </div>
+
+          <section className="classic-terms-sign">
+            <div className="classic-terms">
+              <div className="classic-section-title">Terms and Conditions</div>
+              <ul>
+                <li>Subject to jurisdiction applicable to the company branch.</li>
+                <li>Our responsibility ceases as soon as goods leave our premises.</li>
+                <li>Goods once sold will not be taken back.</li>
+                {notes ? <li>{notes}</li> : null}
+              </ul>
+            </div>
+            <div className="classic-customer-sign">
+              <div>
+                <div className="classic-section-title">Ship To</div>
+                <div style={{ padding: 6 }}>
+                  <strong>{shipTo.name || "-"}</strong>
+                  <div>{shipTo.address || "-"}</div>
+                  {shipTo.gstNo ? <div>GSTIN: {shipTo.gstNo}</div> : null}
+                  {projectName ? <div>Project: {projectName}</div> : null}
+                </div>
+              </div>
+              <div>Customer Signature</div>
+            </div>
+          </section>
+
+          <div className="classic-footer-note">Thank you for shopping with us!</div>
+        </section>
       </div>
     </div>
   );

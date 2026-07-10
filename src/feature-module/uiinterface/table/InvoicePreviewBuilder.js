@@ -10,9 +10,79 @@ import Select from "react-select";
 import { getCompanyBranchDetails } from "./companyBranches";
 
 const GST_RATE = 18;
+const EWAY_BILL_THRESHOLD = 50000;
+const TRANSPORT_MODES = ["Road", "Train", "Air", "Ship"];
 const INVOICE_STATUS_STORAGE_KEY = "invoiceStatusByNo";
 const LEGACY_FINAL_INVOICE_STORAGE_KEY = "finalInvoiceNos";
+const INVOICE_JOB_CACHE_KEY = "invoicePreviewBuilderJobCardsCache";
+const INVOICE_EWAY_STORAGE_KEY = "invoiceEwayBillByNo";
+const INVOICE_JOB_CACHE_TTL_MS = 5 * 60 * 1000;
+const INVOICE_JOB_API_TIMEOUT_MS = 12000;
+const INVOICE_BACKGROUND_API_TIMEOUT_MS = 15000;
 const READ_ONLY_ITEM_FIELDS = new Set(["invoiceAmount", "InvoiceAmount", "taxableValue", "TaxableValue"]);
+const GST_STATE_ALIASES = {
+  "01": ["jammuandkashmir", "jammu", "kashmir"],
+  "02": ["himachalpradesh", "himachal"],
+  "03": ["punjab"],
+  "04": ["chandigarh"],
+  "05": ["uttarakhand", "uttaranchal"],
+  "06": ["haryana", "gurgaon", "gurugram"],
+  "07": ["delhi", "newdelhi"],
+  "08": ["rajasthan"],
+  "09": ["uttarpradesh", "up"],
+  10: ["bihar"],
+  11: ["sikkim"],
+  12: ["arunachalpradesh", "arunachal"],
+  13: ["nagaland"],
+  14: ["manipur"],
+  15: ["mizoram"],
+  16: ["tripura"],
+  17: ["meghalaya"],
+  18: ["assam"],
+  19: ["westbengal", "bengal", "kolkata"],
+  20: ["jharkhand"],
+  21: ["odisha", "orissa"],
+  22: ["chhattisgarh"],
+  23: ["madhyapradesh", "mp"],
+  24: ["gujarat"],
+  26: ["dadraandnagarhaveli", "damananddiu"],
+  27: ["maharashtra", "mumbai", "pune"],
+  29: ["karnataka", "bengaluru", "bangalore"],
+  30: ["goa"],
+  31: ["lakshadweep"],
+  32: ["kerala"],
+  33: ["tamilnadu", "chennai"],
+  34: ["puducherry", "pondicherry"],
+  35: ["andamanandnicobar", "andaman"],
+  36: ["telangana", "hyderabad", "hydrabad"],
+  37: ["andhrapradesh", "andhra"],
+  38: ["ladakh"],
+};
+
+const readInvoiceJobCardsCache = () => {
+  try {
+    const parsed = JSON.parse(sessionStorage.getItem(INVOICE_JOB_CACHE_KEY) || "{}");
+    if (!Array.isArray(parsed?.cards)) return [];
+    if (Date.now() - Number(parsed.timestamp || 0) > INVOICE_JOB_CACHE_TTL_MS) return [];
+    return parsed.cards;
+  } catch {
+    return [];
+  }
+};
+
+const writeInvoiceJobCardsCache = (cards) => {
+  try {
+    sessionStorage.setItem(
+      INVOICE_JOB_CACHE_KEY,
+      JSON.stringify({
+        timestamp: Date.now(),
+        cards,
+      })
+    );
+  } catch (error) {
+    console.warn("Could not cache invoice job cards", error);
+  }
+};
 
 const rememberInvoiceStatus = (invoiceNo, status) => {
   const normalizedInvoiceNo = String(invoiceNo || "").trim();
@@ -49,7 +119,7 @@ const formatMoney = (value) =>
   })}`;
 
 const toNumber = (value) => {
-  const parsed = Number(value);
+  const parsed = Number(String(value ?? "").replace(/,/g, ""));
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
@@ -97,7 +167,7 @@ const calculatePersistedItemAmount = (item) => {
   const lineType = String(item.Type ?? item.type ?? item.lineType ?? "").toLowerCase();
   const sqft = totalSqFt || (width && height ? (width * height * qty) / 144 : 0);
 
-  if ((lineType === "transportation" || lineType === "implementation") && !sqft) return qty * rate;
+  if (isChargeLineType(lineType) && !sqft) return qty * rate;
   return sqft * rate;
 };
 
@@ -160,6 +230,18 @@ const getRowDescription = (row) =>
   "Media";
 const getRowMedia = (row) => getRowValue(row, "media", "Media", "externalMedia", "ExternalMedia", "internalMedia", "InternalMedia");
 const getRowRegion = (row) => getRowValue(row, "region", "Region", "productionLocation", "ProductionLocation");
+const getRowChallanDate = (row) =>
+  getRowValue(
+    row,
+    "challanDate",
+    "ChallanDate",
+    "deliveryChallanDate",
+    "DeliveryChallanDate",
+    "implementationChallanDate",
+    "ImplementationChallanDate"
+  );
+const getRowPoNo = (row) => getRowValue(row, "poNo", "PoNo", "PONo", "poNumber", "PoNumber", "PO No", "PO");
+const getRowPoDate = (row) => getRowValue(row, "poDate", "PoDate", "PODate", "poDateUtc", "PoDateUtc");
 
 const getChallanMeta = (row) => {
   const deliveryId = getRowValue(row, "deliveryChallanId", "DeliveryChallanId", "challanId", "ChallanId");
@@ -212,11 +294,14 @@ const getUserContext = () => {
 const getResponseRows = (data) => {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.items)) return data.items;
+  if (Array.isArray(data?.items?.$values)) return data.items.$values;
   if (Array.isArray(data?.data)) return data.data;
+  if (Array.isArray(data?.data?.items)) return data.data.items;
   if (Array.isArray(data?.result)) return data.result;
   if (Array.isArray(data?.message)) return data.message;
   if (Array.isArray(data?.$values)) return data.$values;
   if (Array.isArray(data?.data?.$values)) return data.data.$values;
+  if (Array.isArray(data?.data?.items?.$values)) return data.data.items.$values;
   if (Array.isArray(data?.result?.$values)) return data.result.$values;
   if (Array.isArray(data?.message?.$values)) return data.message.$values;
   return [];
@@ -229,6 +314,30 @@ const firstNonEmpty = (...values) => {
   }
   return "";
 };
+
+const normalizeStateText = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+
+const getStateCodeFromGst = (value) => {
+  const match = firstNonEmpty(value).match(/^([0-9]{2})[0-9A-Z]{13}$/i);
+  return match?.[1] || "";
+};
+
+const getStateCodeFromText = (...values) => {
+  const text = normalizeStateText(values.filter(Boolean).join(" "));
+  if (!text) return "";
+
+  for (const [code, aliases] of Object.entries(GST_STATE_ALIASES)) {
+    if (aliases.some((alias) => text.includes(alias))) return code;
+  }
+
+  return "";
+};
+
+const getStateCode = ({ gstNo, address, placeOfSupply }) =>
+  getStateCodeFromGst(gstNo) || getStateCodeFromText(placeOfSupply, address);
 
 const getSavedInvoiceNoFromResponse = (responseData) => {
   const directInvoiceNo = firstNonEmpty(
@@ -313,16 +422,151 @@ const createEmptyAddress = (label) => ({
   gstNo: "",
 });
 
+const createEmptyEwayBill = () => ({
+  transporterName: "",
+  transportMode: "Road",
+  modeOfTransportation: "Road",
+  transportDistanceKm: "",
+  distanceOfTransportation: "",
+  vehicleNo: "",
+  transporterGstNo: "",
+});
+
+const normalizeEwayBillDetails = (invoiceData = {}) => {
+  const ewayBill =
+    invoiceData.ewayBill ||
+    invoiceData.EwayBill ||
+    invoiceData.EWayBill ||
+    invoiceData.EwayBillDetails ||
+    invoiceData.EWayBillDetails ||
+    {};
+  const rawTransportMode = firstNonEmpty(ewayBill.transportMode, ewayBill.TransportMode, invoiceData.transportMode, invoiceData.TransportMode, "Road");
+  const rawModeOfTransportation = firstNonEmpty(
+    ewayBill.modeOfTransportation,
+    ewayBill.ModeOfTransportation,
+    invoiceData.modeOfTransportation,
+    invoiceData.ModeOfTransportation,
+    rawTransportMode
+  );
+  const transportMode = TRANSPORT_MODES.find((mode) => mode.toLowerCase() === rawModeOfTransportation.toLowerCase()) || rawModeOfTransportation || "Road";
+
+  return {
+    transporterName: firstNonEmpty(
+      ewayBill.transporterName,
+      ewayBill.TransporterName,
+      invoiceData.transporterName,
+      invoiceData.TransporterName,
+      invoiceData.transport,
+      invoiceData.Transport,
+      invoiceData.TransportName
+    ),
+    transportMode,
+    transportDistanceKm: firstNonEmpty(
+      ewayBill.transportDistanceKm,
+      ewayBill.TransportDistanceKm,
+      ewayBill.TransportationDistanceKm,
+      ewayBill.distanceOfTransportation,
+      ewayBill.DistanceOfTransportation,
+      invoiceData.transportDistanceKm,
+      invoiceData.TransportDistanceKm,
+      invoiceData.TransportationDistanceKm,
+      invoiceData.distanceOfTransportation,
+      invoiceData.DistanceOfTransportation
+    ),
+    vehicleNo: firstNonEmpty(ewayBill.vehicleNo, ewayBill.VehicleNo, invoiceData.vehicleNo, invoiceData.VehicleNo),
+    transporterGstNo: firstNonEmpty(
+      ewayBill.transporterGstNo,
+      ewayBill.TransporterGstNo,
+      ewayBill.TransporterGSTNo,
+      invoiceData.transporterGstNo,
+      invoiceData.TransporterGstNo,
+      invoiceData.TransporterGSTNo,
+      invoiceData.transportId,
+      invoiceData.TransportId
+    ),
+  };
+};
+
+const buildEwayBillPayload = (ewayBill = {}) => {
+  const transportDetails = {
+    transporterName: ewayBill.transporterName || "",
+    transportMode: ewayBill.transportMode || "Road",
+    modeOfTransportation: ewayBill.transportMode || "Road",
+    transportDistanceKm: ewayBill.transportDistanceKm || "",
+    distanceOfTransportation: ewayBill.transportDistanceKm || "",
+    vehicleNo: ewayBill.vehicleNo || "",
+    transporterGstNo: ewayBill.transporterGstNo || "",
+  };
+
+  return {
+    EwayBillDetails: transportDetails,
+    EWayBillDetails: transportDetails,
+    ewayBill: transportDetails,
+
+    TransporterName: transportDetails.transporterName,
+    transporterName: transportDetails.transporterName,
+
+    TransportMode: transportDetails.transportMode,
+    transportMode: transportDetails.transportMode,
+    ModeOfTransportation: transportDetails.modeOfTransportation,
+    modeOfTransportation: transportDetails.modeOfTransportation,
+
+    TransportationDistanceKm: transportDetails.transportDistanceKm,
+    transportDistanceKm: transportDetails.transportDistanceKm,
+    DistanceOfTransportation: transportDetails.distanceOfTransportation,
+    distanceOfTransportation: transportDetails.distanceOfTransportation,
+
+    VehicleNo: transportDetails.vehicleNo,
+    vehicleNo: transportDetails.vehicleNo,
+
+    TransporterGstNo: transportDetails.transporterGstNo,
+    transporterGstNo: transportDetails.transporterGstNo,
+    TransporterGSTNo: transportDetails.transporterGstNo,
+
+    TransportId: transportDetails.transporterGstNo,
+    transportId: transportDetails.transporterGstNo,
+  };
+};
+
+const rememberEwayBillDetails = (invoiceNo, ewayBill) => {
+  const normalizedInvoiceNo = String(invoiceNo || "").trim();
+  if (!normalizedInvoiceNo) return;
+
+  try {
+    const parsed = JSON.parse(localStorage.getItem(INVOICE_EWAY_STORAGE_KEY) || "{}");
+    const ewayByInvoiceNo = parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+    ewayByInvoiceNo[normalizedInvoiceNo.toLowerCase()] = normalizeEwayBillDetails(ewayBill);
+    localStorage.setItem(INVOICE_EWAY_STORAGE_KEY, JSON.stringify(ewayByInvoiceNo));
+  } catch (error) {
+    console.warn("Could not remember E-way bill details locally", error);
+  }
+};
+
+const getChargeDescription = (lineType) => {
+  const normalized = String(lineType || "").toLowerCase();
+  if (normalized === "installation") return "Installation Charges";
+  if (normalized === "implementation") return "Implementation Charges";
+  if (normalized === "layouting") return "Layouting Charges";
+  if (normalized === "transportation" || normalized === "transport") return "Transportation Charges";
+  if (normalized === "adaption" || normalized === "adaptation") return "Adaption Charges";
+  return "";
+};
+
+const isChargeLineType = (lineType) =>
+  ["installation", "implementation", "layouting", "transportation", "transport", "adaption", "adaptation", "charge"].includes(
+    String(lineType || "").trim().toLowerCase()
+  );
+
 const createEmptyItem = (lineType = "media") => ({
   id: uid("item"),
   selected: false,
   groupByMedia: false,
   jobNo: "",
   lineType,
-  description: lineType === "transportation" ? "Transportation Charges" : "",
-  media: "",
+  description: getChargeDescription(lineType),
+  media: isChargeLineType(lineType) ? "Charges" : "",
   hsnCode: "",
-  qty: lineType === "transportation" ? 1 : "",
+  qty: isChargeLineType(lineType) ? 1 : "",
   width: "",
   height: "",
   rate: "",
@@ -332,6 +576,7 @@ const createEmptyItem = (lineType = "media") => ({
 const createInitialData = () => ({
   invoiceNo: "",
   invoiceDate: new Date().toISOString().split("T")[0],
+  itrNo: "",
   jobCardNo: "",
   selectedJobIds: [],
   billTo: [createEmptyAddress("Bill To 1")],
@@ -341,6 +586,7 @@ const createInitialData = () => ({
   groupByStore: false,
   groupByCity: false,
   groupByDescription: false,
+  ewayBill: createEmptyEwayBill(),
 });
 const calculateItemAmount = (item) => {
   const manualAmount = String(item.manualAmount ?? "").trim();
@@ -364,7 +610,7 @@ const calculateItemAmount = (item) => {
   const rate = toNumber(item.rate);
   const sqft = width && height ? (width * height) / 144 : 0;
 
-  if ((item.lineType === "transportation" || item.lineType === "implementation") && !sqft) return qty * rate;
+  if (isChargeLineType(item.lineType) && !sqft) return qty * rate;
   return sqft * qty * rate;
 };
 
@@ -413,7 +659,7 @@ const rowToLineItem = (row) => {
     selected: false,
     groupByMedia: false,
     jobNo: getRowJobNo(row),
-    lineType: row._invoiceSource === "implementation" ? "implementation" : "media",
+    lineType: row._estimateChargeType || (row._invoiceSource === "implementation" ? "implementation" : "media"),
     storeName: getRowStore(row),
     city: getRowValue(row, "city", "City"),
     description: getRowDescription(row),
@@ -573,6 +819,391 @@ const normalizeChallanDashboardRows = (challans) =>
     }));
   });
 
+
+const resolveUrlCandidates = (...values) =>
+  values
+    .flatMap((value) => (Array.isArray(value) ? value : [value]))
+    .map((value) => String(value || "").trim())
+    .filter(Boolean);
+
+const getEstimateUrlCandidates = () =>
+  resolveUrlCandidates(
+    config.JobSummary?.URL?.GetEstimate,
+    String(config.JobSummary?.URL?.SaveEstimate || "").replace(/SaveEstimate$/i, "GetEstimate"),
+    config.Estimate?.URL?.GetEstimate,
+    config.Estimate?.URL?.GetAllEstimate,
+    config.Estimate?.URL?.GetAllEstimates,
+    config.Estimate?.URL?.GetAll,
+    config.Estimate?.URL?.Getestimate,
+    config.Estimate?.URL?.GetallEstimate,
+    config.Estimate?.URL?.Getall,
+    config.Estimate?.URL?.GetAllEstimateData,
+    config.Estimate?.URL?.GetEstimateList,
+    config.Estimate?.URL?.List
+  );
+
+const fetchEstimateRows = async () => {
+  const urls = getEstimateUrlCandidates();
+  if (!urls.length) {
+    console.warn("Estimate API URL missing. Add config.JobSummary.URL.GetEstimate.");
+    return [];
+  }
+
+  let lastError = null;
+  for (const url of urls) {
+    try {
+      const response = await axios.get(url, { timeout: 10000 });
+      return getResponseRows(response.data);
+    } catch (getError) {
+      lastError = getError;
+      try {
+        const response = await axios.post(url, {}, { timeout: 10000, headers: { "Content-Type": "application/json" } });
+        return getResponseRows(response.data);
+      } catch (postError) {
+        lastError = postError;
+        console.warn("Estimate API failed:", postError?.response?.status || getError?.response?.status, url);
+      }
+    }
+  }
+
+  if (lastError) console.warn("All Estimate API attempts failed", lastError);
+  return [];
+};
+
+const parseJsonValue = (value) => {
+  if (!value || typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return null;
+  }
+};
+
+const getEstimateFullJson = (estimate) => {
+  const rawJson = getRowValue(
+    estimate,
+    "fullEstimateJson",
+    "FullEstimateJson",
+    "fullEstimateJSON",
+    "FullEstimateJSON",
+    "estimateJson",
+    "EstimateJson"
+  );
+  const parsed = parseJsonValue(rawJson);
+  return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+};
+
+const getEstimateJobNo = (estimate) => {
+  const directJobNo = getRowValue(
+    estimate,
+    "JobNo",
+    "jobNo",
+    "JobNumber",
+    "jobNumber",
+    "JobCardNo",
+    "jobCardNo",
+    "JobCards",
+    "jobCards"
+  );
+  if (directJobNo) return directJobNo;
+
+  const fullJson = getEstimateFullJson(estimate);
+  return getRowValue(fullJson?.header || fullJson?.Header, "JobNo", "jobNo", "JobNumber", "jobNumber");
+};
+
+const getEstimateChargeAmount = (estimate, keys) => {
+  for (const key of keys) {
+    const value = estimate?.[key];
+    const amount = toNumber(String(value ?? "").replace(/,/g, ""));
+    if (amount > 0) return amount;
+  }
+  return 0;
+};
+
+const getEstimateChargeKey = (jobNo, type, description, amount, sourceLine = {}) => {
+  const locationKey = firstNonEmpty(
+    getRowValue(sourceLine, "storeName", "StoreName", "store", "salonName"),
+    getRowValue(sourceLine, "city", "City", "region")
+  );
+
+  return [
+    normalizeCompare(jobNo),
+    normalizeCompare(type),
+    normalizeCompare(description || getChargeDescription(type)),
+    normalizeCompare(locationKey),
+    toNumber(amount),
+  ].join("|");
+};
+
+const createEstimateChargeRow = (estimate, type, description, amount, sourceLine = {}) => {
+  const jobNo = getEstimateJobNo(estimate);
+  const sourceKey = firstNonEmpty(
+    sourceLine.estimateLineKey,
+    sourceLine.EstimateLineKey,
+    sourceLine.id,
+    sourceLine.Id,
+    sourceLine.chargeKey,
+    sourceLine.ChargeKey,
+    description
+  );
+  return {
+    ...estimate,
+    ...sourceLine,
+    id: `${estimate?.id || estimate?._id || estimate?.estimateNo || estimate?.EstimateNo || jobNo || "estimate"}-${type}-${sourceKey}`,
+    _invoiceSource: "estimate",
+    _fromEstimateCharge: true,
+    _estimateChargeType: type,
+    _estimateChargeKey: getEstimateChargeKey(jobNo, type, description, amount, sourceLine),
+    JobNo: jobNo,
+    jobNo,
+    EstimateNo: estimate?.EstimateNo || estimate?.estimateNo || "",
+    estimateNo: estimate?.estimateNo || estimate?.EstimateNo || "",
+    Details: description,
+    details: description,
+    NameSubCode: description,
+    nameSubCode: description,
+    Media: "Charges",
+    media: "Charges",
+    HsnCode: sourceLine?.HsnCode || sourceLine?.hsnCode || sourceLine?.hsn || estimate?.HsnCode || estimate?.hsnCode || estimate?.HSNCode || estimate?.hsn || "",
+    hsnCode: sourceLine?.HsnCode || sourceLine?.hsnCode || sourceLine?.hsn || estimate?.HsnCode || estimate?.hsnCode || estimate?.HSNCode || estimate?.hsn || "",
+    StoreName: sourceLine?.StoreName || sourceLine?.storeName || sourceLine?.store || sourceLine?.salonName || estimate?.StoreName || estimate?.storeName || "",
+    storeName: sourceLine?.StoreName || sourceLine?.storeName || sourceLine?.store || sourceLine?.salonName || estimate?.StoreName || estimate?.storeName || "",
+    City: sourceLine?.City || sourceLine?.city || sourceLine?.region || estimate?.City || estimate?.city || "",
+    city: sourceLine?.City || sourceLine?.city || sourceLine?.region || estimate?.City || estimate?.city || "",
+    BillingLocation: sourceLine?.BillingLocation || sourceLine?.billingLocation || estimate?.BillingLocation || estimate?.billingLocation || "",
+    billingLocation: sourceLine?.BillingLocation || sourceLine?.billingLocation || estimate?.BillingLocation || estimate?.billingLocation || "",
+    ProductionLocation: sourceLine?.ProductionLocation || sourceLine?.productionLocation || estimate?.ProductionLocation || estimate?.productionLocation || "",
+    productionLocation: sourceLine?.ProductionLocation || sourceLine?.productionLocation || estimate?.ProductionLocation || estimate?.productionLocation || "",
+    Quantity: 1,
+    quantity: 1,
+    Qty: 1,
+    qty: 1,
+    Width: "",
+    width: "",
+    Height: "",
+    height: "",
+    UnitPrice: amount,
+    unitPrice: amount,
+    Rate: amount,
+    rate: amount,
+    Amount: amount,
+    amount,
+    TaxableValue: amount,
+    taxableValue: amount,
+    InvoiceAmount: amount,
+    invoiceAmount: amount,
+    manualAmount: amount,
+    Client: estimate?.Client || estimate?.client || estimate?.CustomerName || estimate?.customerName || estimate?.header?.clientName || "",
+    client: estimate?.Client || estimate?.client || estimate?.CustomerName || estimate?.customerName || estimate?.header?.clientName || "",
+    ProjectName: estimate?.ProjectName || estimate?.projectName || "",
+    projectName: estimate?.ProjectName || estimate?.projectName || "",
+  };
+};
+
+const getEstimateChargeTypeFromLine = (line = {}) => {
+  const chargeKey = normalizeCompare(getRowValue(line, "chargeKey", "ChargeKey", "type", "Type", "lineType", "LineType"));
+  const description = normalizeCompare(getRowValue(line, "description", "Description", "details", "Details", "nameSubCode", "NameSubCode"));
+  const media = normalizeCompare(getRowValue(line, "media", "Media", "externalMedia", "ExternalMedia", "internalMedia", "InternalMedia"));
+  const isChargeRow = isTruthyFlag(getRowValue(line, "isChargeRow", "IsChargeRow")) || chargeKey.includes("charges");
+  const text = `${chargeKey} ${description}`;
+  const isNonMedia = media.includes("non media") || media.includes("non-media") || media.includes("nonmedia");
+  const isLikelyNonMediaLine = isChargeRow || isChargeLineType(chargeKey) || !media || isNonMedia || media.includes("charge");
+  const mentionsCharge = isLikelyNonMediaLine || description.includes("charge") || description.includes("charges");
+
+  if (mentionsCharge && (text.includes("adaption") || text.includes("adaptation"))) return "adaption";
+  if (mentionsCharge && text.includes("implementation")) return "implementation";
+  if (mentionsCharge && text.includes("installation")) return "installation";
+  if (mentionsCharge && text.includes("layout")) return "layouting";
+  if (mentionsCharge && (text.includes("transport") || text.includes("transporting") || text.includes("transportation"))) {
+    return "transportation";
+  }
+
+  return "";
+};
+
+const getEstimateLineRows = (estimate) => {
+  const fullJson = getEstimateFullJson(estimate);
+  return [
+    estimate?.lines,
+    estimate?.Lines,
+    estimate?.lineItems,
+    estimate?.LineItems,
+    fullJson?.rows,
+    fullJson?.Rows,
+    fullJson?.lines,
+    fullJson?.Lines,
+    fullJson?.lineItems,
+    fullJson?.LineItems,
+  ].flatMap((source) => getResponseRows(parseJsonValue(source) || source));
+};
+
+const getEstimateLineChargeAmount = (line = {}) => {
+  const amount = getEstimateChargeAmount(line, [
+    "amount",
+    "Amount",
+    "lineTotal",
+    "LineTotal",
+    "taxableValue",
+    "TaxableValue",
+    "value",
+    "Value",
+  ]);
+
+  if (amount > 0) return amount;
+
+  const qty = toNumber(getRowValue(line, "qty", "Qty", "quantity", "Quantity")) || 1;
+  const rate = toNumber(getRowValue(line, "rate", "Rate", "unitPrice", "UnitPrice"));
+  return qty * rate;
+};
+
+const getEstimateChargeDescription = (type, line = {}) =>
+  firstNonEmpty(getRowValue(line, "description", "Description", "details", "Details", "nameSubCode", "NameSubCode"), getChargeDescription(type));
+
+const buildEstimateChargeRows = (estimate) => {
+  const rows = [];
+  getEstimateLineRows(estimate).forEach((line) => {
+    const type = getEstimateChargeTypeFromLine(line);
+    if (!type) return;
+    const amount = getEstimateLineChargeAmount(line);
+    if (amount <= 0) return;
+    rows.push(createEstimateChargeRow(estimate, type, getEstimateChargeDescription(type, line), amount, line));
+  });
+
+  if (rows.length) return rows;
+
+  const installationAmount = getEstimateChargeAmount(estimate, [
+    "InstallationCharges",
+    "installationCharges",
+    "InstallationCharge",
+    "installationCharge",
+    "InstallationAmount",
+    "installationAmount",
+    "InstallationChargeAmount",
+    "installationChargeAmount",
+    "Installation charges",
+    "installation charges",
+  ]);
+  const implementationAmount = getEstimateChargeAmount(estimate, [
+    "ImplementationCharges",
+    "implementationCharges",
+    "ImplementationCharge",
+    "implementationCharge",
+    "ImplementationAmount",
+    "implementationAmount",
+    "ImplementationChargeAmount",
+    "implementationChargeAmount",
+    "Implementation charges",
+    "implementation charges",
+  ]);
+  const layoutingAmount = getEstimateChargeAmount(estimate, [
+    "LayoutingCharges",
+    "layoutingCharges",
+    "LayoutingCharge",
+    "layoutingCharge",
+    "LayoutCharges",
+    "layoutCharges",
+    "LayoutingAmount",
+    "layoutingAmount",
+    "LayoutingChargeAmount",
+    "layoutingChargeAmount",
+    "Layouting charges",
+    "layouting charges",
+    "Layout charges",
+    "layout charges",
+  ]);
+  const transportationAmount = getEstimateChargeAmount(estimate, [
+    "TransportationCharges",
+    "transportationCharges",
+    "TransportationCharge",
+    "transportationCharge",
+    "TransportCharges",
+    "transportCharges",
+    "TransportationAmount",
+    "transportationAmount",
+    "TransportationChargeAmount",
+    "transportationChargeAmount",
+    "TransportAmount",
+    "transportAmount",
+    "TransportingCharges",
+    "transportingCharges",
+    "Transportation charges",
+    "transportation charges",
+    "Transport charges",
+    "transport charges",
+  ]);
+  const adaptionAmount = getEstimateChargeAmount(estimate, [
+    "AdaptionCharges",
+    "adaptionCharges",
+    "AdaptionCharge",
+    "adaptionCharge",
+    "AdaptionAmount",
+    "adaptionAmount",
+    "AdaptionChargeAmount",
+    "adaptionChargeAmount",
+    "AdaptationCharges",
+    "adaptationCharges",
+    "AdaptationCharge",
+    "adaptationCharge",
+    "AdaptationAmount",
+    "adaptationAmount",
+    "AdaptationChargeAmount",
+    "adaptationChargeAmount",
+    "Adaption charges",
+    "adaption charges",
+    "Adaptation charges",
+    "adaptation charges",
+  ]);
+
+  if (installationAmount > 0) rows.push(createEstimateChargeRow(estimate, "installation", "Installation Charges", installationAmount));
+  if (implementationAmount > 0) rows.push(createEstimateChargeRow(estimate, "implementation", "Implementation Charges", implementationAmount));
+  if (layoutingAmount > 0) rows.push(createEstimateChargeRow(estimate, "layouting", "Layouting Charges", layoutingAmount));
+  if (transportationAmount > 0) rows.push(createEstimateChargeRow(estimate, "transportation", "Transportation Charges", transportationAmount));
+  if (adaptionAmount > 0) rows.push(createEstimateChargeRow(estimate, "adaption", "Adaption Charges", adaptionAmount));
+
+  return rows;
+};
+
+const mergeEstimateChargesIntoCards = (cards, estimateRows) => {
+  const chargesByJobNo = new Map();
+  estimateRows.forEach((estimate) => {
+    const jobNo = normalizeCompare(getEstimateJobNo(estimate));
+    if (!jobNo) return;
+    const chargeRows = buildEstimateChargeRows(estimate);
+    if (!chargeRows.length) return;
+    if (!chargesByJobNo.has(jobNo)) chargesByJobNo.set(jobNo, []);
+    chargesByJobNo.get(jobNo).push(...chargeRows);
+  });
+
+  if (!chargesByJobNo.size) return cards;
+
+  return cards.map((card) => {
+    const chargeRows = chargesByJobNo.get(normalizeCompare(card.jobCardNo)) || [];
+    if (!chargeRows.length) return card;
+
+    const existingChargeKeys = new Set(
+      card.items
+        .filter((item) => item._fromEstimateCharge || item.source?._fromEstimateCharge)
+        .map((item) => item.source?._estimateChargeKey || item._estimateChargeKey || `${normalizeCompare(item.jobNo)}|${normalizeCompare(item.lineType)}|${normalizeCompare(item.description)}|${normalizeCompare(item.storeName)}|${toNumber(item.manualAmount || item.rate)}`)
+    );
+
+    const chargeItems = chargeRows
+      .map(rowToLineItem)
+      .filter((item) => {
+        const key = item.source?._estimateChargeKey || item._estimateChargeKey || `${normalizeCompare(item.jobNo)}|${normalizeCompare(item.lineType)}|${normalizeCompare(item.description)}|${normalizeCompare(item.storeName)}|${toNumber(item.manualAmount || item.rate)}`;
+        if (existingChargeKeys.has(key)) return false;
+        existingChargeKeys.add(key);
+        return true;
+      });
+
+    return {
+      ...card,
+      source: card.source === "estimate" ? card.source : card.source,
+      items: [...card.items, ...chargeItems],
+      estimateChargeCount: (card.estimateChargeCount || 0) + chargeItems.length,
+    };
+  });
+};
+
 const stripInvoiceHelperFields = (row) => {
   if (!row || typeof row !== "object") return {};
 
@@ -607,22 +1238,29 @@ const buildJobCards = (rows, customers) => {
       ? buildAddressFromCustomer(matchedCustomer, `Bill To ${index + 1} (${jobCardNo})`)
       : buildFallbackAddress(`Bill To ${index + 1} (${jobCardNo})`, jobRows);
     const challanNo = joinUnique(jobRows.map((row) => getChallanMeta(row).no));
+    const challanDate = joinUnique(jobRows.map((row) => getRowChallanDate(row)));
+    const poNo = joinUnique(jobRows.map((row) => getRowPoNo(row)));
+    const poDate = joinUnique(jobRows.map((row) => getRowPoDate(row)));
 
     return {
       id: key,
       source,
       jobCardNo,
       challanNo,
+      challanDate,
+      poNo,
+      poDate,
       hasChallan: jobRows.some((row) => getChallanMeta(row).isCreated),
       isDone: source === "delivery" ? jobRows.some(isDeliveryDone) : jobRows.some(isImplementationDone),
       clientName: joinUnique(jobRows.map((row) => getRowClient(row))) || "Client",
       storeName: joinUnique(jobRows.map((row) => getRowStore(row))) || "-",
       region: joinUnique(jobRows.map((row) => getRowRegion(row))) || "",
       billTo: customerAddress,
-      shipTo: {
-        ...buildFallbackAddress(`Ship To ${index + 1} (${jobCardNo})`, jobRows),
-        name: joinUnique(jobRows.map((row) => getRowStore(row))) || customerAddress.name,
-      },
+    shipTo: {
+  ...customerAddress,
+  id: uid("address"),
+  label: `Ship To ${index + 1} (${jobCardNo})`,
+},
       items: jobRows.map(rowToLineItem),
     };
   });
@@ -678,21 +1316,63 @@ const InvoicePreviewBuilder = () => {
   const [searchText, setSearchText] = useState("");
   const [queueJobFilterNos, setQueueJobFilterNos] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isFallbackLoading, setIsFallbackLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPrinting, setIsPrinting] = useState(false);
   const [message, setMessage] = useState("");
 
   const loadInvoiceJobs = useCallback(async () => {
     const { username, locationId, roleName } = getUserContext();
+    let latestCards = readInvoiceJobCardsCache();
+
+    const publishCards = (nextCards, { cache = true } = {}) => {
+      latestCards = nextCards;
+      setJobCards(nextCards);
+      if (cache) writeInvoiceJobCardsCache(nextCards);
+      setData((prev) => {
+        const selectedIds = prev.selectedJobIds.filter((id) => nextCards.some((card) => card.id === id));
+        if (!selectedIds.length) return { ...prev, selectedJobIds: [] };
+        return buildDataForJobs(prev, nextCards.filter((card) => selectedIds.includes(card.id)));
+      });
+    };
+
     setIsLoading(true);
+    setIsFallbackLoading(false);
     setMessage("");
+
+    if (latestCards.length) {
+      publishCards(latestCards, { cache: false });
+      setIsLoading(false);
+    }
+
+    let challanRows = [];
+
+    try {
+      const challanDashboardResponse = await axios.get(config.Delivery.URL.GetAllChallansDashboard, {
+        timeout: INVOICE_JOB_API_TIMEOUT_MS,
+      });
+      challanRows = normalizeChallanDashboardRows(challanDashboardResponse.data);
+      const quickCards = buildJobCards(challanRows, []);
+      if (quickCards.length || !latestCards.length) {
+        publishCards(quickCards);
+      }
+    } catch (error) {
+      console.warn("Challan dashboard API failed:", error?.response?.status, error?.config?.url);
+      if (!latestCards.length) {
+        setMessage("Could not load challan-created jobs. Loading delivery/implementation fallback...");
+      }
+    } finally {
+      setIsLoading(false);
+    }
+
+    setIsFallbackLoading(true);
 
     try {
       const customerPromise = locationId
         ? axios.post(
             config.JobSummary.URL.Getallcustomer,
             { locationid: locationId },
-            { timeout: 10000, headers: { "Content-Type": "application/json" } }
+            { timeout: INVOICE_BACKGROUND_API_TIMEOUT_MS, headers: { "Content-Type": "application/json" } }
           )
         : Promise.resolve({ data: [] });
 
@@ -704,29 +1384,29 @@ const InvoicePreviewBuilder = () => {
       };
       const deliveryPromise =
         locationId && username
-          ? axios.post(config.Delivery.URL.GetAllDeliveryAccToLocation, payload)
-          : axios.post(config.Delivery.URL.Getalldelivery);
+          ? axios.post(config.Delivery.URL.GetAllDeliveryAccToLocation, payload, { timeout: INVOICE_BACKGROUND_API_TIMEOUT_MS })
+          : axios.post(config.Delivery.URL.Getalldelivery, undefined, { timeout: INVOICE_BACKGROUND_API_TIMEOUT_MS });
       const implementationPromise =
         locationId && username
-          ? axios.post(config.Implementation.URL.GetAllImplementationAccToLocation, payload)
-          : axios.post(config.Implementation.URL.GetallImplementation);
-      const challanDashboardPromise = axios.get(config.Delivery.URL.GetAllChallansDashboard);
+          ? axios.post(config.Implementation.URL.GetAllImplementationAccToLocation, payload, { timeout: INVOICE_BACKGROUND_API_TIMEOUT_MS })
+          : axios.post(config.Implementation.URL.GetallImplementation, undefined, { timeout: INVOICE_BACKGROUND_API_TIMEOUT_MS });
+      const estimatePromise = fetchEstimateRows();
       const allJobsPromise =
         locationId && username
-          ? axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, allJobsPayload)
+          ? axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, allJobsPayload, { timeout: INVOICE_BACKGROUND_API_TIMEOUT_MS })
           : Promise.resolve({ data: [] });
 
       const [
   customerResult,
   deliveryResult,
   implementationResult,
-  challanDashboardResult,
+  estimateResult,
   allJobsResult,
 ] = await Promise.allSettled([
   customerPromise,
   deliveryPromise,
   implementationPromise,
-  challanDashboardPromise,
+  estimatePromise,
   allJobsPromise,
 ]);
 
@@ -741,8 +1421,7 @@ const implementationResponse =
     ? implementationResult.value
     : { data: [] };
 
-const challanDashboardResponse =
-  challanDashboardResult.status === "fulfilled" ? challanDashboardResult.value : { data: [] };
+const estimateRows = estimateResult.status === "fulfilled" ? estimateResult.value : [];
 
 const allJobsResponse =
   allJobsResult.status === "fulfilled" ? allJobsResult.value : { data: [] };
@@ -765,7 +1444,6 @@ if (implementationResult.status === "rejected") {
         ...row,
         _invoiceSource: "implementation",
       }));
-      const challanRows = normalizeChallanDashboardRows(challanDashboardResponse.data);
 
       const eligibleRows = enrichRowsWithJobDetails([...deliveryRows, ...implementationRows], jobRows).filter(
         (row) => isDeliveryDone(row) || isImplementationDone(row) || getChallanMeta(row).isCreated
@@ -775,23 +1453,22 @@ if (implementationResult.status === "rejected") {
       buildJobCards(eligibleRows, customers).forEach((card) => {
         if (!cardMap.has(card.id)) cardMap.set(card.id, card);
       });
-      const nextCards = Array.from(cardMap.values());
+      const nextCards = mergeEstimateChargesIntoCards(Array.from(cardMap.values()), estimateRows);
 
-      setJobCards(nextCards);
-      setData((prev) => {
-        const selectedIds = prev.selectedJobIds.filter((id) => nextCards.some((card) => card.id === id));
-        if (!selectedIds.length) return { ...prev, selectedJobIds: [] };
-        return buildDataForJobs(prev, nextCards.filter((card) => selectedIds.includes(card.id)));
-      });
-
-      if (!nextCards.length) {
+      if (nextCards.length) {
+        publishCards(nextCards);
+      } else if (!latestCards.length) {
+        setJobCards([]);
         setMessage("No delivery done, implementation done, or challan-created jobs found for invoice.");
       }
     } catch (error) {
       console.error("Failed to load invoice jobs", error);
-      setMessage(error?.response?.data?.message || error?.message || "Could not load invoice jobs from Delivery and Implementation.");
+      if (!latestCards.length) {
+        setMessage(error?.response?.data?.message || error?.message || "Could not load invoice jobs from Delivery and Implementation.");
+      }
     } finally {
       setIsLoading(false);
+      setIsFallbackLoading(false);
     }
   }, []);
 
@@ -837,6 +1514,7 @@ if (implementationResult.status === "rejected") {
           billTo: Array.isArray(draft.billTo) && draft.billTo.length ? draft.billTo : prev.billTo,
           shipTo: Array.isArray(draft.shipTo) && draft.shipTo.length ? draft.shipTo : prev.shipTo,
           items: draft.items.length ? draft.items : prev.items,
+          ewayBill: normalizeEwayBillDetails(draft),
         }));
         setMessage("Invoice draft loaded. Review and use Final Invoice when ready.");
       }
@@ -888,6 +1566,33 @@ if (implementationResult.status === "rejected") {
     [data.groupByCity, data.groupByDescription, data.groupByMedia, data.groupByStore, selectedItems]
   );
  const grandTotal = useMemo(() => invoiceItems.reduce((sum, item) => sum + calculateItemAmount(item), 0), [invoiceItems]);
+  const grandTotalWithTax = useMemo(() => grandTotal + (grandTotal * GST_RATE) / 100, [grandTotal]);
+  const selectedJobCards = useMemo(
+    () => jobCards.filter((job) => data.selectedJobIds.includes(job.id)),
+    [data.selectedJobIds, jobCards]
+  );
+  const invoiceRegion = useMemo(() => joinUnique(selectedJobCards.map((job) => job.region)), [selectedJobCards]);
+  const invoiceCompanyDetails = useMemo(() => getCompanyBranchDetails(invoiceRegion), [invoiceRegion]);
+  const customerAddressForState = data.shipTo[0] || data.billTo[0] || {};
+  const companyStateCode = getStateCode({
+    gstNo: invoiceCompanyDetails.companyGst,
+    address: invoiceCompanyDetails.companyAddress,
+  });
+  const customerStateCode = getStateCode({
+    gstNo: firstNonEmpty(customerAddressForState.gstNo, data.billTo[0]?.gstNo),
+    address: firstNonEmpty(customerAddressForState.address, data.billTo[0]?.address),
+  });
+  const isInterStateInvoice = Boolean(companyStateCode && customerStateCode && companyStateCode !== customerStateCode);
+  const isSameStateInvoice = Boolean(companyStateCode && customerStateCode && companyStateCode === customerStateCode);
+  const isEwayBillRequired = isInterStateInvoice || grandTotalWithTax > EWAY_BILL_THRESHOLD;
+  const ewayRequirementText = isInterStateInvoice
+    ? "Required for IGST / different state"
+    : grandTotalWithTax > EWAY_BILL_THRESHOLD
+      ? "Required because invoice total is above Rs. 50,000"
+      : isSameStateInvoice
+        ? "Optional for same-state CGST / SGST up to Rs. 50,000"
+        : "Optional unless state differs or total crosses Rs. 50,000";
+  const ewayBillDetails = normalizeEwayBillDetails(data);
   const groupedPreviewItems = useMemo(
     () =>
       groupInvoiceItems(
@@ -922,6 +1627,30 @@ if (implementationResult.status === "rejected") {
   );
 
   const updateMeta = (field, value) => setData((prev) => ({ ...prev, [field]: value }));
+
+  const updateEwayBill = (field, value) => {
+    setData((prev) => {
+      const nextEwayBill = {
+        ...createEmptyEwayBill(),
+        ...normalizeEwayBillDetails(prev),
+        [field]: value,
+      };
+
+      if (field === "transportMode") {
+        nextEwayBill.modeOfTransportation = value;
+      }
+
+      if (field === "transportDistanceKm") {
+        nextEwayBill.distanceOfTransportation = value;
+      }
+
+      return {
+        ...prev,
+        ewayBill: nextEwayBill,
+        ...buildEwayBillPayload(nextEwayBill),
+      };
+    });
+  };
 
   const updateAddress = (type, id, field, value) => {
     setData((prev) => ({
@@ -1014,6 +1743,24 @@ if (implementationResult.status === "rejected") {
     invoiceItems.map((item, index) => {
       const taxableValue = calculateItemAmount(item);
       const gstAmount = (taxableValue * GST_RATE) / 100;
+      const sourceRow = item.source || {};
+      const challanNo = firstNonEmpty(
+        getChallanMeta(sourceRow).no,
+        sourceRow.ChallanNo,
+        sourceRow.challanNo,
+        sourceRow.DeliveryChallanNo,
+        sourceRow.deliveryChallanNo,
+        sourceRow.ImplementationChallanNo,
+        sourceRow.implementationChallanNo
+      );
+      const challanDate = firstNonEmpty(
+        getRowChallanDate(sourceRow),
+        sourceRow.DeliveryChallanDate,
+        sourceRow.deliveryChallanDate,
+        sourceRow.ImplementationChallanDate,
+        sourceRow.implementationChallanDate
+      );
+      const poNo = firstNonEmpty(data.poNumber, getRowPoNo(sourceRow));
       return {
         key: item.id || `invoice-row-${index}`,
         sno: index + 1,
@@ -1028,8 +1775,38 @@ if (implementationResult.status === "rejected") {
         gstRate: GST_RATE,
         gstAmount,
         lineTotal: taxableValue + gstAmount,
+        lineType: item.lineType || "media",
+        isEstimateCharge: Boolean(item.source?._fromEstimateCharge),
+        invoiceNo: data.invoiceNo || "",
+        invoiceDate: data.invoiceDate || "",
+        challanNo,
+        ChallanNo: challanNo,
+        challanDate,
+        ChallanDate: challanDate,
+        poNo,
+        PoNo: poNo,
       };
     });
+
+  const validateEwayBillRequirement = (actionText) => {
+    if (!isEwayBillRequired) return true;
+
+    const ewayBill = normalizeEwayBillDetails(data);
+    const missingFields = [
+      ["Transporter name", ewayBill.transporterName],
+      ["Mode of transportation", ewayBill.transportMode],
+      ["Distance", ewayBill.transportDistanceKm],
+      ["Vehicle no.", ewayBill.vehicleNo],
+      ["Transporter GST No.", ewayBill.transporterGstNo],
+    ]
+      .filter(([, value]) => !firstNonEmpty(value))
+      .map(([label]) => label);
+
+    if (!missingFields.length) return true;
+
+    setMessage(`E-way Bill is compulsory for this invoice. Please fill ${missingFields.join(", ")} before ${actionText}.`);
+    return false;
+  };
 
  const handleSave = async (status = "Draft") => {
   const invoiceRows = buildPrintRows();
@@ -1054,9 +1831,14 @@ if (implementationResult.status === "rejected") {
     setMessage("Grand total is 0. Please enter Qty, Width, Height and Rate before saving a final invoice.");
     return;
   }
+  if (status !== "Draft" && !validateEwayBillRequirement("saving a final invoice")) {
+    return;
+  }
 
   const userContext = getUserContext();
   const previewPayload = buildInvoicePreviewPayload(data, jobCards, invoiceRows);
+  const ewayBill = normalizeEwayBillDetails(data);
+  const ewayBillPayload = buildEwayBillPayload(ewayBill);
 
   const completeItems = invoiceItems.map((item) => {
     const fullSourceRow = stripInvoiceHelperFields(item.source || {});
@@ -1110,6 +1892,9 @@ if (implementationResult.status === "rejected") {
 
       ProjectName: toText(fullSourceRow.ProjectName || fullSourceRow.projectname || data.projectName),
       Type: toText(item.lineType || fullSourceRow.Type || fullSourceRow.type || "media"),
+      LineType: toText(item.lineType || fullSourceRow.Type || fullSourceRow.type || "media"),
+      IsEstimateCharge: item.source?._fromEstimateCharge ? "1" : "0",
+      EstimateNo: toText(fullSourceRow.EstimateNo || fullSourceRow.estimateNo),
       ProductCode: toText(fullSourceRow.ProductCode || fullSourceRow.productCode),
 
 Description: toText(item.description || sourceDescription),
@@ -1189,10 +1974,50 @@ rate: toText(invoiceRate || sourceRate),
       DeliveryTimestamp: toText(fullSourceRow.DeliveryTimestamp || fullSourceRow.deliveryTimestamp),
       ImplementationTimestamp: toText(fullSourceRow.ImplementationTimestamp || fullSourceRow.implementationTimestamp),
 
-      DeliveryChallanNo: toText(fullSourceRow.DeliveryChallanNo || fullSourceRow.deliveryChallanNo),
-      ImplementationChallanNo: toText(
-        fullSourceRow.ImplementationChallanNo || fullSourceRow.implementationChallanNo
+      ChallanNo: toText(
+        fullSourceRow.ChallanNo ||
+          fullSourceRow.challanNo ||
+          fullSourceRow.DeliveryChallanNo ||
+          fullSourceRow.deliveryChallanNo ||
+          fullSourceRow.ImplementationChallanNo ||
+          fullSourceRow.implementationChallanNo
       ),
+      challanNo: toText(
+        fullSourceRow.ChallanNo ||
+          fullSourceRow.challanNo ||
+          fullSourceRow.DeliveryChallanNo ||
+          fullSourceRow.deliveryChallanNo ||
+          fullSourceRow.ImplementationChallanNo ||
+          fullSourceRow.implementationChallanNo
+      ),
+      ChallanDate: toText(
+        fullSourceRow.ChallanDate ||
+          fullSourceRow.challanDate ||
+          fullSourceRow.DeliveryChallanDate ||
+          fullSourceRow.deliveryChallanDate ||
+          fullSourceRow.ImplementationChallanDate ||
+          fullSourceRow.implementationChallanDate
+      ),
+      challanDate: toText(
+        fullSourceRow.ChallanDate ||
+          fullSourceRow.challanDate ||
+          fullSourceRow.DeliveryChallanDate ||
+          fullSourceRow.deliveryChallanDate ||
+          fullSourceRow.ImplementationChallanDate ||
+          fullSourceRow.implementationChallanDate
+      ),
+      DeliveryChallanNo: toText(fullSourceRow.DeliveryChallanNo || fullSourceRow.deliveryChallanNo || fullSourceRow.ChallanNo || fullSourceRow.challanNo),
+      ImplementationChallanNo: toText(
+        fullSourceRow.ImplementationChallanNo || fullSourceRow.implementationChallanNo || fullSourceRow.ChallanNo || fullSourceRow.challanNo
+      ),
+      PoNo: toText(data.poNumber || fullSourceRow.PoNo || fullSourceRow.poNo || fullSourceRow.PONo || fullSourceRow.poNumber),
+      poNo: toText(data.poNumber || fullSourceRow.PoNo || fullSourceRow.poNo || fullSourceRow.PONo || fullSourceRow.poNumber),
+      PoDate: toText(fullSourceRow.PoDate || fullSourceRow.poDate || fullSourceRow.PODate),
+      poDate: toText(fullSourceRow.PoDate || fullSourceRow.poDate || fullSourceRow.PODate),
+      InvoiceNo: toText(data.invoiceNo),
+      invoiceNo: toText(data.invoiceNo),
+      InvoiceDate: toText(data.invoiceDate),
+      invoiceDate: toText(data.invoiceDate),
 
       SalonAddress: toText(fullSourceRow.SalonAddress || fullSourceRow.salonAddress),
       DispatchAddress: toText(fullSourceRow.DispatchAddress || fullSourceRow.dispatchAddress),
@@ -1226,7 +2051,12 @@ rate: toText(invoiceRate || sourceRate),
       InvoiceDate: data.invoiceDate || "",
       JobCards: joinUnique(items.map((x) => x.JobNo)),
       ClientBillAs: data.clientName || previewPayload.billAsName,
-      PoNo: data.poNumber || "",
+      PoNo: previewPayload.poNumber || "",
+      ItrNo: data.itrNo || "",
+      ITRNo: data.itrNo || "",
+      itrNo: data.itrNo || "",
+      ChallanNo: joinUnique(items.map((x) => x.ChallanNo || x.challanNo)),
+      ChallanDate: joinUnique(items.map((x) => x.ChallanDate || x.challanDate)),
       ProjectName: data.projectName || "",
       Region: joinUnique(items.map((x) => x.Region)),
 
@@ -1243,6 +2073,7 @@ rate: toText(invoiceRate || sourceRate),
       ...totals,
 
       Notes: data.notes || "",
+      ...ewayBillPayload,
       Status: status,
       status,
       InvoiceStatus: status,
@@ -1267,7 +2098,12 @@ rate: toText(invoiceRate || sourceRate),
     InvoiceDate: data.invoiceDate || "",
     JobCards: data.jobCardNo || "",
     ClientBillAs: data.clientName || previewPayload.billAsName,
-    PoNo: data.poNumber || "",
+    PoNo: previewPayload.poNumber || "",
+    ItrNo: data.itrNo || "",
+    ITRNo: data.itrNo || "",
+    itrNo: data.itrNo || "",
+    ChallanNo: previewPayload.challanNo || "",
+    ChallanDate: previewPayload.challanDate || "",
     ProjectName: data.projectName || "",
     Region: previewPayload.region || "",
 
@@ -1284,6 +2120,7 @@ rate: toText(invoiceRate || sourceRate),
     ...customerTotals,
 
     Notes: data.notes || "",
+    ...ewayBillPayload,
     Status: status,
     status,
     InvoiceStatus: status,
@@ -1305,6 +2142,10 @@ rate: toText(invoiceRate || sourceRate),
     IsFinal: status === "Final",
     isFinal: status === "Final",
     BillingLocation: completeItems[0]?.BillingLocation || "",
+    ItrNo: data.itrNo || "",
+    ITRNo: data.itrNo || "",
+    itrNo: data.itrNo || "",
+    ...ewayBillPayload,
     CustomerInvoice: customerInvoice,
     ProductionInvoices: productionInvoices,
   };
@@ -1342,8 +2183,23 @@ rate: toText(invoiceRate || sourceRate),
       }));
     }
     const resolvedInvoiceNo = savedInvoiceNo || data.invoiceNo || previewPayload.invoiceNo;
+    rememberEwayBillDetails(resolvedInvoiceNo, ewayBill);
 
-    const nextPreviewPayload = addInvoiceNoToPreviewPayload(previewPayload, resolvedInvoiceNo);
+    const nextPreviewPayload = addInvoiceNoToPreviewPayload(
+      {
+        ...previewPayload,
+        ...ewayBillPayload,
+        ewayBill,
+        invoiceRows: invoiceRows.map((row) => ({
+          ...row,
+          invoiceNo: resolvedInvoiceNo || row.invoiceNo || "",
+          InvoiceNo: resolvedInvoiceNo || row.InvoiceNo || "",
+          invoiceDate: previewPayload.invoiceDate || row.invoiceDate || "",
+          InvoiceDate: previewPayload.InvoiceDate || row.InvoiceDate || "",
+        })),
+      },
+      resolvedInvoiceNo
+    );
     const invoiceNoForStatus = resolvedInvoiceNo;
 
     rememberInvoiceStatus(invoiceNoForStatus, status);
@@ -1353,6 +2209,8 @@ rate: toText(invoiceRate || sourceRate),
         "invoiceDraftData",
         JSON.stringify({
           ...data,
+          ...ewayBillPayload,
+          ewayBill,
           invoiceNo: resolvedInvoiceNo,
           status,
           savedAt: new Date().toISOString(),
@@ -1400,7 +2258,12 @@ rate: toText(invoiceRate || sourceRate),
       setMessage("Grand total is 0. Please enter Qty, Width, Height and Rate before printing.");
       return;
     }
+    if (!validateEwayBillRequirement("printing")) {
+      return;
+    }
     const previewPayload = buildInvoicePreviewPayload(data, jobCards, invoiceRows);
+    const ewayBill = normalizeEwayBillDetails(data);
+    const ewayBillPayload = buildEwayBillPayload(ewayBill);
     let resolvedInvoiceNo = firstNonEmpty(data.invoiceNo, previewPayload.invoiceNo);
 
     if (!resolvedInvoiceNo) {
@@ -1424,16 +2287,35 @@ rate: toText(invoiceRate || sourceRate),
       }
     }
 
-    localStorage.setItem(
-      "invoicePrintPreviewData",
-      JSON.stringify(addInvoiceNoToPreviewPayload(previewPayload, resolvedInvoiceNo))
+    const printPayload = addInvoiceNoToPreviewPayload(
+      {
+        ...previewPayload,
+        ...ewayBillPayload,
+        ewayBill,
+        invoiceRows: invoiceRows.map((row) => ({
+          ...row,
+          invoiceNo: resolvedInvoiceNo || row.invoiceNo || "",
+          InvoiceNo: resolvedInvoiceNo || row.InvoiceNo || "",
+          invoiceDate: previewPayload.invoiceDate || row.invoiceDate || "",
+          InvoiceDate: previewPayload.InvoiceDate || row.InvoiceDate || "",
+        })),
+      },
+      resolvedInvoiceNo
     );
+
+    rememberEwayBillDetails(resolvedInvoiceNo, ewayBill);
+    localStorage.setItem("invoicePrintPreviewData", JSON.stringify(printPayload));
 
     if (!resolvedInvoiceNo) {
       setMessage("Print preview opened, but invoice number was not found. Please save the invoice or print from All Invoices.");
     }
 
-    window.open(all_routes.invoiceprintpreview, "_blank");
+    window.open(
+      resolvedInvoiceNo
+        ? `${all_routes.invoiceprintpreview}/${encodeURIComponent(resolvedInvoiceNo)}`
+        : all_routes.invoiceprintpreview,
+      "_blank"
+    );
   };
 
   return (
@@ -1639,7 +2521,38 @@ rate: toText(invoiceRate || sourceRate),
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 14px 12px;
           }
+          .eway-detail-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px 12px;
+            align-items: end;
+          }
+          .eway-mode-options {
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+          }
+          .eway-status-pill {
+            display: inline-flex;
+            align-items: center;
+            min-height: 28px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid #cfd8e6;
+            color: #344054;
+            background: #f8fbff;
+            font-size: 12px;
+            font-weight: 800;
+          }
+          .eway-status-pill.required {
+            border-color: #f59e0b;
+            background: #fff7ed;
+            color: #92400e;
+          }
           .invoice-meta-grid .form-label,
+          .eway-detail-grid .form-label,
           .address-card .form-label,
           .invoice-section .form-label {
             color: #475467;
@@ -1828,6 +2741,7 @@ rate: toText(invoiceRate || sourceRate),
               width: 100%;
             }
             .invoice-meta-grid,
+            .eway-detail-grid,
             .address-grid {
               grid-template-columns: 1fr;
             }
@@ -1872,7 +2786,7 @@ rate: toText(invoiceRate || sourceRate),
             </div>
             <div>
               <h1 className="invoice-title">Sales Invoice</h1>
-              <div className="invoice-subtitle">Delivery done, implementation done, and challan-created jobs are loaded here</div>
+              <div className="invoice-subtitle">Delivery/implementation challans are merged with estimate charges by Job No</div>
             </div>
           </div>
 
@@ -1913,7 +2827,9 @@ rate: toText(invoiceRate || sourceRate),
               <h5>Invoice Job Queue</h5>
               <div className="text-muted small">
                 {isLoading
-                  ? "Loading jobs..."
+                  ? "Loading challan jobs..."
+                  : isFallbackLoading
+                    ? `${jobCards.length} invoice-ready job card(s). Refreshing delivery/implementation data...`
                   : queueJobFilterNos.length || data.selectedJobIds.length
                     ? `${visibleJobCards.length} shown from ${jobCards.length} invoice-ready job card(s)`
                     : `${jobCards.length} invoice-ready job card(s). Select Job No to show cards.`}
@@ -1923,7 +2839,7 @@ rate: toText(invoiceRate || sourceRate),
   <Select
     isMulti
     isClearable
-    isLoading={isLoading}
+    isLoading={isLoading || isFallbackLoading}
     options={jobSelectOptions.filter((option) =>
       String(option.label || "")
         .toLowerCase()
@@ -1970,39 +2886,52 @@ rate: toText(invoiceRate || sourceRate),
           {isLoading ? (
             <div className="d-flex align-items-center gap-2 text-muted">
               <Spinner animation="border" size="sm" />
-              Loading delivery and implementation jobs...
+              Loading challan-created jobs...
+            </div>
+          ) : isFallbackLoading && !visibleJobCards.length ? (
+            <div className="d-flex align-items-center gap-2 text-muted">
+              <Spinner animation="border" size="sm" />
+              Loading delivery/implementation fallback jobs...
             </div>
           ) : visibleJobCards.length ? (
-            <div className="job-card-grid">
-              {visibleJobCards.map((job) => {
-                const checked = data.selectedJobIds.includes(job.id);
-                return (
-                  <label key={job.id} className={`job-picker-card ${checked ? "active" : ""}`}>
-                    <div className="d-flex align-items-start gap-2">
-                      <Form.Check
-                        checked={checked}
-                        onChange={(event) => {
-                          const nextIds = event.target.checked
-                            ? [...data.selectedJobIds, job.id]
-                            : data.selectedJobIds.filter((id) => id !== job.id);
-                          handleJobsSelected(nextIds);
-                        }}
-                      />
-                      <div className="w-100">
-                        <div className="job-card-title-row">
-                          <strong>{job.jobCardNo}</strong>
-                          <span className="job-source-badge">{job.source}</span>
+            <>
+              {isFallbackLoading ? (
+                <div className="d-flex align-items-center gap-2 text-muted small mb-2">
+                  <Spinner animation="border" size="sm" />
+                  Updating delivery/implementation data...
+                </div>
+              ) : null}
+              <div className="job-card-grid">
+                {visibleJobCards.map((job) => {
+                  const checked = data.selectedJobIds.includes(job.id);
+                  return (
+                    <label key={job.id} className={`job-picker-card ${checked ? "active" : ""}`}>
+                      <div className="d-flex align-items-start gap-2">
+                        <Form.Check
+                          checked={checked}
+                          onChange={(event) => {
+                            const nextIds = event.target.checked
+                              ? [...data.selectedJobIds, job.id]
+                              : data.selectedJobIds.filter((id) => id !== job.id);
+                            handleJobsSelected(nextIds);
+                          }}
+                        />
+                        <div className="w-100">
+                          <div className="job-card-title-row">
+                            <strong>{job.jobCardNo}</strong>
+                            <span className="job-source-badge">{job.source}</span>
+                          </div>
+                          <div className="text-muted small job-card-text">{job.clientName}</div>
+                          <div className="small job-card-text">{job.storeName}</div>
+                          <div className="text-muted small">{job.items.length} item(s)</div>
+                          {job.challanNo ? <div className="small fw-semibold job-card-text">Challan: {job.challanNo}</div> : null}
                         </div>
-                        <div className="text-muted small job-card-text">{job.clientName}</div>
-                        <div className="small job-card-text">{job.storeName}</div>
-                        <div className="text-muted small">{job.items.length} item(s)</div>
-                        {job.challanNo ? <div className="small fw-semibold job-card-text">Challan: {job.challanNo}</div> : null}
                       </div>
-                    </div>
-                  </label>
-                );
-              })}
-            </div>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
           ) : (
             <Alert variant="info" className="mb-0">
               {queueJobFilterNos.length
@@ -2028,6 +2957,10 @@ rate: toText(invoiceRate || sourceRate),
               <Form.Control type="date" value={data.invoiceDate} onChange={(event) => updateMeta("invoiceDate", event.target.value)} />
             </Form.Group>
             <Form.Group>
+              <Form.Label>ITR</Form.Label>
+              <Form.Control value={data.itrNo || ""} onChange={(event) => updateMeta("itrNo", event.target.value)} />
+            </Form.Group>
+            <Form.Group>
               <Form.Label>Job Card(s)</Form.Label>
               <Form.Control value={data.jobCardNo} onChange={(event) => updateMeta("jobCardNo", event.target.value)} placeholder="Select jobs above" />
             </Form.Group>
@@ -2050,6 +2983,70 @@ rate: toText(invoiceRate || sourceRate),
             <Form.Group>
               <Form.Label>Project Name</Form.Label>
               <Form.Control value={data.projectName || ""} onChange={(event) => updateMeta("projectName", event.target.value)} />
+            </Form.Group>
+          </div>
+        </section>
+
+        <section className="invoice-section">
+          <div className="invoice-section-header">
+            <div className="invoice-section-heading">
+              <h5>Eway Bill Details</h5>
+              <div className="text-muted small">
+                Invoice total with tax: {formatMoney(grandTotalWithTax)}
+              </div>
+            </div>
+            <div className="invoice-actions">
+              <span className={`eway-status-pill ${isEwayBillRequired ? "required" : ""}`}>
+                {ewayRequirementText}
+              </span>
+            </div>
+          </div>
+          <div className="eway-detail-grid">
+            <Form.Group>
+              <Form.Label>Transporter name</Form.Label>
+              <Form.Control
+                value={ewayBillDetails.transporterName}
+                onChange={(event) => updateEwayBill("transporterName", event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Mode of transportation</Form.Label>
+              <div className="eway-mode-options">
+                {TRANSPORT_MODES.map((mode) => (
+                  <Form.Check
+                    inline
+                    key={mode}
+                    type="radio"
+                    id={`eway-mode-${mode}`}
+                    label={mode}
+                    checked={ewayBillDetails.transportMode === mode}
+                    onChange={() => updateEwayBill("transportMode", mode)}
+                  />
+                ))}
+              </div>
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Distance of transportation (in km)</Form.Label>
+              <Form.Control
+                type="number"
+                min="0"
+                value={ewayBillDetails.transportDistanceKm}
+                onChange={(event) => updateEwayBill("transportDistanceKm", event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Vehicle no</Form.Label>
+              <Form.Control
+                value={ewayBillDetails.vehicleNo}
+                onChange={(event) => updateEwayBill("vehicleNo", event.target.value)}
+              />
+            </Form.Group>
+            <Form.Group>
+              <Form.Label>Transporter GstNo</Form.Label>
+              <Form.Control
+                value={ewayBillDetails.transporterGstNo}
+                onChange={(event) => updateEwayBill("transporterGstNo", event.target.value)}
+              />
             </Form.Group>
           </div>
         </section>
@@ -2145,8 +3142,20 @@ rate: toText(invoiceRate || sourceRate),
               <Button size="sm" variant="outline-secondary" onClick={copyPoDescriptionToItems}>
                 Copy PO Description
               </Button>
+              <Button size="sm" variant="outline-secondary" onClick={() => addItem("installation")}>
+                Installation
+              </Button>
+              <Button size="sm" variant="outline-secondary" onClick={() => addItem("implementation")}>
+                Implementation
+              </Button>
+              <Button size="sm" variant="outline-secondary" onClick={() => addItem("layouting")}>
+                Layouting
+              </Button>
               <Button size="sm" variant="outline-secondary" onClick={() => addItem("transportation")}>
-                Transportation
+                Transport
+              </Button>
+              <Button size="sm" variant="outline-secondary" onClick={() => addItem("adaption")}>
+                Adaption
               </Button>
               <Button size="sm" variant="primary" onClick={() => addItem("media")}>
                 <Plus size={14} /> Add Row
@@ -2272,6 +3281,26 @@ rate: toText(invoiceRate || sourceRate),
   );
 };
 
+
+const buildSelectedJobItems = (jobs) => {
+  const seenEstimateCharges = new Set();
+  return jobs.flatMap((job) =>
+    job.items
+      .filter((item) => {
+        const isEstimateCharge = item.source?._fromEstimateCharge || item._fromEstimateCharge;
+        if (!isEstimateCharge) return true;
+        const key =
+          item.source?._estimateChargeKey ||
+          item._estimateChargeKey ||
+          `${normalizeCompare(item.jobNo)}|${normalizeCompare(item.lineType)}|${normalizeCompare(item.description)}|${normalizeCompare(item.storeName)}|${toNumber(item.manualAmount || item.rate)}`;
+        if (seenEstimateCharges.has(key)) return false;
+        seenEstimateCharges.add(key);
+        return true;
+      })
+      .map((item) => ({ ...item, id: uid("item"), selected: false }))
+  );
+};
+
 const buildDataForJobs = (prev, jobs) => ({
   ...prev,
   selectedJobIds: jobs.map((job) => job.id),
@@ -2285,39 +3314,76 @@ const buildDataForJobs = (prev, jobs) => ({
     id: uid("address"),
     label: `Ship To ${index + 1} (${job.jobCardNo})`,
   })),
-  items: jobs.flatMap((job) => job.items.map((item) => ({ ...item, id: uid("item"), selected: false }))),
+  items: buildSelectedJobItems(jobs),
   jobCardNo: jobs.map((job) => job.jobCardNo).join(", "),
   clientName: joinUnique(jobs.map((job) => job.clientName)),
+  poNumber: prev.poNumber || joinUnique(jobs.map((job) => job.poNo)),
 });
 
 const buildInvoicePreviewPayload = (data, jobCards, invoiceRows) => {
   const invoiceSubtotal = invoiceRows.reduce((sum, row) => sum + row.taxableValue, 0);
   const invoiceGstTotal = invoiceRows.reduce((sum, row) => sum + row.gstAmount, 0);
-  const region = joinUnique(jobCards.filter((job) => data.selectedJobIds.includes(job.id)).map((job) => job.region));
+  const selectedJobs = jobCards.filter((job) => data.selectedJobIds.includes(job.id));
+  const region = joinUnique(selectedJobs.map((job) => job.region));
+  const challanNo = joinUnique(selectedJobs.map((job) => job.challanNo));
+  const challanDate = joinUnique(selectedJobs.map((job) => job.challanDate));
+  const poNumber = data.poNumber || joinUnique(selectedJobs.map((job) => job.poNo));
+  const ewayBill = normalizeEwayBillDetails(data);
+  const ewayBillPayload = buildEwayBillPayload(ewayBill);
 
   return {
     companyDetails: getCompanyBranchDetails(region),
     billAsName: data.clientName || data.billTo[0]?.name || "Sales Invoice",
     invoiceNo: data.invoiceNo,
-    invoiceDate: data.invoiceDate,
-    poNumber: data.poNumber || "",
+    InvoiceNo: data.invoiceNo,
+    CustomerInvoiceNo: data.invoiceNo,
+    _invoiceNo: data.invoiceNo,
+    invoiceDate: data.invoiceDate || new Date().toISOString().split("T")[0],
+    InvoiceDate: data.invoiceDate || new Date().toISOString().split("T")[0],
+    _invoiceDate: data.invoiceDate || new Date().toISOString().split("T")[0],
+    itrNo: data.itrNo || "",
+    ItrNo: data.itrNo || "",
+    ITRNo: data.itrNo || "",
+    ITR: data.itrNo || "",
+    poNumber,
+    PoNo: poNumber,
     projectName: data.projectName || "",
+    ProjectName: data.projectName || "",
+    _project: data.projectName || "",
     region,
     selectedJobNo: data.jobCardNo,
+    JobCards: data.jobCardNo,
+    jobCards: data.jobCardNo,
+    _jobCards: data.jobCardNo,
+    ClientBillAs: data.clientName || data.billTo[0]?.name || "Sales Invoice",
+    _client: data.clientName || data.billTo[0]?.name || "Sales Invoice",
+    challanNo,
+    ChallanNo: challanNo,
+    challanDate,
+    ChallanDate: challanDate,
     gstRate: GST_RATE,
     invoiceRows,
     invoiceSubtotal,
     invoiceGstTotal,
     invoiceGrandTotal: invoiceSubtotal + invoiceGstTotal,
+    ...ewayBillPayload,
     billToList: data.billTo.map((address) => ({
       id: address.id,
       label: address.label,
-      address: [address.name, address.address, address.gstNo ? `GST No: ${address.gstNo}` : ""].filter(Boolean).join("\n"),
+      name: address.name,
+      customerName: address.name,
+      address: address.address,
+      gstNo: address.gstNo,
+      phone: address.phone || "",
     })),
     shipToList: data.shipTo.map((address) => ({
       id: address.id,
       label: address.label,
-      address: [address.name, address.address, address.gstNo ? `GST No: ${address.gstNo}` : ""].filter(Boolean).join("\n"),
+      name: address.name,
+      customerName: address.name,
+      address: address.address,
+      gstNo: address.gstNo,
+      phone: address.phone || "",
     })),
     notes: data.notes || "",
   };

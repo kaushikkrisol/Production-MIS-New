@@ -36,6 +36,7 @@ const config ={
             RestoreJob:BaseURL+'/api/JobSummary/RestoreJob',
             ResumeJobFromHold: "/api/JobSummary/ResumeJobFromHold",
             SaveEstimate:BaseURL+'/api/JobSummary/SaveEstimate',
+            GetEstimate:BaseURL+'/api/JobSummary/GetEstimate'
 
         }
     },

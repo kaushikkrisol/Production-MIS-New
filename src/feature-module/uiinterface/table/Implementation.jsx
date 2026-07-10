@@ -243,6 +243,74 @@ const Implementation = () => {
     return parts.join(" - ");
   };
 
+  const toTrimmedText = (value) => String(value ?? "").trim();
+
+  const firstNonEmpty = (...values) => {
+    for (const value of values) {
+      const text = toTrimmedText(value);
+      if (text) return text;
+    }
+    return "";
+  };
+
+  const buildCustomerBillingAddress = (customer, row) => {
+    const customerAddress = [
+      customer?.billinG_ADD1,
+      customer?.billinG_ADD2,
+      `${customer?.billinG_CITY || ""}${
+        customer?.billinG_CITY && customer?.billinG_PINCODE ? " - " : ""
+      }${customer?.billinG_PINCODE || ""}`,
+    ]
+      .filter((x) => x && String(x).trim() !== "")
+      .join(", ");
+
+    return firstNonEmpty(
+      customerAddress,
+      row?.customerAddress,
+      row?.CustomerAddress,
+      row?.address,
+      row?.Address,
+      row?.billingAddress,
+      row?.BillingAddress,
+      row?.storeAddress,
+      row?.StoreAddress,
+      row?.salonAddress,
+      row?.SalonAddress,
+      row?.dispatchAddress,
+      row?.DispatchAddress
+    );
+  };
+
+  const getStoreAddressFallback = (row) =>
+    firstNonEmpty(
+      row?.storeAddress,
+      row?.StoreAddress,
+      row?.salonAddress,
+      row?.SalonAddress,
+      row?.dispatchAddress,
+      row?.DispatchAddress,
+      row?.customerAddress,
+      row?.CustomerAddress
+    );
+
+  const getDispatchAddressFallback = (row) =>
+    firstNonEmpty(row?.dispatchAddress, row?.DispatchAddress, row?.storeAddress, row?.StoreAddress, row?.salonAddress, row?.SalonAddress);
+
+  const resolveImplementationChallanForm = useCallback(
+    (form = challanForm, rows = []) => {
+      const firstRow = rows[0] || {};
+      const customer = findCustomerRecord(customers, firstRow);
+      return {
+        ...form,
+        customerAddress: firstNonEmpty(form.customerAddress, buildCustomerBillingAddress(customer, firstRow)),
+        customerGstNo: firstNonEmpty(form.customerGstNo, customer?.gsT_NO, firstRow?.customerGstNo, firstRow?.CustomerGstNo),
+        storeAddress: firstNonEmpty(form.storeAddress, getStoreAddressFallback(firstRow)),
+        dispatchAddress: firstNonEmpty(form.dispatchAddress, getDispatchAddressFallback(firstRow)),
+      };
+    },
+    [challanForm, customers]
+  );
+
   const getNormalizedProductionLocation = useCallback(
     (row) => String(row?.region || row?.productionLocation || "").trim().toLowerCase(),
     []
@@ -394,17 +462,10 @@ const Implementation = () => {
       });
 
       return {
-        customerAddress: [
-          customer?.billinG_ADD1,
-          customer?.billinG_ADD2,
-          `${customer?.billinG_CITY || ""}${
-            customer?.billinG_CITY && customer?.billinG_PINCODE ? " - " : ""
-          }${customer?.billinG_PINCODE || ""}`,
-        ]
-          .filter((x) => x && String(x).trim() !== "")
-          .join(", "),
-        customerGstNo: customer?.gsT_NO || "",
-        storeAddress: firstRow?.salonAddress || "",
+        customerAddress: buildCustomerBillingAddress(customer, firstRow),
+        customerGstNo: firstNonEmpty(customer?.gsT_NO, firstRow?.customerGstNo, firstRow?.CustomerGstNo),
+        storeAddress: getStoreAddressFallback(firstRow),
+        dispatchAddress: getDispatchAddressFallback(firstRow),
         cpName:
           firstRow?.contactPersonName ||
           firstRow?.contactPerson ||
@@ -472,20 +533,20 @@ const Implementation = () => {
   getNormalizedCustomerKey,
 ]);
 
-  const validateImplementationChallanForm = useCallback(() => {
-    if (!challanForm.customerAddress?.trim()) {
+  const validateImplementationChallanForm = useCallback((form = challanForm) => {
+    if (!form.customerAddress?.trim()) {
       triggerTopToast("Please enter address", "danger");
       return false;
     }
-    if (!challanForm.storeAddress?.trim()) {
+    if (!form.storeAddress?.trim()) {
       triggerTopToast("Please enter store address", "danger");
       return false;
     }
-    if (!challanForm.customerGstNo?.trim()) {
+    if (!form.customerGstNo?.trim()) {
       triggerTopToast("Please enter GST No", "danger");
       return false;
     }
-    if (!String(challanForm.jobValue || "").trim() || Number(challanForm.jobValue || 0) <= 0) {
+    if (!String(form.jobValue || "").trim() || Number(form.jobValue || 0) <= 0) {
       triggerTopToast("Please enter Job Value", "danger");
       return false;
     }
@@ -968,14 +1029,16 @@ useEffect(() => {
 
 const handleCreateImplementationChallan = async () => {
   try {
-    if (!validateImplementationChallanForm()) return;
-
  const effectiveSelectedData = getSelectedExactRows();
 
     if (!effectiveSelectedData.length) {
       triggerTopToast("Please select at least one row", "danger");
       return;
     }
+
+    const resolvedChallanForm = resolveImplementationChallanForm(challanForm, effectiveSelectedData);
+    setChallanForm(resolvedChallanForm);
+    if (!validateImplementationChallanForm(resolvedChallanForm)) return;
 
     const firstRow = effectiveSelectedData[0];
 
@@ -1022,23 +1085,23 @@ const handleCreateImplementationChallan = async () => {
 
       customerId: String(selectedCustomerId || ""),
       customerName,
-      customerAddress: challanForm.customerAddress,
-      customerGstNo: challanForm.customerGstNo,
+      customerAddress: resolvedChallanForm.customerAddress,
+      customerGstNo: resolvedChallanForm.customerGstNo,
 
       projectName: firstRow.visualCode || "",
-      cpName: challanForm.cpName,
+      cpName: resolvedChallanForm.cpName,
       contactPersonPhone,
 
       jobNo: getUniqueJobNos(effectiveSelectedData),
-      jobValue: challanForm.jobValue,
+      jobValue: resolvedChallanForm.jobValue,
       poNo: firstRow.poNo || firstRow.lpono || "",
       poDate: formatDisplayDate(firstRow.poDate || firstRow.lpodate),
 
       storeName: firstRow.storeName || firstRow.city || "",
-      storeAddress: challanForm.storeAddress,
+      storeAddress: resolvedChallanForm.storeAddress,
       productionLocation:
-        challanForm.productionLocation || firstRow.region || firstRow.productionLocation || "",
-      dispatchAddress: firstRow.dispatchAddress || "",
+        resolvedChallanForm.productionLocation || firstRow.region || firstRow.productionLocation || "",
+      dispatchAddress: resolvedChallanForm.dispatchAddress || firstRow.dispatchAddress || "",
       remarks: firstRow.remarks || "",
 
       preparedBy: username || "",
@@ -1048,7 +1111,7 @@ const handleCreateImplementationChallan = async () => {
       locationId: String(locationId || ""),
       createdBy: username || "",
 
-      items: challanForm.items.map((item) => ({
+      items: resolvedChallanForm.items.map((item) => ({
         ...item,
         csId: item.csId || item.rowId,
         hsnCode: item.hsnCode || "",

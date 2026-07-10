@@ -2620,6 +2620,46 @@ const validateDeadlines = (rows) => {
   return errors;
 };
 
+const isBlankExcelCell = (value) =>
+  value === null || value === undefined || String(value).trim() === "";
+
+const getExcelBillingLocation = (row = {}) =>
+  row["Billing  Location"] ?? row["Billing Location"] ?? row.BillingLocation ?? row.billingLocation;
+
+const getExcelProductionLocation = (row = {}) =>
+  row["Production Location"] ?? row.ProductionLocation ?? row.productionLocation;
+
+const validateRequiredLocations = (rows) => {
+  const errors = [];
+
+  rows.forEach((row, idx) => {
+    const productionLocation = getExcelProductionLocation(row);
+    const billingLocation = getExcelBillingLocation(row);
+
+    if (isBlankExcelCell(productionLocation)) {
+      errors.push({
+        rowIndex: idx,
+        field: "Production Location",
+        value: productionLocation,
+        message: "Production Location cannot be empty.",
+        expected: "Required value",
+      });
+    }
+
+    if (isBlankExcelCell(billingLocation)) {
+      errors.push({
+        rowIndex: idx,
+        field: "Billing Location",
+        value: billingLocation,
+        message: "Billing Location cannot be empty.",
+        expected: "Required value",
+      });
+    }
+  });
+
+  return errors;
+};
+
 // Better display for client: one toast + open modal
 const showExcelValidationUI = (errors) => {
   setValidationErrors(errors);
@@ -2662,7 +2702,7 @@ const exportValidationErrorsToExcel = async () => {
         field: e.field,
         value: e.value ?? "",
         message: e.message,
-        expected: EXPECTED_FORMAT,
+        expected: e.expected || EXPECTED_FORMAT,
       });
     });
 
@@ -2728,11 +2768,11 @@ const exportValidationErrorsToExcel = async () => {
 
       setHeaders(Object.values(normalizedHeaderMap));
 
-// ✅ Validate only when excel contains these columns
-const hasJobDeadline = headers.includes("Job Deadline") || Object.values(normalizedHeaderMap).includes("Job Deadline");
-const hasPrinterDeadline = headers.includes("Printer Deadline") || Object.values(normalizedHeaderMap).includes("Printer Deadline");
-
-const errors = validateDeadlines(mappedData);
+// Validate mandatory upload fields before preview/submission.
+const errors = [
+  ...validateRequiredLocations(mappedData),
+  ...validateDeadlines(mappedData),
+];
 
 if (errors.length > 0) {
   setData([]);               // block preview
@@ -2762,6 +2802,17 @@ setData(mappedData);
       //return;
     //}
     e.preventDefault();
+
+    const validationErrors = [
+      ...validateRequiredLocations(data),
+      ...validateDeadlines(data),
+    ];
+
+    if (validationErrors.length > 0) {
+      showExcelValidationUI(validationErrors);
+      return;
+    }
+
     try {
       startLoading();
 
@@ -3538,7 +3589,9 @@ setData(mappedData);
 
   <ModalBody>
     <div style={{ marginBottom: 10 }}>
-      <b>Required format:</b>
+      <b>Required fields:</b>
+      <div>Production Location and Billing Location cannot be empty.</div>
+      <b>Deadline format:</b>
       <div style={{ fontFamily: "monospace" }}>{EXPECTED_FORMAT}</div>
       <div style={{ color: "#666", marginTop: 6 }}>
         Also: Deadline must not be past date/time.

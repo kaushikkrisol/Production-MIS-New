@@ -16,6 +16,54 @@ import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 const CompletedPrinting = lazy(() => import('./CompletedPrinting'));
 
+const printingRequests = new Map();
+const PRINTING_CACHE_PREFIX = 'productionPrintingData';
+
+const getStoredUserInfo = () => {
+  try {
+    if (typeof window === 'undefined') return { username: '', locationId: 1 };
+
+    const usersObject = JSON.parse(window.localStorage.getItem('users') || '{}');
+    const message = usersObject?.message || {};
+
+    return {
+      username: message.username || '',
+      locationId: message.location_id || 1,
+    };
+  } catch {
+    return { username: '', locationId: 1 };
+  }
+};
+
+const getPrintingCacheKey = (locationId) => `${PRINTING_CACHE_PREFIX}:${locationId || 1}`;
+
+const readPrintingCache = (locationId) => {
+  try {
+    if (typeof window === 'undefined') return null;
+
+    const cached = window.sessionStorage.getItem(getPrintingCacheKey(locationId));
+    if (!cached) return null;
+
+    const parsed = JSON.parse(cached);
+    return Array.isArray(parsed?.data) ? parsed.data : null;
+  } catch {
+    return null;
+  }
+};
+
+const writePrintingCache = (locationId, rows) => {
+  try {
+    if (typeof window === 'undefined') return;
+
+    window.sessionStorage.setItem(
+      getPrintingCacheKey(locationId),
+      JSON.stringify({ savedAt: Date.now(), data: rows })
+    );
+  } catch {
+    // Cache is only a speed-up. Ignore quota/private-mode failures.
+  }
+};
+
 const formatDateTime = (value) => {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return '-';
@@ -41,19 +89,21 @@ const formatJobDate = (value) => {
 };
 
 const Production = () => {
+  const storedUserInfo = useMemo(() => getStoredUserInfo(), []);
+  const username = storedUserInfo.username;
+  const locationId = storedUserInfo.locationId;
+  const user = storedUserInfo.username;
+
   const [BulkAdd, setBulkAdd] = useState(false);
   const [headers, setHeaders] = useState([]);
   const [selectedTotals, setSelectedTotals] = useState({ qty: 0, width: 0, length: 0, totalSqFt: 0 });
-  const [data, setData] = useState([]);
+  const [data, setData] = useState(() => readPrintingCache(storedUserInfo.locationId) || []);
 
   const [open, setOpen] = useState(false);
   const toggle = () => setOpen(!open);
 
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-
-  const [username, setUsername] = useState('');
-  const [locationId, setLocationId] = useState(null);
 
   const [showLength, setShowLength] = useState(false);
 
@@ -64,6 +114,11 @@ const Production = () => {
   const [selectedPrinter, setSelectedPrinter] = useState([]);
   const [mediaWidth, setMediaWidth] = useState('');
   const gridRef = useRef(null);
+  const isMountedRef = useRef(false);
+  const latestFetchIdRef = useRef(0);
+  const lastFullPrintingDataRef = useRef(data);
+  const isJobActionPendingRef = useRef(false);
+  const [jobActionPending, setJobActionPending] = useState(false);
 
   const [printingData, setPrintingData] = useState([]);
   const [mediaLength, setMediaLength] = useState('');
@@ -86,15 +141,12 @@ const Production = () => {
   const [showWastePopup, setShowWastePopup] = useState(false);
   const [wastePopupMessage, setWastePopupMessage] = useState([]); // <-- array
 
-  const [user, setUser] = useState('');
-
   useEffect(() => {
-    const users = localStorage.getItem('users');
-    if (users) {
-      const usersObject = JSON.parse(users);
-      const username = usersObject.message && usersObject.message.username;
-      setUser(username);
-    }
+    isMountedRef.current = true;
+
+    return () => {
+      isMountedRef.current = false;
+    };
   }, []);
 
   // helpers
@@ -166,16 +218,6 @@ const Production = () => {
       setWastePopupMessage([]);
     }
   }, [mediaWidth, mediaLength, actualSqFt, selectedRows]);
-
-  useEffect(() => {
-    const users = localStorage.getItem('users');
-    const userObj = JSON.parse(users || '{}');
-    const userLocationId = userObj?.message?.location_id;
-    const userName = userObj?.message?.username;
-
-    setLocationId(userLocationId || 1);
-    if (userName) setUsername(userName);
-  }, []);
 
   const exportToExcel = async () => {
     if (!gridRef.current) return;
@@ -266,20 +308,59 @@ const wastePopupBottomStyle = {
 };
 
 
-  const fetchPrinting = useCallback(async () => {
-    if (!locationId) return;
-    setLoading(true);
-    try {
+  const fetchPrinting = useCallback(async ({ force = false, showLoader = true } = {}) => {
+    if (!locationId) return [];
+
+    const requestKey = String(locationId);
+    const fetchId = latestFetchIdRef.current + 1;
+    latestFetchIdRef.current = fetchId;
+
+    const cachedRows = force ? null : readPrintingCache(locationId);
+    if (cachedRows && isMountedRef.current) {
+      setData(cachedRows);
+    }
+
+    const shouldShowLoader = showLoader && !cachedRows;
+    if (shouldShowLoader && isMountedRef.current) setLoading(true);
+
+    let request = force ? null : printingRequests.get(requestKey);
+
+    if (!request) {
       const payload = { location_id: locationId };
-      const response = await axios.post(config.Printing.URL.Getallprinting, payload, {
-        timeout: 10000,
-        headers: { 'Content-Type': 'application/json' }
-      });
-      setData(Array.isArray(response.data) ? response.data : []);
+      request = axios
+        .post(config.Printing.URL.Getallprinting, payload, {
+          timeout: 10000,
+          headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => {
+          const rows = Array.isArray(response.data) ? response.data : [];
+          lastFullPrintingDataRef.current = rows;
+          writePrintingCache(locationId, rows);
+          return rows;
+        })
+        .finally(() => {
+          if (printingRequests.get(requestKey) === request) {
+            printingRequests.delete(requestKey);
+          }
+        });
+
+      printingRequests.set(requestKey, request);
+    }
+
+    try {
+      const rows = await request;
+      if (isMountedRef.current && latestFetchIdRef.current === fetchId) {
+        setData(rows);
+        setError(null);
+      }
+      return rows;
     } catch (error) {
       console.error("Error fetching job data:", error.response ? error.response.data : error.message);
+      return [];
     } finally {
-      setLoading(false);
+      if (shouldShowLoader && isMountedRef.current && latestFetchIdRef.current === fetchId) {
+        setLoading(false);
+      }
     }
   }, [locationId]);
 
@@ -341,7 +422,7 @@ const wastePopupBottomStyle = {
       await axios.post(config.Printing.URL.AddPrinting, data, { timeout: 60000 });
       setHeaders([]);
       setBulkAdd(false);
-      fetchPrinting();
+      await fetchPrinting({ force: true, showLoader: false });
     } catch (error) {
       if (axios.isAxiosError(error)) {
         console.error("Axios error: ", error.message);
@@ -418,32 +499,60 @@ const wastePopupBottomStyle = {
         };
       });
 
-    setLoading(true);
+    if (isJobActionPendingRef.current) return;
+
+    const previousState = {
+      data,
+      selectedRows,
+      selectedTotals,
+      actualSqFt,
+      showLength,
+      wasteageDataFetched,
+      selectedPrinter,
+      isJobRunning,
+    };
+    const selectedMap = {};
+    selectedJobs.forEach(job => { selectedMap[job.id] = true; });
+
+    if (data.length >= selectedJobs.length) {
+      lastFullPrintingDataRef.current = data;
+    }
+
+    isJobActionPendingRef.current = true;
+    setJobActionPending(true);
+    setError(null);
     setIsJobRunning(false);
+    setData(selectedJobs);
+    setShowLength(true);
+    setSelectedRows(selectedMap);
+    setWasteageDataFetched(true);
+    resetForm();
+
     try {
       const response = await axios.post(config.Printing.URL.AddPrintingStart, selectedJobs);
-      const wastePer = response.data.result;
+      const wastePer = Array.isArray(response.data?.result) ? response.data.result : [];
 
       const wasteagePer = wastePer.map(item => item.wasteagePer);
       if (wasteagePer.length > 0) setWastePercentage(wasteagePer[0]);
 
       if (response.status === 200) {
-        setData(selectedJobs);
         setWasteageDataFetched(true);
-        setShowLength(true);
-        setSelectedRows(prev => {
-          const map = { ...prev };
-          selectedJobs.forEach(job => { map[job.id] = true; });
-          return map;
-        });
-        resetForm();
       } else {
-        setError("Unexpected response from the server.");
+        throw new Error("Unexpected response from the server.");
       }
     } catch (error) {
+      setData(previousState.data);
+      setSelectedRows(previousState.selectedRows);
+      setSelectedTotals(previousState.selectedTotals);
+      setActualSqFt(previousState.actualSqFt);
+      setShowLength(previousState.showLength);
+      setWasteageDataFetched(previousState.wasteageDataFetched);
+      setSelectedPrinter(previousState.selectedPrinter);
+      setIsJobRunning(previousState.isJobRunning);
       handleError(error);
     } finally {
-      setLoading(false);
+      isJobActionPendingRef.current = false;
+      setJobActionPending(false);
     }
   };
 
@@ -451,7 +560,11 @@ const wastePopupBottomStyle = {
 
   const handleStopJob = async (e) => {
     e.preventDefault();
-    const selectedJobIds = Object.keys(selectedRows);
+    if (isJobActionPendingRef.current) return;
+
+    const selectedJobIds = Object.keys(selectedRows).filter(id => selectedRows[id]);
+    if (selectedJobIds.length === 0) return;
+
     const stopData = filteredData1
       .filter(row => selectedRows[row.id])
       .map(row => ({
@@ -464,37 +577,61 @@ const wastePopupBottomStyle = {
         entereddt: row.entereddt
       }));
 
-    setLoading(true);
+    const previousState = {
+      data,
+      selectedRows,
+      selectedTotals,
+      actualSqFt,
+      showLength,
+      wasteageDataFetched,
+      isJobRunning,
+    };
+    const stoppedIds = new Set(selectedJobIds.map(String));
+    const fullRows = lastFullPrintingDataRef.current.length ? lastFullPrintingDataRef.current : filteredData1;
+    const optimisticRows = fullRows.filter(row => !stoppedIds.has(String(row.id)));
+
+    isJobActionPendingRef.current = true;
+    setJobActionPending(true);
+    setError(null);
     setIsJobRunning(true);
+    setData(optimisticRows);
+    lastFullPrintingDataRef.current = optimisticRows;
+    writePrintingCache(locationId, optimisticRows);
+    setSelectedRows({});
+    setSelectedTotals({ qty: 0, width: 0, length: 0, totalSqFt: 0 });
+    setActualSqFt(0);
+    setWasteageDataFetched(false);
+    setShowLength(false);
 
     try {
       const response = await axios.post(config.Printing.URL.AddPrintingStop, stopData);
       if (response.status === 200) {
-        await fetchPrinting();
-        const newSelection = {};
-        selectedJobIds.forEach(id => {
-          newSelection[id] = true;
-          const node = gridRef.current?.api?.getRowNode(id);
-          if (node) node.setSelected(true);
-        });
-        setSelectedRows(newSelection);
-        setWasteageDataFetched(false);
-        setShowLength(false);
+        void fetchPrinting({ force: true, showLoader: false });
+      } else {
+        throw new Error("Unexpected response from the server.");
       }
     } catch (error) {
+      setData(previousState.data);
+      lastFullPrintingDataRef.current = previousState.data;
+      writePrintingCache(locationId, previousState.data);
+      setSelectedRows(previousState.selectedRows);
+      setSelectedTotals(previousState.selectedTotals);
+      setActualSqFt(previousState.actualSqFt);
+      setShowLength(previousState.showLength);
+      setWasteageDataFetched(previousState.wasteageDataFetched);
+      setIsJobRunning(previousState.isJobRunning);
       handleError(error);
     } finally {
-      setLoading(false);
+      isJobActionPendingRef.current = false;
+      setJobActionPending(false);
     }
   };
-
-  useEffect(() => {}, [loading, isJobRunning]);
 
   const handleError = (error) => {
     if (axios.isAxiosError(error)) {
       setError(error.response ? error.response.data : "An unexpected error occurred");
     } else {
-      setError("An unexpected error occurred");
+      setError(error?.message || "An unexpected error occurred");
     }
   };
 
@@ -857,18 +994,18 @@ const wastePopupBottomStyle = {
                         <Button
                           variant="success"
                           onClick={handleStartJob}
-                          disabled={!Object.values(selectedRows).some(v => v) || isStartJobDisabled}
+                          disabled={jobActionPending || !Object.values(selectedRows).some(v => v) || isStartJobDisabled}
                         >
-                          Start Job
+                          {jobActionPending ? 'Please wait...' : 'Start Job'}
                         </Button>
                       ) : (
                         <Button
                           variant="danger"
                           onClick={handleStopJob}
                           className="ml-3"
-                          disabled={isJobRunning || !Object.values(selectedRows).some(v => v)}
+                          disabled={jobActionPending || isJobRunning || !Object.values(selectedRows).some(v => v)}
                         >
-                          Stop Job
+                          {jobActionPending ? 'Please wait...' : 'Stop Job'}
                         </Button>
                       )}
                     </Col>
@@ -879,7 +1016,7 @@ const wastePopupBottomStyle = {
                       </Col>
                     </Row>
                     <Col className='ml-auto' style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                      <FaSyncAlt size={20} style={{ cursor: 'pointer', marginTop: '1em' }} onClick={() => window.location.reload()} />
+                      <FaSyncAlt size={20} style={{ cursor: 'pointer', marginTop: '1em' }} onClick={() => fetchPrinting({ force: true })} />
                     </Col>
                   </Row>
 
@@ -898,7 +1035,7 @@ const wastePopupBottomStyle = {
                         </Suspense>
                       </ModalBody>
                       <ModalFooter>
-                        <Button color="primary" onClick={() => { toggle(); window.location.reload(); }}>Close</Button>
+                        <Button color="primary" onClick={() => { toggle(); fetchPrinting({ force: true }); }}>Close</Button>
                       </ModalFooter>
                     </Modal>
                   </div>

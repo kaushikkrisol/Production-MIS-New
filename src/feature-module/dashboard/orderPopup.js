@@ -20,8 +20,8 @@ const headerMapping = {
   "Campaign Name": "campaignName",
   "Sub Client": "category",
   "Job Date": "createdAt",
-  "Production Location": "productionLocation",
-  "Billing Location": "billingLocation",
+  "Production Location *": "productionLocation",
+  "Billing Location *": "billingLocation",
   "Visual Code": "visualCode",
   "Product Details": "nameSubCode",
   "City": "city",
@@ -115,15 +115,32 @@ const IST_TIMEZONE = 'Asia/Kolkata';
   }, [items]);
 
 
+const getMissingLocationFields = (item = {}) => {
+  const missingLocationFields = [];
+  if (!String(item.productionLocation || selectedJob?.productionLocation || "").trim()) {
+    missingLocationFields.push("Production Location");
+  }
+  if (!String(item.billingLocation || "").trim()) {
+    missingLocationFields.push("Billing Location");
+  }
+  return missingLocationFields;
+};
+
 const addSingleJobDetail = async (item) => {
   if (!userId) {
     toast.error("User not logged in");
-    return;
+    return false;
   }
 
   if (!selectedJob?.value) {
     toast.error("Please select a Job Number.");
-    return;
+    return false;
+  }
+
+  const missingLocationFields = getMissingLocationFields(item);
+  if (missingLocationFields.length) {
+    toast.error(`Please select ${missingLocationFields.join(" and ")} before accepting the order.`);
+    return false;
   }
 
   const currentDate = new Date().toISOString().split('T')[0];
@@ -168,9 +185,11 @@ const addSingleJobDetail = async (item) => {
     const response = await axios.post(config.JobSummary.URL.Addjobdetails, payload);
     const jobNoCreated = response.data?.jobno || response.data?.jobNo || '';
     toast.success(`Order Accepted. Job No: ${jobNoCreated}`);
+    return true;
   } catch (error) {
     console.error("Error adding job detail:", error);
     toast.error("Failed to add job detail.");
+    return false;
   } finally {
     setLoading(false);
   }
@@ -188,6 +207,38 @@ const addSingleJobDetail = async (item) => {
       createdAt: todayDate
     }));
   }, [localItems, selectedJob, todayDate]);
+
+  const addJobDetails = async () => {
+    if (!displayedItems.length) return;
+
+    const rowsWithMissingLocations = displayedItems
+      .map((item, index) => ({
+        index: index + 1,
+        missingLocationFields: getMissingLocationFields(item),
+      }))
+      .filter(({ missingLocationFields }) => missingLocationFields.length);
+
+    if (rowsWithMissingLocations.length) {
+      const preview = rowsWithMissingLocations
+        .slice(0, 5)
+        .map(({ index, missingLocationFields }) => `Row ${index}: ${missingLocationFields.join(", ")}`)
+        .join("; ");
+      const extraCount = rowsWithMissingLocations.length - 5;
+      toast.error(`Please select mandatory location field(s): ${preview}${extraCount > 0 ? ` and ${extraCount} more row(s)` : ""}.`);
+      return;
+    }
+
+    const acceptedItems = [];
+
+    for (const item of displayedItems) {
+      const saved = await addSingleJobDetail(item);
+      if (saved) acceptedItems.push(item);
+    }
+
+    if (acceptedItems.length) {
+      await moveAllItemsToStage(acceptedItems, "Order Accepted");
+    }
+  };
 
   const handleUploadImageToOrder = async () => {
   const imageUrl = "https://productionapi.comart.in/images/after/J0625021924/d7434db3-2101-41e5-8f6d-844ebe2e04872171320907437520549.jpg";
@@ -373,11 +424,7 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
               {displayedItems.length > 0 ? (
                 <>
                   <div style={{ display: "flex", gap: "8px", marginBottom: "12px", flexWrap: "wrap" }}>
-                    <Button variant="success" size="sm" onClick={() =>{
-                       moveAllItemsToStage(displayedItems, 'Order Accepted'),
-                       addJobDetails()
-
-                    }}>Accept All Orders</Button>
+                    <Button variant="success" size="sm" onClick={addJobDetails}>Accept All Orders</Button>
                   </div>
 
                  <div className="table-responsive" style={{ maxHeight: "700px", overflowY: "auto" }}>
@@ -414,7 +461,7 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
                 menuPortal: base => ({ ...base, zIndex: 9999 }),
                 control: base => ({ ...base, minHeight: "28px", fontSize: "12px" })
               }}
-              isClearable
+              isClearable={false}
               isSearchable={false}
             />
           ) : key === "printerPrintingName" ? (
@@ -479,8 +526,9 @@ const moveAllItemsToStage = async (itemsToMove, stage) => {
           variant="outline-success"
           size="sm"
           onClick={async () => {
-          await moveAllItemsToStage([item], "Order Accepted");
-          await addSingleJobDetail(item);
+            const saved = await addSingleJobDetail(item);
+            if (!saved) return;
+            await moveAllItemsToStage([item], "Order Accepted");
             toast.success(`Accepted order for Visual Code: ${item.visualCode}`);
           }}
           disabled={loading}
