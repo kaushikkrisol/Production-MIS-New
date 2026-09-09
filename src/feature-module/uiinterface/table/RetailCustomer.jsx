@@ -8,6 +8,31 @@ import "react-datepicker/dist/react-datepicker.css";
 import config from "../../../config";
 
 const STORAGE_KEY = "retailCustomerRows";
+const jobsRequestsInFlight = new Map();
+
+const loadJobSourcesOnce = (locationId, payload) => {
+  const existingRequest = jobsRequestsInFlight.get(locationId);
+
+  if (existingRequest) return existingRequest;
+
+  const request = Promise.allSettled([
+    axios.post(config.JobSummary.URL.GetAllJobsFromSql, payload),
+    axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload),
+    axios.post(config.JobSummary.URL.Getalljob, payload),
+  ]);
+
+  jobsRequestsInFlight.set(locationId, request);
+
+  const clearRequest = () => {
+    if (jobsRequestsInFlight.get(locationId) === request) {
+      jobsRequestsInFlight.delete(locationId);
+    }
+  };
+
+  request.then(clearRequest, clearRequest);
+
+  return request;
+};
 
 const emptyElementItem = {
   id: "",
@@ -214,6 +239,8 @@ const RetailCustomer = () => {
   }, [rows]);
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadJobs = async () => {
       const user = getLoggedInUser();
       const locationId = user?.location_id || user?.locationId || "";
@@ -232,11 +259,9 @@ const RetailCustomer = () => {
           locationid: locationId,
         };
 
-        const responses = await Promise.allSettled([
-          axios.post(config.JobSummary.URL.GetAllJobsFromSql, payload),
-          axios.post(config.JobSummary.URL.GetAllJobsAccToLocation, payload),
-          axios.post(config.JobSummary.URL.Getalljob, payload),
-        ]);
+        const responses = await loadJobSourcesOnce(locationId, payload);
+
+        if (cancelled) return;
 
         const seen = new Set();
 
@@ -268,15 +293,21 @@ const RetailCustomer = () => {
 
         setJobOptions(options);
       } catch (error) {
+        if (cancelled) return;
+
         console.error("Unable to load job numbers for retail customer", error);
         setJobOptions([]);
         setMessage("Could not load job numbers from API.");
       } finally {
-        setIsLoadingJobs(false);
+        if (!cancelled) setIsLoadingJobs(false);
       }
     };
 
     loadJobs();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const selectedJobOption = useMemo(() => {

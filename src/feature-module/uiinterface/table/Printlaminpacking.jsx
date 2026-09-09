@@ -8,6 +8,27 @@ import moment from 'moment';
 import { getCompanyBranchDetails } from './companyBranches';
 import { findCustomerRecord, mergeFallbackCustomers } from './customerFallbacks';
 
+const packingRequestsInFlight = new Map();
+
+const requestOnce = (key, requestFactory) => {
+  const existingRequest = packingRequestsInFlight.get(key);
+
+  if (existingRequest) return existingRequest;
+
+  const request = requestFactory();
+  packingRequestsInFlight.set(key, request);
+
+  const clearRequest = () => {
+    if (packingRequestsInFlight.get(key) === request) {
+      packingRequestsInFlight.delete(key);
+    }
+  };
+
+  request.then(clearRequest, clearRequest);
+
+  return request;
+};
+
 const Printlaminpacking = ({ location_id }) => {
   const [loading, setLoading] = useState(false);
   const [showLength, setShowLength] = useState(false);
@@ -54,10 +75,13 @@ const Printlaminpacking = ({ location_id }) => {
   const fetchPrinting = async (location_id) => {
     try {
        const payload = { location_id:location_id };
-      const response = await axios.post(config.Packing.URL.GetAllPacking, payload, {
-        timeout: 10000,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const response = await requestOnce(
+        `packing:${location_id}`,
+        () => axios.post(config.Packing.URL.GetAllPacking, payload, {
+          timeout: 10000,
+          headers: { 'Content-Type': 'application/json' },
+        })
+      );
 
       setData(response.data || []);
       console.log('Fetched packing data:', response.data);
@@ -120,12 +144,15 @@ const Printlaminpacking = ({ location_id }) => {
 
       console.log('Payload for fetch customers:', payload);
 
-      const response = await axios.post(config.JobSummary.URL.Getallcustomer, payload, {
-        timeout: 10000,
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      });
+      const response = await requestOnce(
+        `customers:${location_id}`,
+        () => axios.post(config.JobSummary.URL.Getallcustomer, payload, {
+          timeout: 10000,
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+      );
 
       console.log('Get customer response:', response.data);
       setCustomers(mergeFallbackCustomers(response.data));

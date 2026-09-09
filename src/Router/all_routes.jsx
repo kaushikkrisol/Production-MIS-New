@@ -45,7 +45,8 @@ export const all_routes = {
   tablebasic: "/tables-basic",
   datatable: "/data-tables",
   jobs: "/jobs",
-
+  mediaMaster: "/media-master",
+  
   designn: "/Designn",
   production: "/Production",
   delivery: "/Delivery",

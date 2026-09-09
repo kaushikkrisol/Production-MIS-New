@@ -28,6 +28,27 @@
     padding: 0;
     margin: 0;
 }
+
+@include respond-below(custom991) {
+    .page-wrapper {
+        min-width: 0;
+        overflow-x: hidden;
+    }
+
+    .page-wrapper .content {
+        min-width: 0;
+    }
+}
+
+@include respond-below(custom767) {
+    .page-wrapper .content {
+        padding: 16px 12px;
+    }
+
+    .page-wrapper .content .card {
+        min-width: 0;
+    }
+}
 .page-wrapper-new {
     background: $white;
     padding: 24px;

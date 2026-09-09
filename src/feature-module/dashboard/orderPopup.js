@@ -126,13 +126,16 @@ const getMissingLocationFields = (item = {}) => {
   return missingLocationFields;
 };
 
+const isNewJobRequest = (item = {}) =>
+  String(item?.ISnewjob ?? item?.isnewjob ?? "0") === "1";
+
 const addSingleJobDetail = async (item) => {
   if (!userId) {
     toast.error("User not logged in");
     return false;
   }
 
-  if (!selectedJob?.value) {
+  if (!isNewJobRequest(item) && !selectedJob?.value) {
     toast.error("Please select a Job Number.");
     return false;
   }
@@ -145,45 +148,129 @@ const addSingleJobDetail = async (item) => {
 
   const currentDate = new Date().toISOString().split('T')[0];
 
-  const payload = [{
-    ...item,
-    ISnewjob: '0',
-    "Job No": selectedJob?.value,
-    "Campaign Name": item?.campaignName || "",
-    "CLIENT": selectedJob?.clientName || item.client || "",
-    "Sub Client": selectedJob?.subClient || item.category || "",
-    "Production Location": item.productionLocation || selectedJob?.productionLocation || "",
-    "Billing  Location": item.billingLocation || "",
-    "Print Ready Available": item.printReadyAvailable || "",
-    "Implementation": item.implementation || "",
-    "LAMINATION": item.lamination || "",
-    "MOUNTING": item.mounting || "",
-    "emailid": emailid,
-    "UserId": userId,
-    "userName": userName,
-    "username": userName,
-    "entereddt": currentDate,
-    "VISUAL CODE": item.visualCode || "",
-    "nameSubCode": item.nameSubCode || "",
-    "CITY": item.city || "",
-    "qty": item.qty || "",
-    "Width": item.width || "",
-    "Height": item.height || "",
-    "Total Sq.ft": item.totalSqFt || "",
-    "Media": item.media || "",
-    "SALON ADDRESS": item.salonAddress || "",
-    "campaignid": item.campaignId || "",
-    "Designer Deadline": item.designerDeadline || "",
-    "Job Deadline": item.jobdeadline || "",
-    "Printer Name": item.printerPrintingName || "",
-    "itemid": item.id || "",
-    "ImageURL": item.ImageURL || ""
-  }];
+  let jobNo = selectedJob?.value || item.jobNo || item["Job No"] || "";
 
   try {
     setLoading(true);
+
+    if (isNewJobRequest(item)) {
+      const headerDate = item.createdAt || item.Date || item["Job Date"] || currentDate;
+      const customerName =
+        item.customerName || item.customername || item.client || item.CLIENT || "";
+      const subClient =
+        item.subClient || item.subclient || item.category || item["Sub Client"] || "";
+      const projectName =
+        item.projectname || item.projectName || item.ProjectName || item["Campaign Name"] || item.campaignName || "";
+
+      const headerPayload = [{
+        ISnewjob: "1",
+        customername: customerName,
+        customerid: item.customerid || item.clientId || "",
+        customerEmail: item.customerEmail || "",
+        contactPerson: item.contactPerson || "",
+        contactperson: item.contactPerson || "",
+        lpono: item.lpono || "",
+        lpodate: item.lpodate || "",
+        potype: item.potype || "",
+        hsnCode: item.hsnCode || "",
+        businessType: item.businessType || "",
+        projectname: projectName,
+        projectName: projectName,
+        ProjectName: projectName,
+        jobdesc: item.jobdesc || "",
+        enteredby: userName || "",
+        userid: userId,
+        UserId: userId,
+        user_id: userId,
+        username: userName || "",
+        userName: userName || "",
+        locationid: item.locationid || "",
+        emailid: emailid || "",
+        entereddt: currentDate,
+        Date: headerDate,
+        "Job Date": headerDate,
+        jobdate: headerDate,
+        client: customerName,
+        CLIENT: customerName,
+        subClient: subClient,
+        subclient: subClient,
+        "Sub Client": subClient,
+      }];
+
+      const headerResponse = await axios.post(config.JobSummary.URL.Addjobdetails, headerPayload);
+      jobNo =
+        headerResponse?.data?.jobno ||
+        headerResponse?.data?.jobNo ||
+        headerResponse?.data?.JobNo ||
+        "";
+
+      if (!jobNo) {
+        throw new Error("Job number was not returned by the server");
+      }
+    }
+
+    const payload = [{
+      ...item,
+      ISnewjob: "0",
+      JobNo: jobNo,
+      "Job No": jobNo,
+      Date: item.createdAt || item.Date || item["Job Date"] || currentDate,
+      "Job Date": item.createdAt || item.Date || item["Job Date"] || currentDate,
+      client: selectedJob?.clientName || item.client || item.CLIENT || "",
+      CLIENT: selectedJob?.clientName || item.client || item.CLIENT || "",
+      subClient: selectedJob?.subClient || item.category || item["Sub Client"] || "",
+      "Sub Client": selectedJob?.subClient || item.category || item["Sub Client"] || "",
+      "Campaign Name": item.campaignName || item["Campaign Name"] || "",
+      "Production Location": item.productionLocation || selectedJob?.productionLocation || "",
+      BillingLocation:
+        item.BillingLocation ||
+        item.billingLocation ||
+        item["Billing  Location"] ||
+        item["Billing Location"] ||
+        "",
+      "Billing  Location":
+        item["Billing  Location"] ||
+        item["Billing Location"] ||
+        item.BillingLocation ||
+        item.billingLocation ||
+        "",
+      "Print Ready Available": item.printReadyAvailable || "",
+      Implementation: item.implementation || "",
+      LAMINATION: item.lamination || "",
+      MOUNTING: item.mounting || "",
+      emailid: emailid || item.emailid || "",
+      UserId: userId || item.UserId || "",
+      userName: userName || item.userName || "",
+      username: userName || item.username || "",
+      entereddt: currentDate,
+      "VISUAL CODE": item.visualCode || item["VISUAL CODE"] || "",
+      "Name & Sub Code": item.nameSubCode || item["Name & Sub Code"] || "",
+      "HSN Code": item.hsnCode || item["HSN Code"] || "",
+      CITY: item.city || item["CITY"] || "",
+      QTY: item.qty || item.QTY || item["QTY"] || "",
+      qty: item.qty || item.QTY || item["QTY"] || "",
+      Width: item.width || item["Width"] || "",
+      Height: item.height || item["Height"] || "",
+      "Total Sq.ft": item.totalSqFt || item["Total Sq.ft"] || "",
+      Media: item.media || item["Media"] || "",
+      Installation: item.installation || item["Installation"] || "",
+      "SALON ADDRESS": item.salonAddress || item["SALON ADDRESS"] || "",
+      campaignid: item.campaignId || item.campaignid || "",
+      "Designer Name": item.designerName || item["Designer Name"] || "",
+      "Designer ID": item.designerId || item["Designer ID"] || "",
+      "Designer Deadline": item.designerDeadline || item["Designer Deadline"] || "",
+      "Job Deadline": item.jobdeadline || item["Job Deadline"] || "",
+      "Printer Name": item.printerPrintingName || item["Printer Name"] || "",
+      "Printer Deadline": item.printerDeadline || item["Printer Deadline"] || "",
+      "Project Name": item.projectname || item.projectName || item.ProjectName || item["Project Name"] || "",
+      "Remarks/Instructions": item.REMARK || item["Remarks/Instructions"] || item["REMARK"] || "",
+      "Machine Name": item.printerPrintingName || item["Machine Name"] || "",
+      itemid: item.id || item.itemid || "",
+      ImageURL: item.ImageURL || item.imageUrl || ""
+    }];
     const response = await axios.post(config.JobSummary.URL.Addjobdetails, payload);
-    const jobNoCreated = response.data?.jobno || response.data?.jobNo || '';
+    const jobNoCreated = response.data?.jobno || response.data?.jobNo || jobNo || '';
+    setLatestJobNo(jobNoCreated);
     toast.success(`Order Accepted. Job No: ${jobNoCreated}`);
     return true;
   } catch (error) {

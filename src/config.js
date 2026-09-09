@@ -1,7 +1,7 @@
 // https://production.comart.in
 
-// let BaseURL = "https://localhost:7035";
- let BaseURL = "https://productionapi.comart.in";
+//  let BaseURL = "https://localhost:7035";
+  let BaseURL = "https://productionapi.comart.in";                                                                                                                                       
 
 // let BaseURL = "https://testproductionapi.comart.in";
 let BaseURL1 = "https://stores.comart.in:3001";
@@ -31,12 +31,13 @@ const config ={
             GetCustomerNameAccToLocation: BaseURL + '/api/JobSummary/GetCustomerNameFromSql',
             SetJobOnHold: BaseURL + '/api/JobSummary/SetJobOnHold',
             SetJobisPending: BaseURL + '/api/JobSummary/SetJobisPending',
-            UpdateProductionLocation: BaseURL + '/api/JobSummary/UpdateProductionLocation',
+            UpdateBillingLocation: BaseURL + '/api/JobSummary/UpdateBillingLocation',
             GetDeletedData:BaseURL+'/api/JobSummary/GetDeletedData',
             RestoreJob:BaseURL+'/api/JobSummary/RestoreJob',
             ResumeJobFromHold: "/api/JobSummary/ResumeJobFromHold",
             SaveEstimate:BaseURL+'/api/JobSummary/SaveEstimate',
-            GetEstimate:BaseURL+'/api/JobSummary/GetEstimate'
+            GetEstimate:BaseURL+'/api/JobSummary/GetEstimate',
+           GetRecordsByChallan:BaseURL+'/api/JobSummary/GetRecordsByChallan',
 
         }
     },
@@ -155,7 +156,7 @@ const config ={
     },
     ProductMediaRateMaster: {
         URL: {
-            GetAll: BaseURL + '/api/ProductMediaRateMaster/GetAll',
+            GetAll: BaseURL + "/api/ProductMediaRateMaster/GetAll",
             GetById: (id) => BaseURL + `/api/ProductMediaRateMaster/GetById/${id}`,
             Add: BaseURL + '/api/ProductMediaRateMaster/Add',
             Update: BaseURL + '/api/ProductMediaRateMaster/Update',
@@ -232,6 +233,11 @@ const config ={
             GetActive: BaseURL + '/api/JobProgressAlert/GetActive',
         }
     },
+    GmailAuthorization: {
+        URL:{
+            AuthURL:BaseURL+'/api/GoogleGmail/oauth2callback',
+        }
+    }
     
 }
 

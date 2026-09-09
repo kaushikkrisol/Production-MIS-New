@@ -38,7 +38,7 @@ const JobTrack = () => {
 
     const fetchPrintingData = async () => {
         try {
-            const response = await axios.post(config.Printing.URL.GetCompletedPrinting);
+            const response = await axios.post(config.Printing.URL.GetCompletedPrinting, { locationId: 'production' });
             console.log('Printing data: ', response.data);
             setPrintingData(response.data);
         } catch (error) {

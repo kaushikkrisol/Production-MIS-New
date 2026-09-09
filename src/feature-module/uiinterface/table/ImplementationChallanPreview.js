@@ -13,6 +13,43 @@ const firstNumber = (...values) => {
   return 0;
 };
 
+const firstText = (...values) => {
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (text) return text;
+  }
+  return "";
+};
+
+const getLegacySimplifiedDetails = (value) => {
+  const text = String(value ?? "").trim();
+  if (!text) return "";
+
+  const parts = text
+    .split(" - ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length >= 2) {
+    return parts[parts.length - 1];
+  }
+
+  return text;
+};
+
+const getDisplayDetails = (item = {}) =>
+  firstText(
+    item.simplifiedProductName,
+    item.SimplifiedProductName,
+    item.productAsPerRateCard,
+    item.ProductAsPerRateCard,
+    item.nameSubCode,
+    item.NameSubCode,
+    getLegacySimplifiedDetails(item.details || item.Details),
+    item.details,
+    item.Details
+  );
+
 const normalizeItem = (item, index, allItems, challanData) => {
   const totalSqFt = firstNumber(item.totalSqFt, item.TotalSqFt, item.sqFt, item.SqFt, item.sqft, item.SQFT);
   const lineJobValue = firstNumber(
@@ -26,6 +63,7 @@ const normalizeItem = (item, index, allItems, challanData) => {
 
   return {
     ...item,
+    details: getDisplayDetails(item),
     hsnCode: item.hsnCode || item.HsnCode || item.HSNCode || item.hsn || item.HSN || "",
     unitPrice,
     totalSqFt,

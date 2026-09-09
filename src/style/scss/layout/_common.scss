@@ -279,6 +279,41 @@
         width: 100%;
     }
 }
+
+@include respond-below(custom991) {
+    .table-responsive {
+        border-radius: 8px;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .table-responsive table {
+        min-width: 720px;
+    }
+
+    .page-header {
+        gap: 12px;
+    }
+
+    .page-header .add-item,
+    .page-header .page-btn {
+        flex-wrap: wrap;
+    }
+}
+
+@include respond-below(custom767) {
+    .page-header .add-item,
+    .page-header .btn-added,
+    .page-header .btn-added.downloader,
+    .page-header .btn-added.printer,
+    .btn-white {
+        width: 100%;
+    }
+
+    .card-body,
+    .card-header {
+        min-width: 0;
+    }
+}
 .page-header.paysilp-header {
     padding: 24px;
     margin-bottom: 0;

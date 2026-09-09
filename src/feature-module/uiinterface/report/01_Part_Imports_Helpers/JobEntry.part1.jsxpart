@@ -1,0 +1,2183 @@
+
+
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import axios from "axios";
+
+import { Link } from "react-router-dom";
+
+import Select from "react-select";
+
+import DatePicker from "react-datepicker";
+
+import { createPortal } from "react-dom";
+
+import { toast, ToastContainer } from "react-toastify";
+
+import { getCompanyBranchDetails } from "./companyBranches";
+
+import jsPDF from "jspdf";
+
+import "jspdf-autotable";
+
+import "react-datepicker/dist/react-datepicker.css";
+
+import "react-toastify/dist/ReactToastify.css";
+
+import CreatableSelect from "react-select/creatable";
+
+import {
+
+  Calendar,
+
+  CheckSquare,
+
+  Clipboard,
+
+  Copy,
+
+  Download,
+
+  ExternalLink,
+
+  FilePlus,
+
+  FolderPlus,
+
+  Mail,
+
+  Paperclip,
+
+  Plus,
+
+  Printer,
+
+  RotateCcw,
+
+  Save,
+
+  Send,
+
+  Trash2,
+
+  X,
+
+} from "react-feather";
+
+import config from "../../../config";
+
+import erpMasterData from "../../../core/json/erpMasterData.json";
+
+import hsnRateData from "../../../core/json/hsnRateData.json";
+
+import indiaCities from "../../../core/json/indiaCities.json";
+
+import { mergeFallbackCustomers } from "./customerFallbacks";
+
+import "./JobEntry.css";
+
+
+
+const RATE_STORAGE_KEY = "productMediaRateMasterRows";
+
+const ELEMENT_GROUP_STORAGE_KEY = "elementGroupMasterRows";
+
+const JOB_DRAFT_KEY = "jobEntryDrafts";
+
+const TEMP_DRAFT_ID = "new-job-draft";
+
+
+
+const getMasterGroup = (key) =>
+
+  Array.isArray(erpMasterData?.groups?.[key]) ? erpMasterData.groups[key] : [];
+
+
+
+const getMasterValues = (key) =>
+
+  getMasterGroup(key)
+
+    .map((item) => String(item?.value || item?.label || "").trim())
+
+    .filter(Boolean);
+
+
+
+const uniqueOptionValues = (values = []) => {
+
+  const seen = new Set();
+
+  return values.filter((value) => {
+
+    const normalized = String(value || "").trim().toLowerCase();
+
+    if (!normalized || seen.has(normalized)) return false;
+
+    seen.add(normalized);
+
+    return true;
+
+  });
+
+};
+
+
+
+const getMasterOptionValues = (key, fallback = []) => {
+
+  const masterValues = getMasterValues(key);
+
+  return uniqueOptionValues(masterValues.length ? masterValues : fallback);
+
+};
+
+
+
+const yesNoOptions = ["Yes", "No"];
+
+const locationOptions = getMasterOptionValues("productionLocations", ["North", "South", "East", "West"]);
+
+const billingLocationOptions = getMasterOptionValues("billingLocations", locationOptions);
+
+const businessTypeOptions = getMasterOptionValues("segments", ["Print", "Retail", "Onsite"]);
+
+const poTypeOptions = [
+
+  "PO Received",
+
+  "PO not Received",
+
+  "Direct Billing",
+
+  "Open PO",
+
+  "Estimate Approval Pending",
+
+];
+
+const laminationDefaults = getMasterOptionValues("lamination", ["Matt Lamination"]);
+
+const mountingDefaults = getMasterOptionValues("mounting", ["3 MM Sun Board", "5 MM Sun Board"]);
+
+const implementationDefaults = getMasterOptionValues("implementation", yesNoOptions);
+
+const printReadyDefaults = getMasterOptionValues("printReadyFiles", yesNoOptions);
+
+const printerMasterDefaults = getMasterOptionValues("machineNames");
+
+const elementGroupDefaults = [
+
+  "ENDCAP",
+
+  "SENSOMATIC PRINTS",
+
+  "SENSOMATIC BOXES",
+
+  "MAT ALU",
+
+  "MAKE OVER STATION",
+
+  "Animation Trend Standee",
+
+  "Props",
+
+  "BASKET SIGNAGES",
+
+  "VINYL PRINT",
+
+  "OUTDOOR VISUAL",
+
+  "TRANSPORTATION",
+
+];
+
+
+
+const productColumns = [
+
+  "VISUAL CODE",
+
+  "QTY",
+
+  "Width",
+
+  "Height",
+
+  "Billing Width",
+
+  "Billing Height",
+
+  "Total Sq.f",
+
+  // "Installation charges",
+
+  // "Transportation charges",
+
+  // "Layouting charges",
+
+  "LAMINATION",
+
+  "TYPE OF LAMINATION",
+
+  "MOUNTING",
+
+  "TYPE OF MOUNTING",
+
+  "IMPLEMENTATION",
+
+  "JOB DEADLINE",
+
+  "PRINTER DEADLINE",
+
+];
+
+
+
+const ESTIMATE_GST_RATE = 0.18;
+
+
+
+const firstValue = (...values) => {
+
+  for (const value of values) {
+
+    const text = String(value ?? "").trim();
+
+    if (text) return text;
+
+  }
+
+  return "";
+
+};
+
+
+
+const getEstimateBranchRegion = (header = {}, lineItems = []) =>
+
+  firstValue(
+
+    header.billingLocation,
+
+    header.billLoc,
+
+    header.productionLocation,
+
+    header.prodLoc,
+
+    lineItems?.[0]?.billingLocation,
+
+    lineItems?.[0]?.productionLocation,
+
+    lineItems?.[0]?.region
+
+  );
+
+
+
+const getEstimateCompanyDetails = (header = {}, lineItems = []) => {
+
+  const region = getEstimateBranchRegion(header, lineItems);
+
+  const branchDetails = getCompanyBranchDetails(region);
+
+
+
+  return {
+
+    companyName: firstValue(branchDetails.companyName, "Commercial Reprographers"),
+
+    companyAddress: firstValue(branchDetails.companyAddress),
+
+    companyPhone: firstValue(branchDetails.companyPhone),
+
+    companyGst: firstValue(branchDetails.companyGst),
+
+  };
+
+};
+
+const ESTIMATE_EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+
+
+const createLine = (index) => ({
+
+  id: `${Date.now()}-${index}`,
+
+  store: "",
+
+  panCard: "",
+
+  city: "",
+
+  description: "",
+
+  prodLoc: "",
+
+  billLoc: "",
+
+  salonAddress: "",
+
+  brandingLocation: "",
+
+  sequenceNo: "",
+
+  printingMachine: "",
+
+  printReadyFile: "",
+
+  remarks: "",
+
+  media: "",
+
+  hsn: "",
+
+  internalMedia: "",
+
+  externalMedia: "",
+
+  elementGroup: "",
+
+  articleCode: "",
+
+  visualCode: "",
+
+  qty: "",
+
+  width: "",
+
+  height: "",
+
+  billingWidth: "",
+
+  billingHeight: "",
+
+  sqft: "",
+
+  rate: "",
+
+  amount: "",
+
+  installationCharges: "",
+
+  transportationCharges: "",
+
+  layoutingCharges: "",
+
+  laminationFlag: "",
+
+  lamination: "",
+
+  mountingFlag: "",
+
+  mounting: "",
+
+  implementation: "",
+
+  jobDeadline: "",
+
+  printerDeadline: "",
+
+});
+
+
+
+const normalizeText = (value) =>
+
+  String(value || "")
+
+    .trim()
+
+    .replace(/\s+/g, " ")
+
+    .toLowerCase();
+
+
+
+const getCustomerId = (customer) =>
+
+  String(
+
+      customer?.customeR_ID ??
+
+      customer?.customerId ??
+
+      customer?.CustomerId ??
+
+      customer?.customerid ??
+
+      customer?.CUSTOMER_ID ??
+
+      customer?.id ??
+
+      customer?._id ??
+
+      ""
+
+  ).trim();
+
+
+
+const getCustomerName = (customer) =>
+
+  customer?.customeR_NAME ||
+
+  customer?.customerName ||
+
+  customer?.CustomerName ||
+
+  customer?.client ||
+
+  customer?.CUSTOMER_NAME ||
+
+  customer?.customername ||
+
+  customer?.name ||
+
+  customer?.Name ||
+
+  "";
+
+
+
+const getCustomerGstNo = (customer) =>
+
+  String(
+
+    customer?.gsT_NO ??
+
+      customer?.gstNo ??
+
+      customer?.GSTNo ??
+
+      customer?.GST_NO ??
+
+      customer?.gst_number ??
+
+      customer?.gstin ??
+
+      customer?.GSTIN ??
+
+      ""
+
+  ).trim();
+
+
+
+const getPanFromGstin = (gstin) => {
+
+  const clean = String(gstin || "").trim().toUpperCase();
+
+  return clean.length >= 12 ? clean.substring(2, 12) : "";
+
+};
+
+
+
+const normalizePanCard = (value) => String(value || "").trim().toUpperCase();
+
+
+
+const getCustomerPanCard = (customer) =>
+
+  normalizePanCard(
+
+    customer?.panCard ??
+
+      customer?.PanCard ??
+
+      customer?.panNo ??
+
+      customer?.PANNo ??
+
+      customer?.PAN_NO ??
+
+      customer?.pan ??
+
+      customer?.PAN ??
+
+      getPanFromGstin(getCustomerGstNo(customer))
+
+  );
+
+
+
+const findCustomerForElementGroup = (customers, customerId, customerName) => {
+
+  const selectedCustomerId = String(customerId || "").trim();
+
+  const selectedCustomerName = normalizeText(customerName);
+
+
+
+  return (Array.isArray(customers) ? customers : []).find((customer) => {
+
+    const currentCustomerId = getCustomerId(customer);
+
+    const currentCustomerName = normalizeText(getCustomerName(customer));
+
+
+
+    return (
+
+      (selectedCustomerId &&
+
+        currentCustomerId &&
+
+        selectedCustomerId === currentCustomerId) ||
+
+      (selectedCustomerName &&
+
+        currentCustomerName &&
+
+        selectedCustomerName === currentCustomerName)
+
+    );
+
+  });
+
+};
+
+
+
+const getCustomerPanForElementGroup = (customers, customerId, customerName) => {
+
+  const customer = findCustomerForElementGroup(customers, customerId, customerName);
+
+  return customer ? getCustomerPanCard(customer) : "";
+
+};
+
+
+
+const hydrateElementGroupPanCards = (rows, customers) =>
+
+  (Array.isArray(rows) ? rows : []).map((row) => {
+
+    const panCard =
+
+      normalizePanCard(row?.panCard) ||
+
+      getCustomerPanForElementGroup(customers, row?.customerId, row?.customerName);
+
+
+
+    return panCard && panCard !== row?.panCard ? { ...row, panCard } : row;
+
+  });
+
+
+
+const masterCustomerRows = getMasterValues("clientList").map((name) => ({
+
+  customeR_ID: name,
+
+  customeR_NAME: name,
+
+  source: "erpMaster",
+
+}));
+
+
+
+const mergeMasterCustomers = (customers) => {
+
+  const merged = [];
+
+  const seenIds = new Set();
+
+  const seenNames = new Set();
+
+
+
+  [...mergeFallbackCustomers(customers), ...masterCustomerRows].forEach((customer) => {
+
+    const customerId = getCustomerId(customer);
+
+    const customerName = normalizeText(getCustomerName(customer));
+
+    const idKey = customerId ? customerId.toLowerCase() : "";
+
+
+
+    if ((idKey && seenIds.has(idKey)) || (customerName && seenNames.has(customerName))) {
+
+      return;
+
+    }
+
+
+
+    if (idKey) seenIds.add(idKey);
+
+    if (customerName) seenNames.add(customerName);
+
+    merged.push(customer);
+
+  });
+
+
+
+  return merged;
+
+};
+
+
+
+const roundAmount = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
+
+
+const toNumber = (value) => {
+
+  if (typeof value === "number") return Number.isFinite(value) ? value : 0;
+
+  const parsed = Number(String(value ?? "").replace(/,/g, "").trim());
+
+  return Number.isFinite(parsed) ? parsed : 0;
+
+};
+
+
+
+const maskDimensionValue = (value) => {
+
+  const text = String(value || "").replace(/[^\d.]/g, "");
+
+  const [whole = "", ...decimalParts] = text.split(".");
+
+  const decimal = decimalParts.join("").slice(0, 2);
+
+  return decimalParts.length ? `${whole}.${decimal}` : whole;
+
+};
+
+
+
+const buildLineSequence = (line = {}) =>
+
+  [line.city, line.brandingLocation, line.store]
+
+    .map((value) => String(value || "").trim())
+
+    .filter(Boolean)
+
+    .join(" / ");
+
+
+
+const calculateSqft = (row) => {
+
+  const qty = Number(row.qty || 1);
+
+  const width = Number(getLineBillingWidth(row) || row.width || 0);
+
+  const height = Number(getLineBillingHeight(row) || row.height || 0);
+
+
+
+  if (qty > 0 && width > 0 && height > 0) {
+
+    return roundAmount((qty * width * height) / 144);
+
+  }
+
+
+
+  return 0;
+
+};
+
+
+
+const getLineBillingWidth = (line = {}) =>
+
+  String(
+
+    line.billingWidth ||
+
+      line.BillingWidth ||
+
+      line["Billing Width"] ||
+
+      line.width ||
+
+      line.Width ||
+
+      ""
+
+  );
+
+
+
+const getLineBillingHeight = (line = {}) =>
+
+  String(
+
+    line.billingHeight ||
+
+      line.BillingHeight ||
+
+      line["Billing Height"] ||
+
+      line.height ||
+
+      line.Height ||
+
+      ""
+
+  );
+
+
+
+const withBillingDimensions = (line = {}) => ({
+
+  ...line,
+
+  billingWidth: getLineBillingWidth(line),
+
+  billingHeight: getLineBillingHeight(line),
+
+});
+
+
+
+const withoutMediaSelection = (line = {}) => ({
+
+  ...line,
+
+  media: "",
+
+  internalMedia: "",
+
+  externalMedia: "",
+
+  hsn: "",
+
+  rate: "",
+
+  amount: "",
+
+});
+
+
+
+const hasLineField = (line, field) =>
+
+  Object.prototype.hasOwnProperty.call(line || {}, field);
+
+
+
+const shouldSyncBillingDimension = (billingValue, sourceValue) => {
+
+  const billingText = String(billingValue || "").trim();
+
+  const sourceText = String(sourceValue || "").trim();
+
+  return !billingText || billingText === sourceText;
+
+};
+
+
+
+const applyDimensionPatch = (line, patch) => {
+
+  const nextLine = { ...line, ...patch };
+
+
+
+  if (hasLineField(patch, "width") && !hasLineField(patch, "billingWidth")) {
+
+    if (shouldSyncBillingDimension(line.billingWidth, line.width)) {
+
+      nextLine.billingWidth = patch.width;
+
+    }
+
+  }
+
+
+
+  if (hasLineField(patch, "height") && !hasLineField(patch, "billingHeight")) {
+
+    if (shouldSyncBillingDimension(line.billingHeight, line.height)) {
+
+      nextLine.billingHeight = patch.height;
+
+    }
+
+  }
+
+
+
+  return nextLine;
+
+};
+
+
+
+const recalculateLine = (row) => {
+
+  const normalizedRow = withBillingDimensions(row);
+
+  const sqft = calculateSqft(normalizedRow);
+
+  const rate = Number(row.rate || 0);
+
+  const amount = roundAmount(sqft * rate);
+
+
+
+  return {
+
+    ...normalizedRow,
+
+    sqft: sqft ? String(sqft) : "",
+
+    rate: row.rate || "",
+
+    amount: amount ? String(amount) : "0",
+
+  };
+
+};
+
+
+
+const getSavedRateRows = () => {
+
+  try {
+
+    const savedRows = localStorage.getItem(RATE_STORAGE_KEY);
+
+    return savedRows ? JSON.parse(savedRows) : [];
+
+  } catch (error) {
+
+    console.error("Failed to read product media rates", error);
+
+    return [];
+
+  }
+
+};
+
+
+
+const parseSavedGroupElements = (value) => {
+
+  if (!value) return [];
+
+  if (Array.isArray(value)) return value;
+
+  try {
+
+    return JSON.parse(value);
+
+  } catch (error) {
+
+    return [];
+
+  }
+
+};
+
+
+
+const normalizeElementGroupItem = (item = {}) => ({
+
+  id: String(item?.id || item?.elementId || item?.ElementId || item?.id || ""),
+
+
+
+  articleCode: String(
+
+    item?.articleCode ||
+
+      item?.ArticleCode ||
+
+      item?.articlecode ||
+
+      item?.ARTICLECODE ||
+
+      ""
+
+  ).trim(),
+
+
+
+  description: String(
+
+    item?.description ||
+
+    item?.Description ||
+
+    ""
+
+  ).trim(),
+
+
+
+  visualCode: String(
+
+    item?.articleCode ||
+
+      item?.ArticleCode ||
+
+      item?.articlecode ||
+
+      item?.ARTICLECODE ||
+
+      ""
+
+  ).trim(),
+
+  qty: String(item?.qty ?? item?.Qty ?? item?.quantity ?? ""),
+
+  width: String(item?.width ?? item?.Width ?? ""),
+
+  height: String(item?.height ?? item?.Height ?? ""),
+
+  billingWidth: String(
+
+    item?.billingWidth ??
+
+      item?.BillingWidth ??
+
+      item?.["Billing Width"] ??
+
+      item?.width ??
+
+      item?.Width ??
+
+      ""
+
+  ),
+
+  billingHeight: String(
+
+    item?.billingHeight ??
+
+      item?.BillingHeight ??
+
+      item?.["Billing Height"] ??
+
+      item?.height ??
+
+      item?.Height ??
+
+      ""
+
+  ),
+
+  rate: String(item?.rate ?? item?.Rate ?? ""),
+
+  laminationFlag: String(
+
+    item?.laminationFlag ||
+
+      item?.LaminationFlag ||
+
+      item?.isLamination ||
+
+      item?.IsLamination ||
+
+      (item?.lamination || item?.Lamination ? "Yes" : "")
+
+  ).trim(),
+
+  lamination: String(item?.lamination || item?.Lamination || "").trim(),
+
+  mountingFlag: String(
+
+    item?.mountingFlag ||
+
+      item?.MountingFlag ||
+
+      item?.isMounting ||
+
+      item?.IsMounting ||
+
+      (item?.mounting || item?.Mounting ? "Yes" : "")
+
+  ).trim(),
+
+  mounting: String(item?.mounting || item?.Mounting || "").trim(),
+
+  implementation: String(item?.implementation || item?.Implementation || "").trim(),
+
+});
+
+
+
+const normalizeElementGroupRow = (row, index = 0) => ({
+
+  id: String(row?.id || row?.ID || row?._id || `element-${index}`),
+
+  elementGroupCode:
+
+    String(row?.elementGroupCode || row?.ElementGroupCode || row?.groupCode || "")
+
+      .trim(),
+
+  elementGroupName:
+
+    String(
+
+      row?.elementGroupName || row?.ElementGroupName || row?.groupName || row?.elementGroup || ""
+
+    ).trim(),
+
+  customerId: String(row?.customerId || row?.CustomerId || row?.CUSTOMER_ID || "").trim(),
+
+  customerName: String(row?.customerName || row?.CustomerName || row?.client || row?.CLIENT || "").trim(),
+
+  panCard: normalizePanCard(
+
+    row?.panCard ||
+
+      row?.PanCard ||
+
+      row?.panNo ||
+
+      row?.PANNo ||
+
+      row?.PAN_NO ||
+
+      row?.pan ||
+
+      row?.PAN ||
+
+      getPanFromGstin(row?.gstNo || row?.GSTNo || row?.GST_NO || row?.gstin || row?.GSTIN)
+
+  ),
+
+  description: String(row?.description || row?.Description || "").trim(),
+
+  isActive: String(row?.isActive ?? row?.IsActive ?? "1"),
+
+  elements: parseSavedGroupElements(row?.elements || row?.Elements || row?.elementRows || row?.elementDetails || [])
+
+    .map(normalizeElementGroupItem),
+
+});
+
+
+
+const getSavedElementGroups = () => {
+
+  try {
+
+    const savedGroups = localStorage.getItem(ELEMENT_GROUP_STORAGE_KEY);
+
+    return savedGroups ? JSON.parse(savedGroups) : [];
+
+  } catch (error) {
+
+    console.error("Failed to read element group master", error);
+
+    return [];
+
+  }
+
+};
+
+
+
+const buildDefaultRateRows = () =>
+
+  (Array.isArray(hsnRateData) ? hsnRateData : []).map((item, index) => ({
+
+    id: `default-${index}`,
+
+    customerId: "",
+
+    customerName: "",
+
+    media: item.media || "",
+
+    internalMedia: item.media || "",
+
+    externalMedia: item.media || "",
+
+    hsn: item.hsnCode || "",
+
+    hsnCode: item.hsnCode || "",
+
+    rate: item.ratePerSqft ?? "",
+
+  }));
+
+
+
+const buildMasterMediaRows = () =>
+
+  getMasterGroup("media").map((item, index) => ({
+
+    id: `erp-master-media-${index}`,
+
+    customerId: "",
+
+    customerName: "",
+
+    media: item.value || "",
+
+    internalMedia: item.value || "",
+
+    externalMedia: item.value || "",
+
+    hsn: item.hsnSac || "",
+
+    hsnCode: item.hsnSac || "",
+
+    productGroup: item.productGroup || "",
+
+    rate: "",
+
+  }));
+
+
+
+const getRateMedia = (row) =>
+
+  row.externalMedia ||
+
+  row.ExternalMedia ||
+
+  row.internalMedia ||
+
+  row.InternalMedia ||
+
+  row.media ||
+
+  row.Media ||
+
+  row.productCode ||
+
+  row.ProductCode ||
+
+  "";
+
+
+
+const normalizeRateRow = (row, index) => ({
+
+  id: row.id || `rate-${index}`,
+
+  customerId: String(
+
+    row.customerId || row.customerID || row.CustomerId || row.CUSTOMER_ID || ""
+
+  ).trim(),
+
+  customerName: String(
+
+    row.customerName || row.CustomerName || row.client || row.CLIENT || ""
+
+  ).trim(),
+
+  media: getRateMedia(row),
+
+  internalMedia:
+
+    row.internalMedia || row.InternalMedia || row.media || row.Media || "",
+
+  externalMedia:
+
+    row.externalMedia || row.ExternalMedia || row.media || row.Media || "",
+
+  description: String(
+
+    row?.description ??
+
+    row?.Description ??
+
+    row?.DESCRIPTION ??
+
+    ""
+
+  ).trim(),
+
+  hsn: String(
+
+    row.hsn ||
+
+      row.HSN ||
+
+      row.hsnCode ||
+
+      row.HsnCode ||
+
+      row.HSNCode ||
+
+      row.hsnSac ||
+
+      row["HSN / SAC"] ||
+
+      row["HSN Code"] ||
+
+      ""
+
+  ).trim(),
+
+  hsnCode: String(
+
+    row.hsnCode ||
+
+      row.HsnCode ||
+
+      row.HSNCode ||
+
+      row.hsn ||
+
+      row.HSN ||
+
+      row.hsnSac ||
+
+      row["HSN / SAC"] ||
+
+      row["HSN Code"] ||
+
+      ""
+
+  ).trim(),
+
+  rate: row.ratePerSqft ?? row.RatePerSqft ?? row.rate ?? row.Rate ?? "",
+
+});
+
+
+
+const mergeRateRows = (...rowSets) => {
+
+  const seen = new Set();
+
+
+
+  return rowSets.flat().filter((row) => {
+
+    const media = normalizeText(getRateMedia(row));
+
+    if (!media) return false;
+
+
+
+    const customerKey = [
+
+      row.customerId || row.customerID || row.CustomerId || "",
+
+      normalizeText(row.customerName || row.CustomerName || row.client || ""),
+
+      media,
+
+    ].join("|");
+
+
+
+    if (seen.has(customerKey)) return false;
+
+    seen.add(customerKey);
+
+    return true;
+
+  });
+
+};
+
+
+
+const getRateRowsFromResponse = (data) => {
+
+  if (Array.isArray(data)) return data;
+
+  if (Array.isArray(data?.items)) return data.items;
+
+  if (Array.isArray(data?.data)) return data.data;
+
+  if (Array.isArray(data?.result)) return data.result;
+
+  if (Array.isArray(data?.message)) return data.message;
+
+  if (Array.isArray(data?.$values)) return data.$values;
+
+  return [];
+
+};
+
+
+
+const getCustomerRowsFromResponse = getRateRowsFromResponse;
+
+const isNumericCustomerId = (value) => /^\d+$/.test(String(value || "").trim());
+
+const findNumericCustomerId = (customerRows, selectedId, selectedName) => {
+  const currentId = String(selectedId || "").trim();
+
+  if (isNumericCustomerId(currentId)) return currentId;
+
+  const normalizedName = normalizeText(selectedName);
+  const matchingIds = (Array.isArray(customerRows) ? customerRows : [])
+    .filter(
+      (customer) =>
+        isNumericCustomerId(getCustomerId(customer)) &&
+        normalizeText(getCustomerName(customer)) === normalizedName
+    )
+    .map(getCustomerId);
+  const uniqueIds = [...new Set(matchingIds)];
+
+  return uniqueIds.length === 1 ? uniqueIds[0] : "";
+};
+
+const fetchLocationCustomers = async (locationId) => {
+  const response = await axios.post(
+    config.JobSummary.URL.GetCustomerNameAccToLocation,
+    { locationId },
+    { timeout: 30000, headers: { "Content-Type": "application/json" } }
+  );
+
+  return getCustomerRowsFromResponse(response.data);
+};
+
+const getApiErrorMessage = (error, fallbackMessage) => {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData === "string" && responseData.trim()) return responseData;
+  return responseData?.error || responseData?.message || error?.message || fallbackMessage;
+};
+
+const validatePrinterDeadline = (selectedDate) => {
+
+    const today = new Date();
+
+    today.setHours(0, 0, 0, 0);
+
+
+
+    const printerDeadline = new Date(selectedDate);
+
+    printerDeadline.setHours(0, 0, 0, 0);
+
+
+
+    if (printerDeadline < today) {
+
+        toast.warning("Printer deadline cannot be back dated");
+
+        return false;
+
+    }
+
+
+
+    return true;
+
+};
+
+const getElementGroupRowsFromResponse = (data) => {
+
+  if (Array.isArray(data)) return data;
+
+  if (Array.isArray(data?.items)) return data.items;
+
+  if (Array.isArray(data?.data)) return data.data;
+
+  if (Array.isArray(data?.result)) return data.result;
+
+  if (Array.isArray(data?.message)) return data.message;
+
+  if (Array.isArray(data?.$values)) return data.$values;
+
+  return [];
+
+};
+
+
+
+const fetchElementGroups = async ({ showFallbackMessage = true } = {}) => {
+
+  try {
+
+    const response = await axios.get(config.ElementGroupMaster.URL.GetAll, {
+
+      timeout: 10000,
+
+    });
+
+
+
+    const apiRows = getElementGroupRowsFromResponse(response.data).map(
+
+      normalizeElementGroupRow
+
+    );
+
+
+
+    if (apiRows.length) {
+
+      return apiRows;
+
+    }
+
+
+
+    throw new Error("No element groups returned from API");
+
+  } catch (error) {
+
+    console.error("Error fetching element groups", error);
+
+    const savedGroups = getSavedElementGroups().map(normalizeElementGroupRow);
+
+    if (showFallbackMessage) {
+
+      toast.warn("Could not load element groups from API, using local saved groups.");
+
+    }
+
+    return savedGroups;
+
+  }
+
+};
+
+
+
+const getCustomerRates = (rows, customerId, customerName) => {
+
+  const normalizedCustomerName = normalizeText(customerName);
+
+
+
+  return rows.filter((row) => {
+
+    if (!customerId && !normalizedCustomerName) return false;
+
+    return (
+
+      (row.customerId && row.customerId === customerId) ||
+
+      (row.customerName && normalizeText(row.customerName) === normalizedCustomerName)
+
+    );
+
+  });
+
+};
+
+
+
+const findPricingFromRows = (media, customerRows, allRows) => {
+
+  const normalizedMedia = normalizeText(media);
+
+
+
+  if (!normalizedMedia) return null;
+
+
+
+  const isMatch = (row) =>
+
+    [row.media, row.externalMedia, row.internalMedia].some(
+
+      (value) => normalizeText(value) === normalizedMedia
+
+    );
+
+
+
+  return customerRows.find(isMatch) || allRows.find(isMatch) || null;
+
+};
+
+
+
+const getGeneralRateRows = (rows) =>
+
+  rows.filter((row) => !row.customerId && !row.customerName);
+
+
+
+const formatDate = (date) => {
+
+  return date.toLocaleDateString("en-GB", {
+
+    day: "2-digit",
+
+    month: "short",
+
+    year: "numeric",
+
+  }).replace(/ /g, "-");
+
+};
+
+
+
+
+
+const MONTH_NAME_TO_NUMBER = {
+  jan: "01",
+  january: "01",
+  feb: "02",
+  february: "02",
+  mar: "03",
+  march: "03",
+  apr: "04",
+  april: "04",
+  may: "05",
+  jun: "06",
+  june: "06",
+  jul: "07",
+  july: "07",
+  aug: "08",
+  august: "08",
+  sep: "09",
+  sept: "09",
+  september: "09",
+  oct: "10",
+  october: "10",
+  nov: "11",
+  november: "11",
+  dec: "12",
+  december: "12",
+};
+
+const normalizeDateInputValue = (value) => {
+  const text = String(value || "").trim();
+  if (!text) return "";
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(text)) return text;
+
+  // Supports values saved by formatDate(), for example 30-Jun-2026.
+  const monthNameMatch = text.match(/^(\d{1,2})[-\s]([A-Za-z]{3,9})[-\s](\d{4})$/);
+  if (monthNameMatch) {
+    const day = String(monthNameMatch[1]).padStart(2, "0");
+    const month = MONTH_NAME_TO_NUMBER[monthNameMatch[2].toLowerCase()];
+    if (!month) return "";
+    return `${monthNameMatch[3]}-${month}-${day}`;
+  }
+
+  // Supports dd/MM/yyyy and dd-MM-yyyy.
+  const numericMatch = text.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})$/);
+  if (!numericMatch) return "";
+
+  const day = String(numericMatch[1]).padStart(2, "0");
+  const month = String(numericMatch[2]).padStart(2, "0");
+  return `${numericMatch[3]}-${month}-${day}`;
+};
+
+const splitClipboardRow = (row = "") => {
+
+  const cells = [];
+
+  let cell = "";
+
+  let inQuotes = false;
+
+
+
+  for (let index = 0; index < row.length; index += 1) {
+
+    const char = row[index];
+
+    const nextChar = row[index + 1];
+
+
+
+    if (char === '"' && nextChar === '"') {
+
+      cell += '"';
+
+      index += 1;
+
+      continue;
+
+    }
+
+
+
+    if (char === '"') {
+
+      inQuotes = !inQuotes;
+
+      continue;
+
+    }
+
+
+
+    if (char === "\t" && !inQuotes) {
+
+      cells.push(cell.trim());
+
+      cell = "";
+
+      continue;
+
+    }
+
+
+
+    cell += char;
+
+  }
+
+
+
+  cells.push(cell.trim());
+
+  return cells;
+
+};
+
+
+
+const parseClipboardGrid = (text = "") => {
+
+  const rows = String(text || "")
+
+    .replace(/\r\n/g, "\n")
+
+    .replace(/\r/g, "\n")
+
+    .split("\n");
+
+
+
+  if (rows[rows.length - 1] === "") rows.pop();
+
+
+
+  return rows
+
+    .map(splitClipboardRow)
+
+    .filter((row) => row.some((cell) => String(cell || "").trim()));
+
+};
+
+
+
+const padDatePart = (value) => String(value).padStart(2, "0");
+
+
+
+const isValidDateParts = (year, month, day) => {
+
+  const date = new Date(year, month - 1, day);
+
+  return (
+
+    date.getFullYear() === Number(year) &&
+
+    date.getMonth() === Number(month) - 1 &&
+
+    date.getDate() === Number(day)
+
+  );
+
+};
+
+
+
+const buildDateTimeLocalValue = (year, month, day, hour = "00", minute = "00", meridiem = "") => {
+
+  let parsedHour = Number(hour || 0);
+
+  const parsedMinute = Number(minute || 0);
+
+  const marker = String(meridiem || "").trim().toLowerCase();
+
+
+
+  if (marker === "pm" && parsedHour < 12) parsedHour += 12;
+
+  if (marker === "am" && parsedHour === 12) parsedHour = 0;
+
+
+
+  if (
+
+    !isValidDateParts(Number(year), Number(month), Number(day)) ||
+
+    parsedHour < 0 ||
+
+    parsedHour > 23 ||
+
+    parsedMinute < 0 ||
+
+    parsedMinute > 59
+
+  ) {
+
+    return "";
+
+  }
+
+
+
+  return `${year}-${padDatePart(month)}-${padDatePart(day)}T${padDatePart(parsedHour)}:${padDatePart(parsedMinute)}`;
+
+};
+
+
+
+const normalizeDateTimePasteValue = (value) => {
+
+  const text = String(value || "").trim();
+
+  if (!text) return "";
+
+
+
+  const isoMatch = text.match(
+
+    /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T\s]+(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?)?$/i
+
+  );
+
+
+
+  if (isoMatch) {
+
+    return buildDateTimeLocalValue(
+
+      isoMatch[1],
+
+      isoMatch[2],
+
+      isoMatch[3],
+
+      isoMatch[4] || "00",
+
+      isoMatch[5] || "00",
+
+      isoMatch[6] || ""
+
+    );
+
+  }
+
+
+
+  const slashMatch = text.match(
+
+    /^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::\d{2})?\s*(am|pm)?)?$/i
+
+  );
+
+
+
+  if (!slashMatch) return "";
+
+
+
+  const first = Number(slashMatch[1]);
+
+  const second = Number(slashMatch[2]);
+
+  const year = slashMatch[3].length === 2 ? `20${slashMatch[3]}` : slashMatch[3];
+
+  const day = first > 12 || second <= 12 ? first : second;
+
+  const month = first > 12 || second <= 12 ? second : first;
+
+
+
+  return buildDateTimeLocalValue(
+
+    year,
+
+    month,
+
+    day,
+
+    slashMatch[4] || "00",
+
+    slashMatch[5] || "00",
+
+    slashMatch[6] || ""
+
+  );
+
+};
+
+
+
+const getDatePickerValue = (value) => {
+
+  const normalized = normalizeDateInputValue(value);
+
+  if (!normalized) return null;
+
+
+
+  const [year, month, day] = normalized.split("-").map(Number);
+
+  const date = new Date(year, month - 1, day);
+
+  return Number.isNaN(date.getTime()) ? null : date;
+
+};
+
+
+
+const getLoggedInUser = () => {
+
+  try {
+
+    return JSON.parse(localStorage.getItem("users") || "{}").message || {};
+
+  } catch (error) {
+
+    console.error("Failed to read logged in user", error);
+
+    return {};
+
+  }
+
+};
+
+
+
+const getJobNo = (job) =>
+
+  String(
+
+    job?.comartjobno ??
+
+      job?.comartJobNo ??
+
+      job?.ComartJobNo ??
+
+      job?.COMARTJOBNO ??
+
+      job?.jobNo ??
+
+      job?.jobno ??
+
+      job?.JobNo ??
+
+      job?.jobNumber ??
+
+      job?.JobNumber ??
+
+      job?.["Job No"] ??
+
+      ""
+
+  ).trim();
+
+
+
+const getJobClient = (job) =>
+
+  job?.client ?? job?.CLIENT ?? job?.customername ?? job?.customerName ?? "";
+
+
+
+const getJobSubClient = (job) =>
+
+  job?.subClient ?? job?.subclient ?? job?.["Sub Client"] ?? "";
+
+
+
+const getJobCustomerId = (job) =>
+
+  String(job?.customerid ?? job?.customerId ?? job?.customeR_ID ?? "").trim();
+
+
+
+const getJobRows = (data) => {
+
+  if (Array.isArray(data)) return data;
+
+  if (Array.isArray(data?.items)) return data.items;
+
+  if (Array.isArray(data?.data)) return data.data;
+
+  if (Array.isArray(data?.result)) return data.result;
+
+  if (Array.isArray(data?.message)) return data.message;
+
+  if (Array.isArray(data?.$values)) return data.$values;
+
+  return [];
+
+};
+
+const getEstimateRowsFromResponse = (data) => {
+
+  if (Array.isArray(data)) return data;
+
+  if (Array.isArray(data?.items)) return data.items;
+
+  if (Array.isArray(data?.data)) return data.data;
+
+  if (Array.isArray(data?.result)) return data.result;
+
+  if (Array.isArray(data?.message)) return data.message;
+
+  if (Array.isArray(data?.$values)) return data.$values;
+
+  return [];
+
+};
+
+const getEstimateApiUrl = () =>
+
+  config?.JobSummary?.URL?.GetEstimate ||
+
+  String(config?.JobSummary?.URL?.SaveEstimate || "").replace(/SaveEstimate$/i, "GetEstimate");
+
+
+
+const getStoreRows = (data) => {
+
+  if (Array.isArray(data)) return data;
+
+  if (Array.isArray(data?.items)) return data.items;
+
+  if (Array.isArray(data?.data)) return data.data;
+
+  if (Array.isArray(data?.result)) return data.result;
+
+  if (Array.isArray(data?.$values)) return data.$values;
+
+  return [];
+};
+const getPrinterRows = (data) => {
+
+  if (Array.isArray(data)) return data;
+
+  if (Array.isArray(data?.items)) return data.items;
+
+  if (Array.isArray(data?.data)) return data.data;
+
+  if (Array.isArray(data?.result)) return data.result;
+
+  if (Array.isArray(data?.message)) return data.message;
+
+  if (Array.isArray(data?.$values)) return data.$values;
+
+  return [];
+
+};
+const printerNameKeys = new Set([
+
+  "printerName",
+
+  "PrinterName",
+
+  "printerPrintingName",
+
+  "PrinterPrintingName",
+
+  "printingMachine",
+
+  "PrintingMachine",
+
+  "machineName",
+
+  "MachineName",
+
+  "name",
+
+  "Name",
+
+]);
+
+
+
+const extractPrinterNames = (row) => {
+
+  if (!row) return [];
+
+  if (typeof row === "string") return [row];
+
+  if (typeof row !== "object") return [];
+
+
+
+  const names = [];
+
+  const visit = (value, key = "") => {
+
+    if (!value) return;
+
+    if (typeof value === "string" || typeof value === "number") {
+
+      if (printerNameKeys.has(key)) names.push(value);
+
+      return;
+
+    }
+
+    if (Array.isArray(value)) {
+
+      value.forEach((item) => visit(item, key));
+
+      return;
+
+    }
+
+    if (typeof value !== "object") return;
+
+
+
+    Object.entries(value).forEach(([childKey, childValue]) => {
+
+      if (printerNameKeys.has(childKey)) {
+
+        if (Array.isArray(childValue)) childValue.forEach((item) => visit(item, childKey));
+
+        else if (childValue && typeof childValue === "object") visit(childValue, childKey);
+
+        else names.push(childValue);
+
+        return;
+
+      }
+
+      visit(childValue, childKey);
+
+    });
+
+  };
+
+
+
+  visit(row);
+
+  return names;
+
+};
+
+
+
+const normalizeStoreRow = (store, index = 0) => ({
+
+  id: String(store?.id || store?._id || store?.storeId || store?.StoreId || `store-${index}`),
+
+  storeName: String(store?.storeName || store?.StoreName || store?.name || store?.Name || "").trim(),
+
+  address: String(store?.address || store?.Address || store?.storeAddress || store?.StoreAddress || "").trim(),
+
+  location: String(store?.location || store?.Location || "").trim(),
+
+  city: String(store?.city || store?.City || "").trim(),
+
+  panCard: normalizePanCard(
+
+    store?.panCard ||
+
+      store?.PanCard ||
+
+      store?.panNo ||
+
+      store?.PANNo ||
+
+      store?.PAN_NO ||
+
+      store?.pan ||
+
+      store?.PAN ||
+
+      getPanFromGstin(store?.gstNo || store?.GSTNo || store?.GST_NO || store?.gstin || store?.GSTIN)
+
+  ),
+
+});
+
+
+
+const formatStoreShipTo = (store) =>
+
+  [
+
+    store?.storeName,
+
+    store?.address,
+
+    [store?.location, store?.city].filter(Boolean).join(", "),
+
+    store?.panCard ? `PAN: ${store.panCard}` : "",
+
+  ]
+
+    .filter(Boolean)
+
+    .join("\n");
+
+
+
+const extractPanFromText = (value) => {
+
+  const match = String(value || "").match(/\bPAN\s*:\s*([A-Z0-9]{10})\b/i);
+
+  return normalizePanCard(match?.[1] || "");
+
+};
+
+
+
+const buildJobOption = (job) => {
+
+  const jobNo = getJobNo(job);
+
+  if (!jobNo) return null;
+
+
+
+  const clientName = getJobClient(job);
+
+  return {
+
+    value: jobNo,
+
+    label: clientName ? `${jobNo} (${clientName})` : jobNo,
+
+    clientName,
+
+    subClient: getJobSubClient(job),
+
+    customerId: getJobCustomerId(job),
+
+  };
+
+};
+
+
+
+const isLineBlank = (line) =>
+
+  [
+
+    line.store,
+
+    line.city,
+
+    line.prodLoc,
+
+    line.billLoc,
+
+    line.salonAddress,
+
+    line.brandingLocation,
+
+    line.printingMachine,
+
+    line.printReadyFile,
+
+    line.remarks,
+
+    line.media,
+
+    line.internalMedia,
+
+    line.externalMedia,
+

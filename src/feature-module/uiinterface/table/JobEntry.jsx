@@ -1,8 +1,9 @@
 
 
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import axios from "axios";
+
 
 import { Link } from "react-router-dom";
 
@@ -70,6 +71,8 @@ import erpMasterData from "../../../core/json/erpMasterData.json";
 
 import hsnRateData from "../../../core/json/hsnRateData.json";
 
+import productRateData from "../../../core/json/productRateData.json";
+
 import indiaCities from "../../../core/json/indiaCities.json";
 
 import { mergeFallbackCustomers } from "./customerFallbacks";
@@ -78,9 +81,9 @@ import "./JobEntry.css";
 
 
 
-const RATE_STORAGE_KEY = "productMediaRateMasterRows";
-
 const ELEMENT_GROUP_STORAGE_KEY = "elementGroupMasterRows";
+
+const RATE_STORAGE_KEY = "productMediaRateMasterRows";
 
 const JOB_DRAFT_KEY = "jobEntryDrafts";
 
@@ -116,10 +119,20 @@ const uniqueOptionValues = (values = []) => {
 
     seen.add(normalized);
 
-    return true;
+  return true;
 
   });
 
+};
+
+const getSavedRateRows = () => {
+  try {
+    const savedRows = localStorage.getItem(RATE_STORAGE_KEY);
+    return savedRows ? JSON.parse(savedRows) : [];
+  } catch (error) {
+    console.error("Failed to read product media rates", error);
+    return [];
+  }
 };
 
 
@@ -156,7 +169,7 @@ const poTypeOptions = [
 
 ];
 
-const laminationDefaults = getMasterOptionValues("lamination", ["Matt Lamination"]);
+const laminationDefaults = getMasterOptionValues("lamination");
 
 const mountingDefaults = getMasterOptionValues("mounting", ["3 MM Sun Board", "5 MM Sun Board"]);
 
@@ -196,19 +209,19 @@ const elementGroupDefaults = [
 
 const productColumns = [
 
-  "VISUAL CODE",
+  "Visual Code",
 
-  "QTY",
+  "Qty",
 
-  "Width",
+  "Production Width",
 
-  "Height",
+  "Production Height",
 
   "Billing Width",
 
   "Billing Height",
 
-  "Total Sq.f",
+  "Billable Sq.Ft",
 
   // "Installation charges",
 
@@ -216,19 +229,19 @@ const productColumns = [
 
   // "Layouting charges",
 
-  "LAMINATION",
+  "Lamination",
 
-  "TYPE OF LAMINATION",
+  "Type of Lamination",
 
-  "MOUNTING",
+  "Mounting",
 
-  "TYPE OF MOUNTING",
+  "Type of Mounting",
 
-  "IMPLEMENTATION",
+  "Implementation *",
 
-  "JOB DEADLINE",
+  "Job Deadline *",
 
-  "PRINTER DEADLINE",
+  "Printer Deadline *",
 
 ];
 
@@ -245,6 +258,51 @@ const firstValue = (...values) => {
     const text = String(value ?? "").trim();
 
     if (text) return text;
+
+  }
+
+  return "";
+
+};
+
+const isPlaceholderDescription = (value) => {
+  const normalized = String(value || "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+
+  if (!normalized) return true;
+  if (normalized === "yes" || normalized === "no") return true;
+
+  return /^(yes|no)(\s*[-,\/|]\s*(yes|no))+$/i.test(normalized);
+};
+
+const firstMeaningfulDescription = (...values) => {
+  for (const value of values) {
+    const text = String(value ?? "").trim();
+    if (!text) continue;
+    if (!isPlaceholderDescription(text)) return text;
+  }
+
+  return "";
+};
+
+const getEstimateBranchLocationFromAddress = (lineItems = []) => {
+
+  const detailItems = (Array.isArray(lineItems) ? lineItems : []).filter(
+    (item) => !item?.isChargeRow
+  );
+
+  for (const item of detailItems) {
+
+    const addressText = firstValue(
+      item?.salonAddress,
+      item?.storeDisplayName,
+      item?.city,
+      item?.pdfRegion
+    );
+
+    if (addressText) return addressText;
 
   }
 
@@ -270,7 +328,9 @@ const getEstimateBranchRegion = (header = {}, lineItems = []) =>
 
     lineItems?.[0]?.productionLocation,
 
-    lineItems?.[0]?.region
+    lineItems?.[0]?.region,
+
+    getEstimateBranchLocationFromAddress(lineItems)
 
   );
 
@@ -279,7 +339,6 @@ const getEstimateBranchRegion = (header = {}, lineItems = []) =>
 const getEstimateCompanyDetails = (header = {}, lineItems = []) => {
 
   const region = getEstimateBranchRegion(header, lineItems);
-
   const branchDetails = getCompanyBranchDetails(region);
 
 
@@ -308,11 +367,19 @@ const createLine = (index) => ({
 
   store: "",
 
+  storeCode: "",
+
   panCard: "",
 
   city: "",
 
   description: "",
+
+  simplifiedProductName: "",
+
+  productAsPerRateCard: "",
+
+  productrateId: "",
 
   prodLoc: "",
 
@@ -345,6 +412,8 @@ const createLine = (index) => ({
   visualCode: "",
 
   qty: "",
+
+  unit: "inch",
 
   width: "",
 
@@ -382,6 +451,40 @@ const createLine = (index) => ({
 
 });
 
+const getStoredLineDescription = (line = {}) =>
+  String(
+    line?.simplifiedProductName ||
+      line?.SimplifiedProductName ||
+      line?.simplified_description ||
+      line?.SimplifiedDescription ||
+      line?.description ||
+      line?.Description ||
+      line?.details ||
+      line?.Details ||
+      line?.nameSubCode ||
+      line?.NameSubCode ||
+      line?.productAsPerRateCard ||
+      line?.ProductAsPerRateCard ||
+      ""
+  ).trim();
+
+const createEmptyHeader = () => ({
+  jobNo: "",
+  date: formatDate(new Date()),
+  client: "",
+  panCard: "",
+  clientName: "",
+  userName: "",
+  subClient: "",
+  businessType: "",
+  contactPerson: "",
+  poNo: "",
+  poDate: "",
+  poType: "",
+  customerEmail: "",
+  projectName: "",
+});
+
 
 
 const normalizeText = (value) =>
@@ -394,30 +497,32 @@ const normalizeText = (value) =>
 
     .toLowerCase();
 
+const getStoreBrandKey = (value) => {
+  const normalized = normalizeText(value);
+  if (/\bsephora\b/.test(normalized)) return "sephora";
+  if (/\bnykaa\b/.test(normalized)) return "nykaa";
+  return "";
+};
+
 
 
 const getCustomerId = (customer) =>
-
   String(
-
-      customer?.customeR_ID ??
-
+    customer?.customeR_ID ??
       customer?.customerId ??
-
       customer?.CustomerId ??
-
       customer?.customerid ??
-
       customer?.CUSTOMER_ID ??
-
+      customer?.custId ??
+      customer?.CustId ??
+      customer?.CUST_ID ??
+      customer?.customerCode ??
+      customer?.CustomerCode ??
+      customer?.CUSTOMER_CODE ??
       customer?.id ??
-
       customer?._id ??
-
       ""
-
   ).trim();
-
 
 
 const getCustomerName = (customer) =>
@@ -439,6 +544,24 @@ const getCustomerName = (customer) =>
   customer?.Name ||
 
   "";
+
+const findCustomerForSelection = (customers, value) => {
+  const selectedValue = String(value || "").trim();
+  const selectedName = normalizeCustomerNameForMatch(selectedValue);
+  const selectedPan = normalizePanCard(selectedValue);
+
+  return (Array.isArray(customers) ? customers : []).find((customer) => {
+    const customerId = getCustomerId(customer);
+    const customerName = normalizeCustomerNameForMatch(getCustomerName(customer));
+    const customerPan = getCustomerPanCard(customer);
+
+    return (
+      (selectedValue && customerId && customerId === selectedValue) ||
+      (selectedName && customerName && customerName === selectedName) ||
+      (selectedPan && customerPan && customerPan === selectedPan)
+    );
+  });
+};
 
 
 
@@ -470,13 +593,17 @@ const getPanFromGstin = (gstin) => {
 
   const clean = String(gstin || "").trim().toUpperCase();
 
-  return clean.length >= 12 ? clean.substring(2, 12) : "";
+  return normalizePanCard(clean.length >= 12 ? clean.substring(2, 12) : "");
 
 };
 
 
 
-const normalizePanCard = (value) => String(value || "").trim().toUpperCase();
+const normalizePanCard = (value) =>
+  String(value || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, "");
 
 
 
@@ -485,6 +612,9 @@ const getCustomerPanCard = (customer) =>
   normalizePanCard(
 
     customer?.panCard ??
+      customer?.pannumber ??
+      customer?.PANNUMBER ??
+      customer?.PanNumber ??
 
       customer?.PanCard ??
 
@@ -570,63 +700,51 @@ const hydrateElementGroupPanCards = (rows, customers) =>
 
 
 
+const normalizeCustomerNameForMatch = (value) =>
+  normalizeText(value)
+    .replace(/\s*\((?:new|old)\s+gst\)\s*$/i, "")
+    .replace(/\s*[-Ã¢â‚¬â€œÃ¢â‚¬â€]\s*(?:new|old)\s+gst\s*$/i, "")
+    .replace(/\b(private|pvt|limited|ltd|llp|inc|company|co|corporation)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
 const masterCustomerRows = getMasterValues("clientList").map((name) => ({
-
   customeR_ID: name,
-
   customeR_NAME: name,
-
   source: "erpMaster",
-
 }));
 
-
-
 const mergeMasterCustomers = (customers) => {
-
+  const apiCustomers = Array.isArray(customers) ? customers : [];
+  const fallbackCustomers = mergeFallbackCustomers([]);
   const merged = [];
-
   const seenIds = new Set();
-
   const seenNames = new Set();
 
-
-
-  [...mergeFallbackCustomers(customers), ...masterCustomerRows].forEach((customer) => {
-
+  [...apiCustomers, ...fallbackCustomers, ...masterCustomerRows].forEach((customer) => {
     const customerId = getCustomerId(customer);
-
-    const customerName = normalizeText(getCustomerName(customer));
-
+    const customerName = normalizeCustomerNameForMatch(getCustomerName(customer));
     const idKey = customerId ? customerId.toLowerCase() : "";
 
-
-
-    if ((idKey && seenIds.has(idKey)) || (customerName && seenNames.has(customerName))) {
-
-      return;
-
-    }
-
-
+    if (idKey && seenIds.has(idKey)) return;
+    if (customerName && seenNames.has(customerName)) return;
 
     if (idKey) seenIds.add(idKey);
-
     if (customerName) seenNames.add(customerName);
-
     merged.push(customer);
-
   });
 
-
-
   return merged;
-
 };
 
 
-
 const roundAmount = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
+const formatIndianCurrency = (value) =>
+  `Rs. ${toNumber(value).toLocaleString("en-IN", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 
 
 
@@ -654,6 +772,66 @@ const maskDimensionValue = (value) => {
 
 };
 
+// Allows only positive numeric values with a maximum of 4 digits before
+// the decimal point and up to 2 decimal places.
+const maskFourDigitNumericValue = (value, decimalPlaces = 2) => {
+  const text = String(value ?? "").replace(/[^\d.]/g, "");
+  const [rawWhole = "", ...decimalParts] = text.split(".");
+  const whole = rawWhole.slice(0, 4);
+  const decimal = decimalParts.join("").slice(0, decimalPlaces);
+
+  if (!whole && !decimalParts.length) return "";
+  return decimalParts.length ? `${whole}.${decimal}` : whole;
+};
+
+const getFourDigitNumberInputProps = (value, onChange, decimalPlaces = 2) => ({
+  value: value ?? "",
+  type: "text",
+  inputMode: decimalPlaces > 0 ? "decimal" : "numeric",
+  maxLength: decimalPlaces > 0 ? 7 : 4,
+  onChange: (event) =>
+    onChange(maskFourDigitNumericValue(event.target.value, decimalPlaces)),
+});
+
+const DIMENSION_UNIT_OPTIONS = [
+  { value: "inch", label: "Inch" },
+  { value: "nos", label: "Nos" },
+  { value: "mm", label: "MM" },
+  { value: "ft", label: "Ft" },
+  { value: "cm", label: "CM" },
+];
+
+const normalizeDimensionUnit = (value) => {
+  const unit = String(value || "inch").trim().toLowerCase();
+  if (["in", "inch", "inches"].includes(unit)) return "inch";
+  if (["nos", "no", "number", "numbers", "qty", "quantity"].includes(unit)) return "nos";
+  if (["mm", "millimeter", "millimeters"].includes(unit)) return "mm";
+  if (["ft", "foot", "feet"].includes(unit)) return "ft";
+  if (["cm", "centimeter", "centimeters"].includes(unit)) return "cm";
+  return "inch";
+};
+
+const dimensionToInches = (value, unit) => {
+  const number = Number(value || 0);
+  if (!Number.isFinite(number) || number <= 0) return 0;
+
+  switch (normalizeDimensionUnit(unit)) {
+    case "nos": return 0;
+    case "mm": return number / 25.4;
+    case "cm": return number / 2.54;
+    case "ft": return number * 12;
+    default: return number;
+  }
+};
+
+const isOperatorChargeText = (value) => normalizeText(value).includes("operator charge");
+
+const isQuantityBasedLine = (line = {}) =>
+  normalizeDimensionUnit(line.unit || line.Unit) === "nos" ||
+  isOperatorChargeText(line.description) ||
+  isOperatorChargeText(line.simplifiedProductName) ||
+  isOperatorChargeText(line.productAsPerRateCard);
+
 
 
 const buildLineSequence = (line = {}) =>
@@ -672,9 +850,9 @@ const calculateSqft = (row) => {
 
   const qty = Number(row.qty || 1);
 
-  const width = Number(getLineBillingWidth(row) || row.width || 0);
+  const width = dimensionToInches(getLineBillingWidth(row) || row.width, row.unit);
 
-  const height = Number(getLineBillingHeight(row) || row.height || 0);
+  const height = dimensionToInches(getLineBillingHeight(row) || row.height, row.unit);
 
 
 
@@ -690,6 +868,18 @@ const calculateSqft = (row) => {
 
 };
 
+const calculateProductionSqft = (row) => {
+  const qty = Number(row.qty || 1);
+  const width = dimensionToInches(row.width, row.unit);
+  const height = dimensionToInches(row.height, row.unit);
+
+  if (qty > 0 && width > 0 && height > 0) {
+    return roundAmount((qty * width * height) / 144);
+  }
+
+  return 0;
+};
+
 
 
 const getLineBillingWidth = (line = {}) =>
@@ -701,10 +891,6 @@ const getLineBillingWidth = (line = {}) =>
       line.BillingWidth ||
 
       line["Billing Width"] ||
-
-      line.width ||
-
-      line.Width ||
 
       ""
 
@@ -722,10 +908,6 @@ const getLineBillingHeight = (line = {}) =>
 
       line["Billing Height"] ||
 
-      line.height ||
-
-      line.Height ||
-
       ""
 
   );
@@ -739,6 +921,8 @@ const withBillingDimensions = (line = {}) => ({
   billingWidth: getLineBillingWidth(line),
 
   billingHeight: getLineBillingHeight(line),
+
+  unit: normalizeDimensionUnit(line.unit || line.Unit),
 
 });
 
@@ -782,31 +966,51 @@ const shouldSyncBillingDimension = (billingValue, sourceValue) => {
 
 
 
-const applyDimensionPatch = (line, patch) => {
+const clampProductionDimensionsToBilling = (line = {}) => {
 
-  const nextLine = { ...line, ...patch };
+  const nextLine = { ...line };
+
+  const productionWidth = toNumber(nextLine.width);
+
+  const productionHeight = toNumber(nextLine.height);
+
+  const estimatedWidth = toNumber(nextLine.billingWidth);
+
+  const estimatedHeight = toNumber(nextLine.billingHeight);
 
 
 
-  if (hasLineField(patch, "width") && !hasLineField(patch, "billingWidth")) {
+  if (
 
-    if (shouldSyncBillingDimension(line.billingWidth, line.width)) {
+    productionWidth > 0 &&
 
-      nextLine.billingWidth = patch.width;
+    String(nextLine.billingWidth || "").trim() &&
 
-    }
+    estimatedWidth > 0 &&
+
+    productionWidth < estimatedWidth
+
+  ) {
+
+    nextLine.width = String(nextLine.billingWidth ?? estimatedWidth);
 
   }
 
 
 
-  if (hasLineField(patch, "height") && !hasLineField(patch, "billingHeight")) {
+  if (
 
-    if (shouldSyncBillingDimension(line.billingHeight, line.height)) {
+    productionHeight > 0 &&
 
-      nextLine.billingHeight = patch.height;
+    String(nextLine.billingHeight || "").trim() &&
 
-    }
+    estimatedHeight > 0 &&
+
+    productionHeight < estimatedHeight
+
+  ) {
+
+    nextLine.height = String(nextLine.billingHeight ?? estimatedHeight);
 
   }
 
@@ -818,15 +1022,27 @@ const applyDimensionPatch = (line, patch) => {
 
 
 
+const applyDimensionPatch = (line, patch) => {
+
+  const nextLine = { ...line, ...patch };
+  return nextLine;
+
+};
+
+
+
 const recalculateLine = (row) => {
 
   const normalizedRow = withBillingDimensions(row);
 
-  const sqft = calculateSqft(normalizedRow);
+  const sqft = calculateProductionSqft(normalizedRow);
+
+  const billableSqft = calculateSqft(normalizedRow);
 
   const rate = Number(row.rate || 0);
-
-  const amount = roundAmount(sqft * rate);
+  const qty = Number(normalizedRow.qty || 1);
+  const billableBase = isQuantityBasedLine(normalizedRow) ? qty : billableSqft > 0 ? billableSqft : qty;
+  const amount = roundAmount(billableBase * rate);
 
 
 
@@ -836,31 +1052,13 @@ const recalculateLine = (row) => {
 
     sqft: sqft ? String(sqft) : "",
 
+    billableSqft: billableBase ? String(roundAmount(billableBase)) : "",
+
     rate: row.rate || "",
 
     amount: amount ? String(amount) : "0",
 
   };
-
-};
-
-
-
-const getSavedRateRows = () => {
-
-  try {
-
-    const savedRows = localStorage.getItem(RATE_STORAGE_KEY);
-
-    return savedRows ? JSON.parse(savedRows) : [];
-
-  } catch (error) {
-
-    console.error("Failed to read product media rates", error);
-
-    return [];
-
-  }
 
 };
 
@@ -935,6 +1133,8 @@ const normalizeElementGroupItem = (item = {}) => ({
   ).trim(),
 
   qty: String(item?.qty ?? item?.Qty ?? item?.quantity ?? ""),
+
+  unit: normalizeDimensionUnit(item?.unit ?? item?.Unit ?? item?.uom ?? item?.UOM),
 
   width: String(item?.width ?? item?.Width ?? ""),
 
@@ -1111,10 +1311,45 @@ const buildDefaultRateRows = () =>
   }));
 
 
+const buildProductRateRows = () =>
+
+  (Array.isArray(productRateData) ? productRateData : []).map((item, index) =>
+
+    normalizeRateRow(
+
+      {
+
+        ...item,
+
+        id: item?.id || `product-rate-${index}`,
+
+        panNo: item?.panNo || item?.PANNo || item?.PAN_NO || item?.panCard || item?.PAN || "",
+
+        ratePerSqft: item?.ratePerSqft ?? item?.ratePerPsfPu ?? "",
+
+      },
+
+      index
+
+    )
+
+  );
+
+
+
+const getMediaMasterItems = () =>
+
+  Array.isArray(erpMasterData?.media)
+
+    ? erpMasterData.media
+
+    : getMasterGroup("media");
+
+
 
 const buildMasterMediaRows = () =>
 
-  getMasterGroup("media").map((item, index) => ({
+  getMediaMasterItems().map((item, index) => ({
 
     id: `erp-master-media-${index}`,
 
@@ -1122,15 +1357,15 @@ const buildMasterMediaRows = () =>
 
     customerName: "",
 
-    media: item.value || "",
+    media: item.MediaName || item.mediaName || item.value || item.label || "",
 
-    internalMedia: item.value || "",
+    internalMedia: item.MediaName || item.mediaName || item.value || item.label || "",
 
-    externalMedia: item.value || "",
+    externalMedia: item.MediaName || item.mediaName || item.value || item.label || "",
 
-    hsn: item.hsnSac || "",
+    hsn: item.HsnCode || item.hsnCode || item.HSNCode || item.hsnSac || "",
 
-    hsnCode: item.hsnSac || "",
+    hsnCode: item.HsnCode || item.hsnCode || item.HSNCode || item.hsnSac || "",
 
     productGroup: item.productGroup || "",
 
@@ -1141,6 +1376,14 @@ const buildMasterMediaRows = () =>
 
 
 const getRateMedia = (row) =>
+
+  row.productAsPerRateCard ||
+
+  row.ProductAsPerRateCard ||
+
+  row.simplifiedProductName ||
+
+  row.SimplifiedProductName ||
 
   row.externalMedia ||
 
@@ -1159,6 +1402,28 @@ const getRateMedia = (row) =>
   row.ProductCode ||
 
   "";
+
+
+
+const getRateDescription = (row) =>
+
+  String(
+
+      row?.productAsPerRateCard ??
+      row?.ProductAsPerRateCard ??
+      row?.simplifiedProductName ??
+      row?.SimplifiedProductName ??
+
+      row?.description ??
+
+      row?.Description ??
+
+      row?.DESCRIPTION ??
+
+      ""
+
+  ).trim();
+
 
 
 
@@ -1182,22 +1447,50 @@ const normalizeRateRow = (row, index) => ({
 
   internalMedia:
 
-    row.internalMedia || row.InternalMedia || row.media || row.Media || "",
+    row.internalMedia ||
+    row.InternalMedia ||
+    row.simplifiedProductName ||
+    row.SimplifiedProductName ||
+    row.media ||
+    row.Media ||
+    "",
 
   externalMedia:
 
-    row.externalMedia || row.ExternalMedia || row.media || row.Media || "",
+    row.externalMedia ||
 
-  description: String(
+    row.ExternalMedia ||
 
-    row?.description ??
+    row.productAsPerRateCard ||
 
-    row?.Description ??
+    row.ProductAsPerRateCard ||
 
-    row?.DESCRIPTION ??
+    row.media ||
 
-    ""
+    row.Media ||
 
+    row.description ||
+
+    row.Description ||
+
+    "",
+
+  description: getRateDescription(row),
+
+  simplifiedProductName: String(
+    row.simplifiedProductName ||
+      row.SimplifiedProductName ||
+      row.simplified_description ||
+      row.SimplifiedDescription ||
+      ""
+  ).trim(),
+
+  productAsPerRateCard: String(
+    row.productAsPerRateCard ||
+      row.ProductAsPerRateCard ||
+      row.product_as_per_rate_card ||
+      row.Product_As_Per_Rate_Card ||
+      ""
   ).trim(),
 
   hsn: String(
@@ -1244,7 +1537,37 @@ const normalizeRateRow = (row, index) => ({
 
   ).trim(),
 
-  rate: row.ratePerSqft ?? row.RatePerSqft ?? row.rate ?? row.Rate ?? "",
+  panNo: normalizePanCard(
+    row.panNo ||
+      row.pannumber ||
+      row.PANNo ||
+      row.PAN_NO ||
+      row.panCard ||
+      row.PAN ||
+      row.gstin ||
+      row.GSTIN ||
+      ""
+  ),
+
+  rate:
+
+    row.ratePerSqft ??
+
+    row.RatePerSqft ??
+
+    row.ratePerPsfPu ??
+
+    row.RatePerPsfPu ??
+
+    row.ratePerSqft ??
+
+    row.RatePerSqft ??
+
+    row.rate ??
+
+    row.Rate ??
+
+    "",
 
 });
 
@@ -1252,37 +1575,43 @@ const normalizeRateRow = (row, index) => ({
 
 const mergeRateRows = (...rowSets) => {
 
-  const seen = new Set();
+  const merged = new Map();
 
+  const combineRow = (existing, incoming) => {
+    if (!existing) return { ...incoming };
 
+    const next = { ...existing };
+    Object.entries(incoming || {}).forEach(([key, value]) => {
+      const currentValue = next[key];
+      const shouldFill =
+        currentValue === undefined ||
+        currentValue === null ||
+        String(currentValue).trim() === "";
 
-  return rowSets.flat().filter((row) => {
+      if (shouldFill && value !== undefined && value !== null && String(value).trim() !== "") {
+        next[key] = value;
+      }
+    });
 
+    return next;
+  };
+
+  rowSets.flat().forEach((row) => {
     const media = normalizeText(getRateMedia(row));
-
-    if (!media) return false;
-
-
+    const description = normalizeText(getRateDescription(row));
+    if (!media && !description) return;
 
     const customerKey = [
-
       row.customerId || row.customerID || row.CustomerId || "",
-
       normalizeText(row.customerName || row.CustomerName || row.client || ""),
-
       media,
-
+      description,
     ].join("|");
 
-
-
-    if (seen.has(customerKey)) return false;
-
-    seen.add(customerKey);
-
-    return true;
-
+    merged.set(customerKey, combineRow(merged.get(customerKey), row));
   });
+
+  return [...merged.values()];
 
 };
 
@@ -1309,6 +1638,52 @@ const getRateRowsFromResponse = (data) => {
 
 
 const getCustomerRowsFromResponse = getRateRowsFromResponse;
+
+const isNumericCustomerId = (value) => /^\d+$/.test(String(value || "").trim());
+
+const findNumericCustomerId = (customerRows, selectedId, selectedName) => {
+  const currentId = String(selectedId || "").trim();
+  if (isNumericCustomerId(currentId)) return currentId;
+
+  const rows = Array.isArray(customerRows) ? customerRows : [];
+  const exactName = normalizeText(selectedName);
+  const relaxedName = normalizeCustomerNameForMatch(selectedName);
+
+  const uniqueNumericIds = (predicate) => [
+    ...new Set(
+      rows
+        .filter((customer) => isNumericCustomerId(getCustomerId(customer)) && predicate(customer))
+        .map(getCustomerId)
+    ),
+  ];
+
+  const exactIds = uniqueNumericIds(
+    (customer) => normalizeText(getCustomerName(customer)) === exactName
+  );
+  if (exactIds.length === 1) return exactIds[0];
+
+  const relaxedIds = uniqueNumericIds(
+    (customer) => normalizeCustomerNameForMatch(getCustomerName(customer)) === relaxedName
+  );
+  return relaxedIds.length === 1 ? relaxedIds[0] : "";
+};
+
+const fetchLocationCustomers = async (locationId) => {
+  const response = await axios.post(
+    config.JobSummary.URL.GetCustomerNameAccToLocation,
+    { locationId },
+    { timeout: 30000, headers: { "Content-Type": "application/json" } }
+  );
+
+  return getCustomerRowsFromResponse(response.data);
+};
+
+const getApiErrorMessage = (error, fallbackMessage) => {
+  const responseData = error?.response?.data;
+
+  if (typeof responseData === "string" && responseData.trim()) return responseData;
+  return responseData?.error || responseData?.message || error?.message || fallbackMessage;
+};
 
 const validatePrinterDeadline = (selectedDate) => {
 
@@ -1408,21 +1783,42 @@ const fetchElementGroups = async ({ showFallbackMessage = true } = {}) => {
 
 
 
-const getCustomerRates = (rows, customerId, customerName) => {
+const normalizeCustomerMatchName = (value) =>
 
-  const normalizedCustomerName = normalizeText(customerName);
+  normalizeText(value)
+
+    .replace(/\([^)]*\)/g, " ")
+
+    .replace(/\b(private|pvt|limited|ltd|llp|inc|company|co|corporation)\b/g, " ")
+
+    .replace(/\s+/g, " ")
+
+    .trim();
+
+
+
+const getCustomerRates = (rows, customerId, customerName, customerPan = "") => {
+
+  const normalizedCustomerName = normalizeCustomerMatchName(customerName);
+  const normalizedCustomerPan = normalizePanCard(customerPan);
 
 
 
   return rows.filter((row) => {
 
-    if (!customerId && !normalizedCustomerName) return false;
+    if (!customerId && !normalizedCustomerName && !normalizedCustomerPan) return false;
 
     return (
 
       (row.customerId && row.customerId === customerId) ||
 
-      (row.customerName && normalizeText(row.customerName) === normalizedCustomerName)
+      (row.customerName &&
+
+        normalizeCustomerMatchName(row.customerName) === normalizedCustomerName) ||
+
+      (normalizedCustomerPan &&
+        normalizePanCard(row.panNo || row.PANNo || row.PAN_NO || row.panCard || row.PAN || "") ===
+          normalizedCustomerPan)
 
     );
 
@@ -1430,9 +1826,59 @@ const getCustomerRates = (rows, customerId, customerName) => {
 
 };
 
+const findCustomerPanCardFromRates = (rows, customerId, customerName) => {
+
+  const normalizedCustomerId = String(customerId || "").trim();
+  const normalizedCustomerName = normalizeCustomerMatchName(customerName);
+  const matches = [];
+
+  (Array.isArray(rows) ? rows : []).forEach((row) => {
+    const rowId = String(row.customerId || row.customerID || row.CustomerId || "").trim();
+    const rowName = normalizeCustomerMatchName(row.customerName || row.CustomerName || row.client || "");
+    const rowPan = normalizePanCard(
+      row.panNo || row.PANNo || row.PAN_NO || row.panCard || row.PAN || row.gstin || row.GSTIN || ""
+    );
+
+    if (!rowPan) return;
+
+    if (
+      (normalizedCustomerId && rowId === normalizedCustomerId) ||
+      (normalizedCustomerName && rowName === normalizedCustomerName)
+    ) {
+      matches.push(rowPan);
+    }
+  });
+
+  return matches.find(Boolean) || "";
+
+};
+
+const findCustomerPanCardFromJobOptions = (jobs, customerId, customerName) => {
+  const normalizedCustomerId = String(customerId || "").trim();
+  const normalizedCustomerName = normalizeCustomerMatchName(customerName);
+  const matches = [];
+
+  (Array.isArray(jobs) ? jobs : []).forEach((job) => {
+    const jobCustomerId = String(job.customerId || "").trim();
+    const jobCustomerName = normalizeCustomerMatchName(job.clientName || job.label || "");
+    const jobPan = normalizePanCard(job.panCard || job.PANNo || job.PAN_NO || job.panNo || "");
+
+    if (!jobPan) return;
+
+    if (
+      (normalizedCustomerId && jobCustomerId === normalizedCustomerId) ||
+      (normalizedCustomerName && jobCustomerName === normalizedCustomerName)
+    ) {
+      matches.push(jobPan);
+    }
+  });
+
+  return matches.find(Boolean) || "";
+};
 
 
-const findPricingFromRows = (media, customerRows, allRows) => {
+
+const findPricingFromRows = (media, customerRows = [], fallbackRows = []) => {
 
   const normalizedMedia = normalizeText(media);
 
@@ -1452,15 +1898,38 @@ const findPricingFromRows = (media, customerRows, allRows) => {
 
 
 
-  return customerRows.find(isMatch) || allRows.find(isMatch) || null;
+  return customerRows.find(isMatch) || fallbackRows.find(isMatch) || null;
 
 };
 
 
 
-const getGeneralRateRows = (rows) =>
+const findPricingByDescription = (description, customerRows = []) => {
 
-  rows.filter((row) => !row.customerId && !row.customerName);
+  const normalizedDescription = normalizeText(description);
+
+  if (!normalizedDescription) return null;
+
+  return (
+
+    customerRows.find(
+
+      (row) =>
+        [
+          getRateDescription(row),
+          row?.productAsPerRateCard,
+          row?.ProductAsPerRateCard,
+          row?.simplifiedProductName,
+          row?.SimplifiedProductName,
+          row?.description,
+          row?.Description,
+        ].some((value) => normalizeText(value) === normalizedDescription)
+
+    ) || null
+
+  );
+
+};
 
 
 
@@ -1853,6 +2322,20 @@ const getJobCustomerId = (job) =>
 
   String(job?.customerid ?? job?.customerId ?? job?.customeR_ID ?? "").trim();
 
+const getJobPanCard = (job) =>
+  normalizePanCard(
+    job?.panNo ??
+      job?.pannumber ??
+      job?.PANNUMBER ??
+      job?.PANNo ??
+      job?.PAN_NO ??
+      job?.panCard ??
+      job?.PAN ??
+      job?.gstin ??
+      job?.GSTIN ??
+      ""
+  );
+
 
 
 const getJobRows = (data) => {
@@ -1902,6 +2385,8 @@ const getEstimateApiUrl = () =>
 const getStoreRows = (data) => {
 
   if (Array.isArray(data)) return data;
+
+  if (Array.isArray(data?.stores)) return data.stores;
 
   if (Array.isArray(data?.items)) return data.items;
 
@@ -2024,15 +2509,40 @@ const extractPrinterNames = (row) => {
 
 const normalizeStoreRow = (store, index = 0) => ({
 
-  id: String(store?.id || store?._id || store?.storeId || store?.StoreId || `store-${index}`),
+  id: String(
+    store?.id ??
+      store?._id?.$oid ??
+      store?._id ??
+      store?.storeId ??
+      store?.StoreId ??
+      `store-${index}`
+  ).trim(),
 
-  storeName: String(store?.storeName || store?.StoreName || store?.name || store?.Name || "").trim(),
+  storeCode: String(
+    store?.storeCode ??
+      store?.StoreCode ??
+      store?.storecode ??
+      store?.STORECODE ??
+      store?.code ??
+      store?.Code ??
+      ""
+  ).trim(),
+
 
   address: String(store?.address || store?.Address || store?.storeAddress || store?.StoreAddress || "").trim(),
 
   location: String(store?.location || store?.Location || "").trim(),
 
-  city: String(store?.city || store?.City || "").trim(),
+  city: String(
+    store?.city ||
+      store?.City ||
+      store?.storeCity ||
+      store?.StoreCity ||
+      store?.salonCity ||
+      store?.SalonCity ||
+      store?.CITY ||
+      ""
+  ).trim(),
 
   panCard: normalizePanCard(
 
@@ -2058,23 +2568,28 @@ const normalizeStoreRow = (store, index = 0) => ({
 
 
 
-const formatStoreShipTo = (store) =>
+const formatStoreShipTo = (store) => {
+  const location = String(store?.location || "").trim();
+  const city = String(store?.city || "").trim();
+  const locationAndCity = [location, city]
+    .filter(
+      (value, index, values) =>
+        value &&
+        values.findIndex(
+          (item) => normalizeText(item) === normalizeText(value)
+        ) === index
+    )
+    .join(", ");
 
-  [
-
+  return [
     store?.storeName,
-
     store?.address,
-
-    [store?.location, store?.city].filter(Boolean).join(", "),
-
+    locationAndCity,
     store?.panCard ? `PAN: ${store.panCard}` : "",
-
   ]
-
     .filter(Boolean)
-
     .join("\n");
+};
 
 
 
@@ -2109,6 +2624,8 @@ const buildJobOption = (job) => {
     subClient: getJobSubClient(job),
 
     customerId: getJobCustomerId(job),
+
+    panCard: getJobPanCard(job),
 
   };
 
@@ -2234,6 +2751,27 @@ const getEstimateProjectTitle = (header = {}) =>
 
   header.projectName || header.jobNo || header.clientName || "Estimate";
 
+const isDirectionalLocationLabel = (value = "") =>
+  ["east", "west", "north", "south"].includes(normalizeText(value));
+
+const getPdfRegionFromAddress = (address = "", fallback = "") => {
+  const text = String(address || "").replace(/PAN\s*:\s*.*/i, "").trim();
+  if (!text) return String(fallback || "").trim();
+
+  const parts = text
+    .split(",")
+    .map((part) =>
+      part
+        .replace(/\b\d{6}\b/g, "")
+        .replace(/-\d{6}\b/g, "")
+        .trim()
+    )
+    .filter(Boolean)
+    .filter((part) => !/^india$/i.test(part));
+
+  return parts.at(-1) || String(fallback || "").trim();
+};
+
 
 
 const getEstimateLineItems = (header = {}, lines = []) =>
@@ -2244,19 +2782,33 @@ const getEstimateLineItems = (header = {}, lines = []) =>
 
     .map((line, index) => {
 
-      const width = toNumber(getLineBillingWidth(line) || line.width);
+      const productionSqft = calculateProductionSqft(line);
 
-      const height = toNumber(getLineBillingHeight(line) || line.height);
+      const width = dimensionToInches(getLineBillingWidth(line) || line.width, line.unit);
+
+      const height = dimensionToInches(getLineBillingHeight(line) || line.height, line.unit);
 
       const qty = toNumber(line.qty) || 1;
 
       const sqftPerUnit = width > 0 && height > 0 ? roundAmount((width * height) / 144) : 0;
 
-      const printableSqft = toNumber(line.sqft) || roundAmount(sqftPerUnit * qty);
+      const billableSqft = toNumber(line.billableSqft) || roundAmount(sqftPerUnit * qty) || toNumber(line.sqft);
 
       const rate = toNumber(line.rate);
 
-      const amount = toNumber(line.amount) || roundAmount(printableSqft * rate);
+      const amount = toNumber(line.amount) || roundAmount(billableSqft * rate);
+      const pdfRegion =
+        line.billLoc ||
+        line.prodLoc ||
+        line.city ||
+        getPdfRegionFromAddress(line.salonAddress, "");
+      const storeDisplayParts = [
+        line.store,
+        isDirectionalLocationLabel(line.city) ? "" : line.city,
+        line.salonAddress,
+      ]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean);
 
 
 
@@ -2268,7 +2820,15 @@ const getEstimateLineItems = (header = {}, lines = []) =>
 
         region: line.billLoc || line.prodLoc || line.city || "",
 
+        pdfRegion,
+
         salonName: line.store || line.brandingLocation || line.description || "",
+
+        city: line.city || "",
+
+        salonAddress: line.salonAddress || "",
+
+        storeDisplayName: storeDisplayParts.join(" - "),
 
         description: line.description || "",
 
@@ -2280,6 +2840,8 @@ const getEstimateLineItems = (header = {}, lines = []) =>
 
         height,
 
+        productionSqft: productionSqft ? String(productionSqft) : "",
+
         sqftPerUnit,
 
         qty,
@@ -2288,7 +2850,7 @@ const getEstimateLineItems = (header = {}, lines = []) =>
 
         heightFeet: height ? roundAmount(height / 12) : "",
 
-        printableSqft,
+        billableSqft,
 
         rate,
 
@@ -2329,6 +2891,53 @@ const ESTIMATE_MAIL_CHARGE_TYPES = [
   { key: "layoutingCharges", label: "Layouting Charges" },
 
 ];
+
+const buildEstimateMailChargeTargets = (lineItems = []) => {
+
+  const targetMap = new Map();
+
+  const targets = [];
+
+  lineItems.forEach((item, index) => {
+
+    const salonName = String(item.salonName || "").trim() || "Unassigned Store";
+
+    const city = String(item.city || "").trim();
+
+    const salonAddress = String(item.salonAddress || "").trim();
+
+    const storeDisplayName =
+      String(item.storeDisplayName || "").trim() ||
+      [salonName, city, salonAddress].filter(Boolean).join(" - ");
+
+    const billingLocation =
+      String(item.billingLocation || item.region || "Unassigned").trim() ||
+      "Unassigned";
+
+    const targetKey = `${normalizeText(salonName)}|${normalizeText(billingLocation)}`;
+
+    if (targetMap.has(targetKey)) return;
+
+    const target = {
+      key: targetKey,
+      salonName,
+      city,
+      salonAddress,
+      storeDisplayName,
+      region: item.region || billingLocation,
+      billingLocation,
+      productionLocation: item.productionLocation || "",
+      parentEstimateLineKey: item.estimateLineKey || `estimate-line-${index}`,
+    };
+
+    targetMap.set(targetKey, target);
+    targets.push(target);
+
+  });
+
+  return targets;
+
+};
 
 
 
@@ -2426,6 +3035,14 @@ const applyEstimateMailChargesToLineItems = (lineItems = [], chargeRows = []) =>
 
         ...item,
 
+        parentEstimateLineKey: row.parentEstimateLineKey || item.estimateLineKey,
+
+        chargeScope: row.chargeScope || "store",
+
+        targetSignature: row.targetSignature || "",
+
+        groupSalonNames: Array.isArray(row.groupSalonNames) ? row.groupSalonNames : [],
+
         estimateLineKey: row.estimateLineKey,
 
         chargeKey: row.chargeKey,
@@ -2451,8 +3068,6 @@ const applyEstimateMailChargesToLineItems = (lineItems = [], chargeRows = []) =>
         widthFeet: "",
 
         heightFeet: "",
-
-        printableSqft: 0,
 
         rate: amount,
 
@@ -2568,39 +3183,244 @@ const buildEstimateHeaderForLocation = (header = {}, locationLabel = "") => ({
 
   ...header,
 
+  date: formatDate(new Date()),
+
   billingLocation: locationLabel,
 
   billLoc: locationLabel,
 
 });
 
+const prepareEstimatePdfLineItems = (lineItems = []) =>
+
+  lineItems.map((item, index) => ({
+
+    ...item,
+
+    slideNo: index + 1,
+
+    region: item.billingLocation || item.region || getEstimateBillingLocationLabel(item),
+
+  }));
+
 
 
 const getEstimateAttachmentGroups = (header = {}, lineItems = []) => {
 
-  const groups = groupEstimateLineItemsByBillingLocation(lineItems);
+  const preparedItems = prepareEstimatePdfLineItems(lineItems);
 
-  const shouldSplit = groups.length > 1;
+  if (!preparedItems.length) return [];
 
+  return [
 
+    {
 
-  return groups.map((group) => ({
+      key: "all-stores",
 
-    ...group,
+      label: "",
 
-    fileName: buildEstimateAttachmentName(header, shouldSplit ? group.label : ""),
+      items: preparedItems,
 
-  }));
+      fileName: buildEstimateAttachmentName(header),
+
+    },
+
+  ];
 
 };
+
+const groupEstimateLineItemsBySalonName = (lineItems = []) => {
+  const groupMap = new Map();
+  const groups = [];
+
+  lineItems.forEach((item) => {
+    const label = String(item.salonName || "Unassigned Store").trim() || "Unassigned Store";
+    const key = normalizeText(label) || "unassigned-store";
+
+    if (!groupMap.has(key)) {
+      const group = { key, label, items: [] };
+      groupMap.set(key, group);
+      groups.push(group);
+    }
+
+    groupMap.get(key).items.push(item);
+  });
+
+  return groups;
+};
+
+const buildEstimatePdfRows = (lineItems = []) => {
+  const rows = [];
+
+  groupEstimateLineItemsBySalonName(lineItems).forEach((group) => {
+    const storeItems = group.items.filter((item) => !item.isChargeRow);
+    const storeChargeItems = group.items.filter((item) => item.isChargeRow);
+
+    rows.push([
+      "",
+      group.items[0]?.storeDisplayName || group.label,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      ESTIMATE_PDF_STORE_GROUP_MARKER,
+      "",
+    ]);
+
+    storeItems.forEach((item) => {
+      rows.push([
+        item.pdfRegion || item.region || "-",
+        "",
+        item.articleCode || item.visualCode || "-",
+        item.hsn || "-",
+        item.media || "-",
+        `${formatPdfNumber(item.widthFeet)} x ${formatPdfNumber(item.heightFeet)}`,
+        formatPdfNumber(item.qty),
+        formatPdfNumber(item.billableSqft || item.sqft),
+        formatPdfCurrency(item.rate),
+        formatPdfCurrency(item.amount),
+      ]);
+    });
+
+    storeChargeItems.forEach((item) => {
+      rows.push([
+        item.pdfRegion || item.region || "-",
+        "",
+        "-",
+        "-",
+        item.description || "-",
+        "-",
+        "1",
+        "",
+        "",
+        formatPdfCurrency(item.amount),
+      ]);
+    });
+  });
+
+  return rows;
+};
+
+const getEstimatePdfStoreSummaryLabel = (items = [], fallback = "-") => {
+  const itemList = Array.isArray(items) ? items : [];
+
+  const bestDisplayName = itemList
+    .map((item) => String(item?.storeDisplayName || "").trim())
+    .sort((left, right) => right.length - left.length)[0];
+
+  if (bestDisplayName) return bestDisplayName;
+
+  const bestComposedLabel = itemList
+    .map((item) =>
+      [
+        item?.salonName,
+        isDirectionalLocationLabel(item?.city) ? "" : item?.city,
+        item?.salonAddress,
+      ]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+        .join(" - ")
+    )
+    .filter(Boolean)
+    .sort((left, right) => right.length - left.length)[0];
+
+  return bestComposedLabel || fallback;
+};
+
+const getEstimatePdfStoreHeaderRows = (lineItems = []) =>
+  groupEstimateLineItemsBySalonName(lineItems).map((group) => {
+    const detailItems = group.items.filter((item) => !item.isChargeRow);
+    const sourceItems = detailItems.length ? detailItems : group.items;
+    const firstItem = sourceItems[0] || {};
+    const storeHeaderLabel =
+      [
+        firstItem.salonName,
+        isDirectionalLocationLabel(firstItem.city) ? "" : firstItem.city,
+      ]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+        .join(" - ") || getEstimatePdfStoreSummaryLabel(sourceItems, group.label || "-");
+
+    return [
+      firstItem.pdfRegion || firstItem.region || "-",
+      storeHeaderLabel,
+    ];
+  });
+
+const drawEstimatePdfStoreHeaderTable = (
+  doc,
+  lineItems = [],
+  startY = 0,
+  options = {}
+) => {
+  const rows = getEstimatePdfStoreHeaderRows(lineItems);
+  if (!rows.length) return startY;
+
+  const {
+    marginLeft = 32,
+    marginRight = 32,
+    regionWidth = 46,
+    detailWidth = 430,
+  } = options;
+
+  doc.autoTable({
+    startY,
+    head: [["Region", "Store / City"]],
+    body: rows,
+    theme: "grid",
+    margin: { left: marginLeft, right: marginRight },
+    tableWidth: regionWidth + detailWidth,
+    styles: {
+      fontSize: 7,
+      cellPadding: 3,
+      overflow: "linebreak",
+      valign: "middle",
+      lineWidth: 0.35,
+    },
+    headStyles: {
+      fillColor: [47, 94, 217],
+      textColor: 255,
+      fontSize: 7.2,
+      fontStyle: "bold",
+      halign: "center",
+    },
+    columnStyles: {
+      0: { cellWidth: regionWidth, halign: "left" },
+      1: { cellWidth: detailWidth, halign: "left" },
+    },
+  });
+
+  return (doc.lastAutoTable?.finalY || startY) + 10;
+};
+
+const buildEstimatePdfSummaryRows = (lineItems = []) =>
+  groupEstimateLineItemsBySalonName(lineItems).map((group) => {
+    const detailItems = group.items.filter((item) => !item.isChargeRow);
+    const amount = roundAmount(
+      group.items.reduce((summary, item) => summary + toNumber(item.amount), 0)
+    );
+    const billableSqft = roundAmount(
+      detailItems.reduce((summary, item) => summary + toNumber(item.billableSqft || item.sqft), 0)
+    );
+
+    return [
+      detailItems[0]?.pdfRegion || detailItems[0]?.region || group.items[0]?.pdfRegion || group.items[0]?.region || "-",
+      getEstimatePdfStoreSummaryLabel(detailItems.length ? detailItems : group.items, group.label || "-"),
+      formatPdfNumber(detailItems.length),
+      formatPdfNumber(billableSqft),
+      formatPdfCurrency(amount),
+    ];
+  });
 
 
 
 const getEstimateTotals = (lineItems) => {
 
-  const printableSqftTotal = roundAmount(
+  const billableSqftTotal = roundAmount(
 
-    lineItems.reduce((summary, item) => summary + toNumber(item.printableSqft), 0)
+    lineItems.reduce((summary, item) => summary + toNumber(item.billableSqft || item.sqft), 0)
 
   );
 
@@ -2638,7 +3458,7 @@ const getEstimateTotals = (lineItems) => {
 
   return {
 
-    printableSqftTotal,
+    billableSqftTotal,
 
     productionTotal,
 
@@ -2671,14 +3491,10 @@ const formatPdfNumber = (value) =>
 
 
 const formatPdfCurrency = (value) =>
-
-  toNumber(value).toLocaleString("en-IN", {
-
+  `Rs. ${toNumber(value).toLocaleString("en-IN", {
     minimumFractionDigits: 2,
-
     maximumFractionDigits: 2,
-
-  });
+  })}`;
 
 const ESTIMATE_PDF_LOGO_IMAGE = "data:image/png;base64,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";
 
@@ -2694,7 +3510,7 @@ const addEstimatePdfHeader = (doc, header = {}, lineItems = []) => {
 
   const margin = 32;
 
-  const dateText = `Date - ${header.date || formatDate(new Date())}`;
+  const dateText = `Date - ${formatDate(new Date())}`;
 
 
 
@@ -2790,39 +3606,67 @@ const ESTIMATE_PDF_STAMP_IMAGE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA
 
 const ESTIMATE_PDF_HEADERS = [
 
-  // "Slide No.",
-
   "Region",
 
-  "Salon Name",
+  "Store / City / Address",
 
   "Article Code",
 
+  "HSN",
+
   "Media",
 
-  "Width Inch",
-
-  "Height Inch",
-
-  "Sq.Ft",
+  "Est Size",
 
   "Qty",
 
-  "Width Ft",
-
-  "Height Ft",
-
-  "Printable Sqft",
+  "Estimated Sqft",
 
   "Rate",
-
-  "HSN Code",
-
-  "Description",
 
   "Amount",
 
 ];
+
+const ESTIMATE_PDF_STORE_GROUP_MARKER = "__STORE_GROUP__";
+
+const ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS = {
+
+  region: 46,
+
+  store: 226,
+
+  items: 40,
+
+  estimatedSqft: 74,
+
+  amount: 96,
+
+};
+
+const ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS = {
+
+  region: 32,
+
+  store: 100,
+
+  articleCode: 42,
+
+  hsn: 36,
+
+  media: 48,
+
+  estSize: 40,
+
+  qty: 22,
+
+  estimatedSqft: 42,
+
+  rate: 46,
+
+  amount: 66,
+
+};
 
 
 
@@ -2837,6 +3681,189 @@ const getEstimateChargeColumnValue = (item = {}, chargeKey = "") => {
 
 
   return item[chargeKey] || "";
+
+};
+
+const drawEstimatePdfSummaryPage = (doc, header = {}, lineItems = []) => {
+
+  const projectTitle = getEstimateProjectTitle(header);
+
+  const totals = getEstimateTotals(lineItems);
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const margin = 32;
+
+  const headerEndY = addEstimatePdfHeader(doc, header, lineItems);
+
+  const projectY = Math.max(headerEndY + 4, 170);
+
+  doc.setFont("helvetica", "bold");
+
+  doc.setFontSize(10);
+
+  doc.text(projectTitle, margin, projectY, { maxWidth: pageWidth - margin * 2 });
+
+  doc.setFontSize(13);
+
+  doc.text("Estimate Summary", margin, projectY + 22);
+
+  doc.autoTable({
+
+    startY: projectY + 32,
+
+    head: [["Region", "Store / City / Address", "Items", "Estimated Sqft", "Amount"]],
+
+    body: buildEstimatePdfSummaryRows(lineItems),
+
+    theme: "grid",
+
+    margin: { left: margin, right: margin, top: 84, bottom: 44 },
+
+    tableWidth: pageWidth - margin * 2,
+
+    styles: {
+
+      fontSize: 7.2,
+
+      cellPadding: 3,
+
+      overflow: "linebreak",
+
+      valign: "middle",
+
+      lineWidth: 0.35,
+
+    },
+
+    headStyles: {
+
+      fillColor: [47, 94, 217],
+
+      textColor: 255,
+
+      fontSize: 7.4,
+
+      fontStyle: "bold",
+
+      halign: "center",
+
+    },
+
+    alternateRowStyles: {
+
+      fillColor: [247, 249, 252],
+
+    },
+
+    columnStyles: {
+
+      0: { cellWidth: ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.region, halign: "left" },
+
+      1: { cellWidth: ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.store, halign: "left" },
+
+      2: { cellWidth: ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.items, halign: "right" },
+
+      3: { cellWidth: ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.estimatedSqft, halign: "right" },
+
+      4: { cellWidth: ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.amount, halign: "right" },
+
+    },
+
+  });
+
+  let totalsY = (doc.lastAutoTable?.finalY || projectY + 32) + 18;
+
+  if (totalsY > pageHeight - 160) {
+
+    doc.addPage();
+
+    totalsY = 56;
+
+  }
+
+  drawEstimatePdfTotalsTable(doc, totals, totalsY, {
+    leftOffset:
+      ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.region +
+      ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.store +
+      ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.items,
+    labelWidth: ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.estimatedSqft,
+    valueWidth: ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.amount,
+  });
+
+};
+
+const drawEstimatePdfTotalsTable = (
+  doc,
+  totals = {},
+  startY = 0,
+  options = {}
+) => {
+
+  const margin = 32;
+  const {
+    leftOffset = 0,
+    labelWidth = ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.estimatedSqft,
+    valueWidth = ESTIMATE_PDF_SUMMARY_COLUMN_WIDTHS.amount,
+  } = options;
+
+  const totalsTableWidth = labelWidth + valueWidth;
+  const totalsTableLeft = margin + leftOffset;
+
+  doc.autoTable({
+
+    startY,
+
+    body: [
+
+      ["Total Square Feet", formatPdfNumber(totals.billableSqftTotal)],
+
+      ["Amount", formatPdfCurrency(totals.amountTotal)],
+
+      ["18% GST", formatPdfCurrency(totals.gstAmount)],
+
+      ["Total Amount", formatPdfCurrency(totals.grandTotal)],
+
+    ],
+
+    theme: "grid",
+
+    tableWidth: totalsTableWidth,
+
+    margin: { left: totalsTableLeft },
+
+    styles: { fontSize: 8, cellPadding: 4, valign: "middle" },
+
+    columnStyles: {
+
+      0: {
+        cellWidth: labelWidth,
+        fontStyle: "bold",
+        halign: "left",
+      },
+
+      1: {
+        cellWidth: valueWidth,
+        halign: "right",
+      },
+
+    },
+
+    didParseCell: (data) => {
+
+      if (data.row.index === 3) {
+
+        data.cell.styles.fontStyle = "bold";
+
+        data.cell.styles.fillColor = [238, 243, 255];
+
+      }
+
+    },
+
+  });
 
 };
 
@@ -2914,7 +3941,7 @@ const drawEstimateTermsAndFooter = (doc, header = {}, lineItems = [], startY = 0
 
   terms.forEach(([number, text]) => {
 
-    const lines = doc.splitTextToSize(text, 430);
+    const lines = doc.splitTextToSize(text, pageWidth - margin * 2 - 90);
 
     doc.text(number, margin + 4, termY);
 
@@ -2926,7 +3953,7 @@ const drawEstimateTermsAndFooter = (doc, header = {}, lineItems = [], startY = 0
 
 
 
-  doc.addImage(ESTIMATE_PDF_STAMP_IMAGE, "PNG", pageWidth - margin - 180, y + 26, 118, 108);
+  doc.addImage(ESTIMATE_PDF_STAMP_IMAGE, "PNG", pageWidth - margin - 122, y + 32, 82, 76);
 
 
 
@@ -2980,15 +4007,39 @@ const drawEstimateTermsAndFooter = (doc, header = {}, lineItems = [], startY = 0
 
 };
 
+const addEstimatePdfPageNumbers = (doc, margin = 32) => {
+
+  const totalPages = doc.internal.getNumberOfPages();
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber += 1) {
+
+    doc.setPage(pageNumber);
+
+    doc.setFont("helvetica", "normal");
+
+    doc.setFontSize(8);
+
+    doc.setTextColor(0, 0, 0);
+
+    doc.text(`Page ${pageNumber} of ${totalPages}`, pageWidth - margin, pageHeight - 20, {
+
+      align: "right",
+
+    });
+
+  }
+
+};
+
 
 
 const buildEstimatePdfDocument = (header = {}, lineItems = []) => {
 
-  const projectTitle = getEstimateProjectTitle(header);
-
-  const totals = getEstimateTotals(lineItems);
-
-  const doc = new jsPDF("landscape", "pt", "a4");
+  const doc = new jsPDF("portrait", "pt", "a4");
 
   const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -2996,65 +4047,31 @@ const buildEstimatePdfDocument = (header = {}, lineItems = []) => {
 
   const margin = 32;
 
+  const totals = getEstimateTotals(lineItems);
 
+  drawEstimatePdfSummaryPage(doc, header, lineItems);
+
+  doc.addPage();
 
   const headerEndY = addEstimatePdfHeader(doc, header, lineItems);
 
   const projectY = Math.max(headerEndY + 4, 170);
 
-  const tableStartY = projectY + 13;
-
-
-
   doc.setFont("helvetica", "bold");
 
   doc.setFontSize(10);
 
-  doc.text(projectTitle, margin, projectY, { maxWidth: pageWidth - margin * 2 });
-
-
+  doc.text(`${getEstimateProjectTitle(header)} - Detailed Line Items`, margin, projectY, {
+    maxWidth: pageWidth - margin * 2,
+  });
 
   doc.autoTable({
 
-    startY: tableStartY,
+    startY: projectY + 13,
 
     head: [ESTIMATE_PDF_HEADERS],
 
-    body: lineItems.map((item) => [
-
-      item.slideNo,
-
-      item.region || "-",
-
-      item.salonName || "-",
-
-      item.articleCode || item.visualCode || "-",
-
-      item.isChargeRow ? "" : item.media || "-",
-
-      formatPdfNumber(item.width),
-
-      formatPdfNumber(item.height),
-
-      formatPdfNumber(item.sqftPerUnit),
-
-      formatPdfNumber(item.qty),
-
-      formatPdfNumber(item.widthFeet),
-
-      formatPdfNumber(item.heightFeet),
-
-      formatPdfNumber(item.printableSqft),
-
-      formatPdfCurrency(item.rate),
-
-      item.hsn || "-",
-
-      item.description || "-",
-
-      formatPdfCurrency(item.amount),
-
-    ]),
+    body: buildEstimatePdfRows(lineItems),
 
     theme: "grid",
 
@@ -3068,7 +4085,7 @@ const buildEstimatePdfDocument = (header = {}, lineItems = []) => {
 
       cellPadding: 2,
 
-      overflow: "linebreak",
+      overflow: "hidden",
 
       valign: "middle",
 
@@ -3098,56 +4115,37 @@ const buildEstimatePdfDocument = (header = {}, lineItems = []) => {
 
     columnStyles: {
 
-      0: { cellWidth: 25, halign: "center" },
-
-      1: { cellWidth: 35 },
-
-      2: { cellWidth: 70 },
-
-      3: { cellWidth: 50 },
-
-      4: { cellWidth: 60 },
-
-      5: { cellWidth: 30, halign: "right" },
-
-      6: { cellWidth: 30, halign: "right" },
-
-      7: { cellWidth: 30, halign: "right" },
-
-      8: { cellWidth: 25, halign: "right" },
-
-      9: { cellWidth: 30, halign: "right" },
-
-      10: { cellWidth: 30, halign: "right" },
-
-      11: { cellWidth: 45, halign: "right" },
-
-      12: { cellWidth: 35, halign: "right" },
-
-      13: { cellWidth: 45 },
-
-      14: { cellWidth: 60 },
-
-      15: { cellWidth: 45, halign: "right" },
-
-      16: { cellWidth: 40, halign: "right" },
-
-      17: { cellWidth: 45, halign: "right" },
-
-      18: { cellWidth: 40, halign: "right" },
+      0: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.region, halign: "left" },
+      1: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.store, halign: "left" },
+      2: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.articleCode, halign: "left" },
+      3: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.hsn, halign: "left" },
+      4: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.media, halign: "left" },
+      5: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.estSize, halign: "right" },
+      6: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.qty, halign: "right" },
+      7: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.estimatedSqft, halign: "right" },
+      8: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.rate, halign: "right" },
+      9: { cellWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.amount, halign: "right" },
 
     },
 
-    didDrawPage: () => {
+    didParseCell: (data) => {
+      const isStoreGroupRow =
+        data.section === "body" &&
+        data.row.raw &&
+        data.row.raw[8] === ESTIMATE_PDF_STORE_GROUP_MARKER;
 
-      const currentPage = doc.internal.getNumberOfPages();
+      if (!isStoreGroupRow) return;
 
-      doc.setFont("helvetica", "normal");
+      data.cell.styles.fillColor = [238, 243, 255];
+      data.cell.styles.fontStyle = "bold";
+      data.cell.styles.halign = data.column.index === 1 ? "left" : "center";
+      data.cell.styles.overflow = "linebreak";
 
-      doc.setFontSize(8);
-
-      doc.text(`Page ${currentPage}`, pageWidth - margin, pageHeight - 20, { align: "right" });
-
+      if (data.column.index === 1) {
+        data.cell.text = [`Store: ${data.row.raw[1] || "-"}`];
+      } else {
+        data.cell.text = [""];
+      }
     },
 
   });
@@ -3156,7 +4154,7 @@ const buildEstimatePdfDocument = (header = {}, lineItems = []) => {
 
   let summaryY = (doc.lastAutoTable?.finalY || 150) + 16;
 
-  if (summaryY > pageHeight - 150) {
+  if (summaryY > pageHeight - 210) {
 
     doc.addPage();
 
@@ -3166,61 +4164,28 @@ const buildEstimatePdfDocument = (header = {}, lineItems = []) => {
 
   }
 
-
-
-  const summaryTableWidth = 260;
-
-  doc.autoTable({
-
-    startY: summaryY,
-
-    body: [
-
-      ["Total Square Feet", formatPdfNumber(totals.printableSqftTotal)],
-
-      ["Amount", formatPdfCurrency(totals.amountTotal)],
-
-      ["18% GST", formatPdfCurrency(totals.gstAmount)],
-
-      ["Total Amount", formatPdfCurrency(totals.grandTotal)],
-
-    ],
-
-    theme: "grid",
-
-    tableWidth: summaryTableWidth,
-
-    margin: { left: pageWidth - margin - summaryTableWidth },
-
-    styles: { fontSize: 8, cellPadding: 4 },
-
-    columnStyles: {
-
-      0: { fontStyle: "bold" },
-
-      1: { halign: "right" },
-
-    },
-
-    didParseCell: (data) => {
-
-      if (data.row.index === 3) {
-
-        data.cell.styles.fontStyle = "bold";
-
-        data.cell.styles.fillColor = [238, 243, 255];
-
-      }
-
-    },
-
+  drawEstimatePdfTotalsTable(doc, totals, summaryY, {
+    leftOffset:
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.region +
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.store +
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.articleCode +
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.hsn +
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.media +
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.estSize +
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.qty,
+    labelWidth:
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.estimatedSqft +
+      ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.rate,
+    valueWidth: ESTIMATE_PDF_DETAIL_COLUMN_WIDTHS.amount,
   });
 
+  summaryY = (doc.lastAutoTable?.finalY || summaryY) + 18;
 
-
-  const footerY = (doc.lastAutoTable?.finalY || summaryY) + 24;
+  const footerY = summaryY;
 
   drawEstimateTermsAndFooter(doc, header, lineItems, footerY);
+
+  addEstimatePdfPageNumbers(doc, margin);
 
 
 
@@ -3266,9 +4231,10 @@ const buildValueOptions = (defaults, extraValues = []) =>
 
 
 
-const getSelectedOption = (options, value) =>
-
-  options.find((option) => option.value === value) || null;
+const getSelectedOption = (options, value) => {
+  if (!String(value || "").trim()) return null;
+  return options.find((option) => option.value === value) || { value, label: value };
+};
 
 
 
@@ -3284,11 +4250,13 @@ const pasteableLineColumns = [
 
   { key: "media", label: "Media", aliases: ["media"] },
 
-  { key: "width", label: "Width Inch", aliases: ["width inch", "width", "w"] },
+  { key: "unit", label: "Unit", aliases: ["unit", "units", "uom", "measurement unit"] },
 
-  { key: "height", label: "Height Inch", aliases: ["height inch", "height", "h"] },
+  { key: "width", label: "Production Width", aliases: ["production width", "width inch", "width", "w"] },
 
-  { key: "qty", label: "QTY", aliases: ["qty", "quantity"] },
+  { key: "height", label: "Production Height", aliases: ["production height", "height inch", "height", "h"] },
+
+  { key: "qty", label: "Qty", aliases: ["qty", "quantity"] },
 
   { key: "rate", label: "Rate", aliases: ["rate"] },
 
@@ -3300,23 +4268,25 @@ const pasteableLineColumns = [
 
   // Job entry screen paste aliases
 
-  { key: "visualCode", label: "VISUAL CODE", aliases: ["visual code", "visualcode", "article code", "articlecode"] },
+  { key: "visualCode", label: "Visual Code", aliases: ["visual code", "visualcode", "article code", "articlecode"] },
 
-  { key: "billingWidth", label: "Billing Width", aliases: ["billing width", "billingwidth", "bw"] },
+  { key: "billingWidth", label: "Estimated Width", aliases: ["billing width", "billingwidth", "estimated width", "bw"] },
 
-  { key: "billingHeight", label: "Billing Height", aliases: ["billing height", "billingheight", "bh"] },
+  { key: "billingHeight", label: "Estimated Height", aliases: ["billing height", "billingheight", "estimated height", "bh"] },
 
-  { key: "jobDeadline", label: "JOB DEADLINE", aliases: ["job deadline", "deadline"] },
+  { key: "jobDeadline", label: "Job Deadline", aliases: ["job deadline", "deadline"] },
 
-  { key: "printerDeadline", label: "PRINTER DEADLINE", aliases: ["printer deadline"] },
+  { key: "printerDeadline", label: "Printer Deadline", aliases: ["printer deadline"] },
 
-  { key: "remarks", label: "REMARKS/INSTRUCTIONS", aliases: ["remarks", "instructions"] },
+  { key: "remarks", label: "Remarks / Instructions", aliases: ["remarks", "instructions"] },
 
 ];
 
 
 
 const deadlineLineFields = new Set(["jobDeadline", "printerDeadline"]);
+const requiredDeadlineLineFields = ["jobDeadline", "printerDeadline"];
+const requiredImplementationLineFields = ["implementation"];
 
 
 
@@ -3414,6 +4384,10 @@ const normalizeNumericPasteValue = (value) =>
 
 const normalizePastedLineValue = (field, value) => {
 
+  if (field === "unit") {
+    return normalizeDimensionUnit(value);
+  }
+
   if (["width", "height", "billingWidth", "billingHeight"].includes(field)) {
 
     return maskDimensionValue(value);
@@ -3490,7 +4464,7 @@ const applyPastedLinePatch = (line, patch) => {
 
   const nextLine = applyDimensionPatch(line, syncedPatch);
 
-  const shouldRecalculate = ["qty", "width", "height", "billingWidth", "billingHeight", "rate"].some((field) =>
+  const shouldRecalculate = ["qty", "unit", "width", "height", "billingWidth", "billingHeight", "rate"].some((field) =>
 
     Object.prototype.hasOwnProperty.call(syncedPatch, field)
 
@@ -3622,37 +4596,7 @@ const formSelectStyles = {
 
 const JobEntry = () => {
 
-  const [header, setHeader] = useState({
-
-    jobNo: "",
-
-    date: formatDate(new Date()),
-
-    client: "",
-
-    panCard: "",
-
-    clientName: "",
-
-    userName: "",
-
-    subClient: "",
-
-    businessType: "",
-
-    contactPerson: "",
-
-    poNo: "",
-
-    poDate: "",
-
-    poType: "",
-
-    customerEmail: "",
-
-    projectName: "",
-
-  });
+  const [header, setHeader] = useState(createEmptyHeader);
 
 
 
@@ -3662,7 +4606,30 @@ const JobEntry = () => {
 
   const [customers, setCustomers] = useState([]);
 
-  const [rateRows, setRateRows] = useState([]);
+  const resolveCustomerIdForSave = async (selectedId, selectedName, locationId) => {
+    let customerId = findNumericCustomerId(customers, selectedId, selectedName);
+    if (customerId) return customerId;
+
+    const customerRows = await fetchLocationCustomers(locationId);
+    customerId = findNumericCustomerId(customerRows, selectedId, selectedName);
+
+    const mergedCustomers = mergeMasterCustomers(customerRows);
+    setCustomers(mergedCustomers);
+
+    if (!customerId) {
+      customerId = findNumericCustomerId(mergedCustomers, selectedId, selectedName);
+    }
+
+    if (!customerId) {
+      throw new Error(
+        `A numeric ERP customer ID was not found for "${selectedName}". Please verify that this customer exists in ERP for your location.`
+      );
+    }
+
+    return customerId;
+  };
+
+   const [rateRows, setRateRows] = useState([]);
 
   const [elementGroupRows, setElementGroupRows] = useState([]);
 
@@ -3676,6 +4643,12 @@ const JobEntry = () => {
 
   const [isCreatingJob, setIsCreatingJob] = useState(false);
 
+  // State-based button disabling happens after the current event finishes.
+  // These locks prevent a second click/shortcut from posting the same payload.
+  const isSavingRef = useRef(false);
+
+  const isCreatingJobRef = useRef(false);
+
   const [saveStatus, setSaveStatus] = useState("");
 
   const [copiedLines, setCopiedLines] = useState([]);
@@ -3686,17 +4659,35 @@ const JobEntry = () => {
 
   const [isDraftPanelOpen, setIsDraftPanelOpen] = useState(false);
 
+  const [isEstimatePanelOpen, setIsEstimatePanelOpen] = useState(false);
+
   const [draftList, setDraftList] = useState([]);
 
-  const [activeJobEntryTab, setActiveJobEntryTab] = useState("existing");
+  const [activeJobEntryTab, setActiveJobEntryTab] = useState("new");
 
   const [entryScreenMode, setEntryScreenMode] = useState("job");
+
+  const [showEntryLanding, setShowEntryLanding] = useState(false);
+  const [landingStage, setLandingStage] = useState(1);
+  const [landingCreationType, setLandingCreationType] = useState("job");
+  const [landingRecordType, setLandingRecordType] = useState("new");
 
   const [activePasteCell, setActivePasteCell] = useState({ lineId: "", field: "visualCode" });
 
   const [isEstimateMailOpen, setIsEstimateMailOpen] = useState(false);
+  const [isConvertedEstimateJobCard, setIsConvertedEstimateJobCard] = useState(false);
 
   const [isSendingEstimateMail, setIsSendingEstimateMail] = useState(false);
+
+  const [isCreatingEstimate, setIsCreatingEstimate] = useState(false);
+
+  const isCreatingEstimateRef = useRef(false);
+
+  const initialScreenDataLoadedRef = useRef(false);
+
+  const jobOptionsLoadedRef = useRef(false);
+
+  const estimateLoadAttemptedRef = useRef(false);
 
   const [estimateMail, setEstimateMail] = useState({
 
@@ -3709,6 +4700,9 @@ const JobEntry = () => {
   });
 
   const [estimateMailChargeRows, setEstimateMailChargeRows] = useState([]);
+  const [estimateChargeScope, setEstimateChargeScope] = useState("single");
+  const [estimateChargeSalon, setEstimateChargeSalon] = useState("");
+  const [estimateChargeGroupSalons, setEstimateChargeGroupSalons] = useState([]);
 
   const [estimateRows, setEstimateRows] = useState([]);
 
@@ -3802,6 +4796,10 @@ const JobEntry = () => {
 
       lines,
 
+      estimateMailChargeRows,
+
+      estimateChargeGroupSalons,
+
       savedAt: new Date().toISOString(),
 
     };
@@ -3829,6 +4827,17 @@ const JobEntry = () => {
       setLines(draft.lines.map((line) => withoutMediaSelection(withBillingDimensions(line))));
 
     }
+
+    setEstimateMailChargeRows(
+      Array.isArray(draft?.estimateMailChargeRows)
+        ? draft.estimateMailChargeRows
+        : []
+    );
+    setEstimateChargeGroupSalons(
+      Array.isArray(draft?.estimateChargeGroupSalons)
+        ? draft.estimateChargeGroupSalons
+        : []
+    );
 
     setDraftRestored(true);
 
@@ -3941,6 +4950,8 @@ const JobEntry = () => {
 
 
     setLines([]);
+    setEstimateMailChargeRows([]);
+    setEstimateChargeGroupSalons([]);
 
     setSelectedLineIds([]);
 
@@ -3980,11 +4991,15 @@ const JobEntry = () => {
 
     return () => clearTimeout(timer);
 
-  }, [header, lines]);
+  }, [header, lines, estimateMailChargeRows, estimateChargeGroupSalons]);
 
 
 
   useEffect(() => {
+
+    if (initialScreenDataLoadedRef.current) return;
+
+    initialScreenDataLoadedRef.current = true;
 
     const users = getLoggedInUser();
 
@@ -4006,19 +5021,11 @@ const JobEntry = () => {
 
 
 
-        const response = await axios.post(
-
-          config.JobSummary.URL.Getallcustomer,
-
-          { locationid: locationId },
-
-          { timeout: 10000, headers: { "Content-Type": "application/json" } }
-
-        );
+        const customerRows = await fetchLocationCustomers(locationId);
 
 
 
-        setCustomers(mergeMasterCustomers(getCustomerRowsFromResponse(response.data)));
+        setCustomers(mergeMasterCustomers(customerRows));
 
       } catch (error) {
 
@@ -4045,21 +5052,29 @@ const JobEntry = () => {
 
 
         const apiRows = getRateRowsFromResponse(response.data).map(normalizeRateRow);
-
         const savedRows = getSavedRateRows().map(normalizeRateRow);
 
-
-
-        setRateRows(mergeRateRows(apiRows, savedRows, buildDefaultRateRows(), buildMasterMediaRows()));
+        setRateRows(
+          mergeRateRows(
+            apiRows,
+            savedRows,
+            buildProductRateRows(),
+            buildDefaultRateRows(),
+            buildMasterMediaRows()
+          )
+        );
 
       } catch (error) {
 
         console.error("Unable to fetch product media rates", error);
 
         setRateRows(
-
-          mergeRateRows(getSavedRateRows().map(normalizeRateRow), buildDefaultRateRows(), buildMasterMediaRows())
-
+          mergeRateRows(
+            getSavedRateRows().map(normalizeRateRow),
+            buildProductRateRows(),
+            buildDefaultRateRows(),
+            buildMasterMediaRows()
+          )
         );
 
       }
@@ -4072,43 +5087,25 @@ const JobEntry = () => {
 
       try {
 
-        const payloads = locationId
+        const payload = locationId
 
-          ? [{ location_id: locationId }, { locationId }, { locationid: locationId }, {}]
+          ? { location_id: locationId, locationId, locationid: locationId }
 
-          : [{}];
+          : {};
 
-        const responses = await Promise.allSettled(
+        const response = await axios.post(config.Printing.URL.Getallprinting, payload, {
 
-          payloads.map((payload) =>
+          timeout: 10000,
 
-            axios.post(config.Printing.URL.Getallprinting, payload, {
+          headers: { "Content-Type": "application/json" },
 
-              timeout: 10000,
+        });
 
-              headers: { "Content-Type": "application/json" },
+        const responseData = response.data;
 
-            })
+        const printerRows = getPrinterRows(responseData);
 
-          )
-
-        );
-
-
-
-        const names = responses
-
-          .flatMap((result) => {
-
-            if (result.status !== "fulfilled") return [];
-
-            const responseData = result.value.data;
-
-            const rows = getPrinterRows(responseData);
-
-            return rows.length ? rows : [responseData];
-
-          })
+        const names = (printerRows.length ? printerRows : [responseData])
 
           .flatMap(extractPrinterNames)
 
@@ -4248,33 +5245,45 @@ const JobEntry = () => {
 
   useEffect(() => {
 
+    if (jobOptionsLoadedRef.current) return;
+
+    jobOptionsLoadedRef.current = true;
+
     fetchJobNumbers();
 
   }, [fetchJobNumbers]);
 
 
 
-  const selectedClientPanCard = useMemo(() => {
-
-    const selectedCustomer = customers.find(
-
-      (customer) =>
-
-        getCustomerId(customer) === header.client ||
-
-        normalizeText(getCustomerName(customer)) === normalizeText(header.clientName)
-
+  const selectedCustomerRecord = useMemo(() => {
+    return (
+      findCustomerForSelection(customers, header.client) ||
+      findCustomerForSelection(customers, header.clientName) ||
+      null
     );
-
-
-
-    return selectedCustomer ? getCustomerPanCard(selectedCustomer) : "";
-
   }, [customers, header.client, header.clientName]);
 
+  const selectedClientPanCard = useMemo(
+    () =>
+      selectedCustomerRecord
+        ? getCustomerPanCard(selectedCustomerRecord)
+        : findCustomerPanCardFromRates(rateRows, header.client, header.clientName) ||
+          findCustomerPanCardFromJobOptions(jobOptions, header.client, header.clientName) ||
+          normalizePanCard(header.panCard || header.panNo || ""),
+    [header.client, header.clientName, header.panCard, header.panNo, jobOptions, rateRows, selectedCustomerRecord]
+  );
 
+  const selectedNumericCustomerId = useMemo(
+    () =>
+      findNumericCustomerId(
+        customers,
+        getCustomerId(selectedCustomerRecord) || header.client,
+        header.clientName
+      ),
+    [customers, header.client, header.clientName, selectedCustomerRecord]
+  );
 
-  const hydratedElementGroupRows = useMemo(
+ const hydratedElementGroupRows = useMemo(
 
     () => hydrateElementGroupPanCards(elementGroupRows, customers),
 
@@ -4285,34 +5294,9 @@ const JobEntry = () => {
 
 
   useEffect(() => {
-
-    const storePanCard = normalizePanCard(header.panCard) || selectedClientPanCard;
-
-    const storeListUrl = storePanCard
-
-      ? `${config.Store.URL.List}?panCard=${encodeURIComponent(storePanCard)}`
-
-      : header.client
-
-        ? `${config.Store.URL.List}?customerId=${encodeURIComponent(header.client)}`
-
-        : "";
-
-
-
-    if (!storeListUrl) {
-
-      setStoreMasterRows([]);
-
-      return;
-
-    }
-
-
-
     axios
 
-      .get(storeListUrl, {
+      .get(config.Store.URL.List, {
 
         timeout: 10000,
 
@@ -4332,7 +5316,7 @@ const JobEntry = () => {
 
       });
 
-  }, [header.client, header.panCard, selectedClientPanCard]);
+  }, []);
 
 
 
@@ -4524,9 +5508,22 @@ const JobEntry = () => {
 
 
 
-  const getElementGroupDescription = (group, item, fallback = "") =>
-
-    String(item?.description || group?.description || fallback || "").trim();
+const getElementGroupDescription = (group, item, fallback = "") =>
+    firstMeaningfulDescription(
+      item?.simplifiedProductName,
+      item?.SimplifiedProductName,
+      item?.productAsPerRateCard,
+      item?.ProductAsPerRateCard,
+      item?.description,
+      item?.Description,
+      group?.simplifiedProductName,
+      group?.SimplifiedProductName,
+      group?.productAsPerRateCard,
+      group?.ProductAsPerRateCard,
+      group?.description,
+      group?.Description,
+      fallback
+    );
 
 
 
@@ -4546,17 +5543,17 @@ const JobEntry = () => {
 
     const rateValue = Number(pricing?.rate ?? item.rate ?? baseLine.rate ?? 0);
 
-    const sqft = width > 0 && height > 0 && qty > 0 ? roundAmount((qty * width * height) / 144) : 0;
-
-    const amount = roundAmount(sqft * rateValue);
-
     const widthText = item.width ? String(item.width) : baseLine.width || "";
 
     const heightText = item.height ? String(item.height) : baseLine.height || "";
 
+    const billingWidthText = item.billingWidth ? String(item.billingWidth) : baseLine.billingWidth || "";
+
+    const billingHeightText = item.billingHeight ? String(item.billingHeight) : baseLine.billingHeight || "";
 
 
-    return {
+
+    return recalculateLine({
 
       ...newLine,
 
@@ -4582,9 +5579,9 @@ const JobEntry = () => {
 
       media,
 
-      internalMedia: pricing?.internalMedia || baseLine.internalMedia || "",
+      internalMedia: baseLine.internalMedia || "",
 
-      externalMedia: pricing?.externalMedia || baseLine.externalMedia || "",
+      externalMedia: baseLine.externalMedia || "",
 
       elementGroup: baseLine.elementGroup,
 
@@ -4620,15 +5617,11 @@ const JobEntry = () => {
 
       height: heightText,
 
-      billingWidth: widthText,
+      billingWidth: billingWidthText,
 
-      billingHeight: heightText,
-
-      sqft: sqft ? String(sqft) : "",
+      billingHeight: billingHeightText,
 
       rate: rateValue ? String(rateValue) : baseLine.rate || "",
-
-      amount: amount ? String(amount) : baseLine.amount || "",
 
       laminationFlag: item.laminationFlag || baseLine.laminationFlag || "",
 
@@ -4646,7 +5639,7 @@ const JobEntry = () => {
 
       groupAutoAdded: true,
 
-    };
+    });
 
   };
 
@@ -4724,17 +5717,17 @@ const JobEntry = () => {
 
     const rateValue = Number(pricing?.rate ?? firstItem.rate ?? line.rate ?? 0);
 
-    const sqft = width > 0 && height > 0 && qty > 0 ? roundAmount((qty * width * height) / 144) : 0;
-
-    const amount = roundAmount(sqft * rateValue);
-
     const widthText = firstItem.width ? String(firstItem.width) : line.width || "";
 
     const heightText = firstItem.height ? String(firstItem.height) : line.height || "";
 
+    const billingWidthText = firstItem.billingWidth ? String(firstItem.billingWidth) : line.billingWidth || "";
+
+    const billingHeightText = firstItem.billingHeight ? String(firstItem.billingHeight) : line.billingHeight || "";
 
 
-    return {
+
+    return recalculateLine({
 
       ...line,
 
@@ -4772,9 +5765,9 @@ const JobEntry = () => {
 
       height: heightText,
 
-      billingWidth: widthText,
+      billingWidth: billingWidthText,
 
-      billingHeight: heightText,
+      billingHeight: billingHeightText,
 
       media,
 
@@ -4783,10 +5776,6 @@ const JobEntry = () => {
       externalMedia: pricing?.externalMedia || line.externalMedia || "",
 
       rate: rateValue ? String(rateValue) : line.rate || "",
-
-      sqft: sqft ? String(sqft) : "",
-
-      amount: amount ? String(amount) : line.amount || "",
 
       laminationFlag: firstItem.laminationFlag || line.laminationFlag || "",
 
@@ -4798,7 +5787,7 @@ const JobEntry = () => {
 
       implementation: firstItem.implementation || line.implementation || "",
 
-    };
+    });
 
   };
 
@@ -4826,7 +5815,7 @@ const JobEntry = () => {
 
         (summary, row) => ({
 
-          sqft: summary.sqft + Number(row.sqft || 0),
+          sqft: summary.sqft + calculateProductionSqft(row),
 
           amount: summary.amount + Number(row.amount || 0),
 
@@ -4886,6 +5875,57 @@ const JobEntry = () => {
 
   );
 
+  const summarySqftTotal = useMemo(
+    () => (entryScreenMode === "estimate" ? estimateTotals.billableSqftTotal : totals.sqft),
+    [entryScreenMode, estimateTotals.billableSqftTotal, totals.sqft]
+  );
+
+  const estimateChargeSalonOptions = useMemo(() => {
+    const seen = new Set();
+    return estimateLineItems
+      .map((item) => String(item.salonName || "").trim())
+      .filter((salonName) => {
+        const key = normalizeText(salonName);
+        if (!key || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+  }, [estimateLineItems]);
+
+  useEffect(() => {
+    if (estimateChargeScope !== "single") return;
+    if (
+      estimateChargeSalon &&
+      estimateChargeSalonOptions.some(
+        (salonName) => normalizeText(salonName) === normalizeText(estimateChargeSalon)
+      )
+    ) {
+      return;
+    }
+    setEstimateChargeSalon(estimateChargeSalonOptions[0] || "");
+  }, [estimateChargeScope, estimateChargeSalon, estimateChargeSalonOptions]);
+
+  useEffect(() => {
+    setEstimateChargeGroupSalons((previous) =>
+      previous.filter((salonName) =>
+        estimateChargeSalonOptions.some(
+          (option) => normalizeText(option) === normalizeText(salonName)
+        )
+      )
+    );
+  }, [estimateChargeSalonOptions]);
+
+  useEffect(() => {
+    if (estimateChargeScope !== "group") return;
+    setEstimateChargeGroupSalons(estimateChargeSalonOptions);
+  }, [estimateChargeScope, estimateChargeSalonOptions]);
+
+  const estimateMailChargeTargets = useMemo(
+    () => buildEstimateMailChargeTargets(estimateLineItems),
+    [estimateLineItems]
+  );
+
+
 
 
   const estimateMailLineItems = useMemo(
@@ -4940,25 +5980,55 @@ const JobEntry = () => {
 
   const customerRateRows = useMemo(
 
-    () => getCustomerRates(rateRows, header.client, header.clientName),
+    () => {
+      const matchedRows = getCustomerRates(
+        rateRows,
+        header.client,
+        header.clientName,
+        selectedClientPanCard || header.panCard || header.panNo || ""
+      );
 
-    [header.client, header.clientName, rateRows]
+      if (matchedRows.length) return matchedRows;
 
+      const normalizedPan = normalizePanCard(
+        selectedClientPanCard || header.panCard || header.panNo || ""
+      );
+      if (normalizedPan) {
+        const panRows = rateRows.filter((row) =>
+          normalizePanCard(row.panNo || row.PANNo || row.PAN_NO || row.panCard || row.PAN || "") ===
+          normalizedPan
+        );
+        if (panRows.length) return panRows;
+      }
+
+      const normalizedCustomerName = normalizeCustomerMatchName(header.clientName);
+      if (normalizedCustomerName) {
+        const nameRows = rateRows.filter(
+          (row) => normalizeCustomerMatchName(row.customerName || row.CustomerName || row.client || "") === normalizedCustomerName
+        );
+        if (nameRows.length) return nameRows;
+      }
+
+      return rateRows;
+    },
+
+    [header.client, header.clientName, header.panCard, header.panNo, rateRows, selectedClientPanCard]
+
+  );
+
+  const descriptionPricingRows = useMemo(
+    () => [...customerRateRows, ...rateRows],
+    [customerRateRows, rateRows]
   );
 
 
 
   const pricingOptions = useMemo(() => {
-
-    const generalRows = getGeneralRateRows(rateRows);
-
-    const rows = [...customerRateRows, ...generalRows];
-
     const seen = new Set();
 
 
 
-    return rows.filter((row) => {
+    return [...customerRateRows, ...buildMasterMediaRows()].filter((row) => {
 
       const media = normalizeText(row.media);
 
@@ -4970,7 +6040,7 @@ const JobEntry = () => {
 
     });
 
-  }, [customerRateRows, rateRows]);
+  }, [customerRateRows]);
 
 
 
@@ -5034,6 +6104,26 @@ const JobEntry = () => {
 
   );
 
+  const selectedStoreBrand = useMemo(
+    () =>
+      getStoreBrandKey(
+        [header.clientName, getCustomerName(selectedCustomerRecord)]
+          .filter(Boolean)
+          .join(" ")
+      ),
+    [header.clientName, selectedCustomerRecord]
+  );
+
+  const clientStoreRows = useMemo(
+    () =>
+      selectedStoreBrand
+        ? storeMasterRows.filter(
+            (store) => getStoreBrandKey(store.storeName) === selectedStoreBrand
+          )
+        : storeMasterRows,
+    [selectedStoreBrand, storeMasterRows]
+  );
+
 
 
   const storeSelectOptions = useMemo(() => {
@@ -5042,51 +6132,102 @@ const JobEntry = () => {
 
     const seen = new Set();
 
+    const addOption = (value, store = null, label = value) => {
+      const normalizedValue = String(value || "").trim();
+      if (!normalizedValue) return;
 
+      const identity = [
+        normalizeText(normalizedValue),
+        normalizeText(store?.city || ""),
+        normalizeText(store?.address || ""),
+      ].join("|");
 
-    storeMasterRows.forEach((store) => {
-
-      const value = store.storeName;
-
-      if (!value || seen.has(value)) return;
-
-      seen.add(value);
-
+      if (seen.has(identity)) return;
+      seen.add(identity);
       options.push({
-
-        value,
-
-        label: [store.storeName, store.city, store.location].filter(Boolean).join(" - "),
-
+        value: normalizedValue,
+        label: String(label || normalizedValue).trim(),
+        store,
       });
+    };
+
+    clientStoreRows.forEach((store) => {
+
+      const value = store.storeName || formatStoreShipTo(store) || store.address || store.city;
+      const label = [
+        store.storeCode,
+        store.storeName,
+        store.city,
+        store.address,
+      ].filter(Boolean).join(" - ");
+
+      addOption(value, store, label);
 
     });
 
-
-
     lines
 
-      .map((line) => String(line.store || "").trim())
+      .map((line) => [line.store, line.salonAddress, line.storeDisplayName, line.city])
+
+      .flat()
+
+      .map((value) => String(value || "").trim())
 
       .filter(Boolean)
 
       .forEach((value) => {
 
-        if (!seen.has(value)) {
-
-          seen.add(value);
-
-          options.push({ value, label: value });
-
-        }
+        addOption(value, null, value);
 
       });
 
-
-
     return options;
 
-  }, [storeMasterRows, lines]);
+  }, [clientStoreRows, lines]);
+
+  const formatStoreOptionLabel = useCallback(
+    (option, { context }) => {
+      if (context === "value") return option.store?.storeName || option.label;
+
+      const metaParts = [option.store?.storeCode, option.store?.city, option.store?.address]
+        .filter(Boolean)
+        .map((part) => String(part).trim());
+
+      return (
+        <div className="store-option-display">
+          <div className="store-option-display-name">{option.store?.storeName || option.label}</div>
+          {metaParts.length ? (
+            <div className="store-option-display-meta">{metaParts.join(" - ")}</div>
+          ) : null}
+        </div>
+      );
+    },
+    []
+  );
+
+  const getSelectedStoreOption = useCallback(
+    (line) => {
+      const lineStore = normalizeText(line?.store);
+      const lineCity = normalizeText(line?.city);
+      const lineAddress = normalizeText(line?.salonAddress);
+
+      return (
+        storeSelectOptions.find((option) => {
+          if (normalizeText(option.value) !== lineStore) return false;
+          if (!option.store) return !lineCity && !lineAddress;
+
+          const sameCity =
+            !lineCity || normalizeText(option.store.city) === lineCity;
+          const sameAddress =
+            !lineAddress ||
+            normalizeText(formatStoreShipTo(option.store)) === lineAddress;
+          return sameCity && sameAddress;
+        }) ||
+        getSelectedOption(storeSelectOptions, line?.store || line?.salonAddress || line?.storeDisplayName)
+      );
+    },
+    [storeSelectOptions]
+  );
 
 
 
@@ -5098,7 +6239,7 @@ const JobEntry = () => {
 
 
 
-    storeMasterRows.forEach((store) => {
+    clientStoreRows.forEach((store) => {
 
       const value = formatStoreShipTo(store);
 
@@ -5140,17 +6281,17 @@ const JobEntry = () => {
 
     return options;
 
-  }, [storeMasterRows, lines]);
+  }, [clientStoreRows, lines]);
 
 
 
   const brandingLocationSelectOptions = useMemo(() => {
 
-    const locations = storeMasterRows.map((store) => store.location);
+    const locations = clientStoreRows.map((store) => store.location);
 
     return buildValueOptions(locations, lines.map((line) => line.brandingLocation));
 
-  }, [storeMasterRows, lines]);
+  }, [clientStoreRows, lines]);
 
 
 
@@ -5164,13 +6305,96 @@ const JobEntry = () => {
 
 
 
-  const mediaSelectOptions = useMemo(
+  const mediaSelectOptions = useMemo(() => {
 
-    () => pricingOptions.map((row) => ({ value: row.media, label: row.media })),
+    const seen = new Set();
 
-    [pricingOptions]
+    return buildMasterMediaRows().reduce((options, row) => {
 
-  );
+      const media = String(row.media || "").trim();
+
+      const key = normalizeText(media);
+
+      if (!media || seen.has(key)) return options;
+
+      seen.add(key);
+
+      options.push({
+
+        value: media,
+
+        label: media,
+
+        hsnCode: row.hsnCode || row.hsn || "",
+
+      });
+
+      return options;
+
+    }, []);
+
+  }, []);
+
+
+
+  useEffect(() => {
+
+    const allowedMedia = new Set(
+
+      mediaSelectOptions.map((option) => normalizeText(option.value))
+
+    );
+
+
+
+    setLines((previousLines) => {
+
+      let changed = false;
+
+      const nextLines = previousLines.map((line) => {
+
+        const media = String(line.media || "").trim();
+
+        if (!media || allowedMedia.has(normalizeText(media))) return line;
+
+        changed = true;
+
+        return { ...line, media: "" };
+
+      });
+
+
+
+      return changed ? nextLines : previousLines;
+
+    });
+
+  }, [lines, mediaSelectOptions]);
+
+
+
+  const descriptionSelectOptions = useMemo(() => {
+
+    const seen = new Set();
+
+    return descriptionPricingRows.reduce((options, row) => {
+
+      const description = getRateDescription(row);
+
+      const key = normalizeText(description);
+
+      if (!description || seen.has(key)) return options;
+
+      seen.add(key);
+
+      // Retain the matching rate record so the rate is available immediately.
+      options.push({ value: description, label: description, pricing: row });
+
+      return options;
+
+    }, []);
+
+  }, [descriptionPricingRows]);
 
 
 
@@ -5186,27 +6410,9 @@ const JobEntry = () => {
 
   const laminationSelectOptions = useMemo(
 
-    () =>
+    () => buildValueOptions(laminationDefaults),
 
-      buildValueOptions(
-
-        laminationDefaults,
-
-        [
-
-          ...hydratedElementGroupRows.flatMap((group) =>
-
-            (group.elements || []).map((item) => item.lamination)
-
-          ),
-
-          ...lines.map((line) => line.lamination),
-
-        ]
-
-      ),
-
-    [hydratedElementGroupRows, lines]
+    [laminationDefaults]
 
   );
 
@@ -5304,8 +6510,6 @@ const JobEntry = () => {
 
       externalMedia: "",
 
-      hsn: "",
-
       rate: "",
 
       amount: "",
@@ -5324,6 +6528,30 @@ const JobEntry = () => {
 
       ...line,
 
+      productrateId: String(pricing.id || pricing._id || ""),
+
+      simplifiedProductName:
+        pricing.simplifiedProductName ||
+        pricing.SimplifiedProductName ||
+        line.simplifiedProductName ||
+        "",
+
+      productAsPerRateCard:
+        pricing.productAsPerRateCard ||
+        pricing.ProductAsPerRateCard ||
+        line.productAsPerRateCard ||
+        "",
+
+      description:
+        pricing.productAsPerRateCard ||
+        pricing.simplifiedProductName ||
+        pricing.description ||
+        line.description,
+
+      unit: isOperatorChargeText(pricing.simplifiedProductName || pricing.productAsPerRateCard || pricing.description)
+        ? "nos"
+        : line.unit,
+
       media: pricing.media || line.media,
 
       internalMedia: pricing.internalMedia || line.internalMedia || pricing.media || "",
@@ -5333,12 +6561,11 @@ const JobEntry = () => {
       hsn: pricing.hsn || pricing.hsnCode || line.hsn,
 
       rate:
-
-        pricing.rate !== "" && pricing.rate !== null && pricing.rate !== undefined
-
-          ? String(pricing.rate)
-
-          : line.rate,
+        pricing.ratePerSqft !== "" && pricing.ratePerSqft !== null && pricing.ratePerSqft !== undefined
+          ? String(pricing.ratePerSqft)
+          : pricing.rate !== "" && pricing.rate !== null && pricing.rate !== undefined
+            ? String(pricing.rate)
+            : line.rate,
 
     });
 
@@ -5346,9 +6573,136 @@ const JobEntry = () => {
 
 
 
+  const applyDescriptionPricing = (line, pricing) => {
+
+    if (!pricing) return recalculateLine(line);
+
+
+
+    return recalculateLine({
+
+      ...line,
+
+      productrateId: String(pricing.id || pricing._id || ""),
+
+      simplifiedProductName:
+        pricing.simplifiedProductName ||
+        pricing.SimplifiedProductName ||
+        line.simplifiedProductName ||
+        "",
+
+      productAsPerRateCard:
+        pricing.productAsPerRateCard ||
+        pricing.ProductAsPerRateCard ||
+        line.productAsPerRateCard ||
+        "",
+
+      description:
+        pricing.productAsPerRateCard ||
+        pricing.simplifiedProductName ||
+        pricing.description ||
+        line.description,
+
+      unit: isOperatorChargeText(pricing.simplifiedProductName || pricing.productAsPerRateCard || pricing.description)
+        ? "nos"
+        : line.unit,
+
+      // Media is selected only from Media Master; product pricing must not overwrite it.
+
+      media: line.media || "",
+
+      internalMedia: line.internalMedia || "",
+
+      externalMedia: line.externalMedia || "",
+
+      hsn: pricing.hsn || pricing.hsnCode || line.hsn,
+
+      rate:
+        pricing.ratePerSqft !== "" && pricing.ratePerSqft !== null && pricing.ratePerSqft !== undefined
+          ? String(pricing.ratePerSqft)
+          : pricing.rate !== "" && pricing.rate !== null && pricing.rate !== undefined
+            ? String(pricing.rate)
+            : line.rate,
+
+    });
+
+  };
+
+
+
+  const applyMediaMasterSelection = (line, media) => {
+    const descriptionPricing = findPricingByDescription(
+      line.description,
+      descriptionPricingRows
+    );
+
+    // A selected description owns the selling rate. Media only identifies the
+    // material, so it must not overwrite the description's configured price.
+    if (descriptionPricing) {
+      return applyDescriptionPricing(
+        {
+          ...line,
+          media,
+        },
+        descriptionPricing
+      );
+    }
+
+    const pricing = findPricing(media);
+
+    return pricing
+      ? applyPricing(
+          {
+            ...line,
+            media,
+          },
+          pricing
+        )
+      : recalculateLine({
+          ...line,
+          media,
+        });
+  };
+
+  const selectedEntryLabel = useMemo(() => {
+    if (showEntryLanding) {
+      return "Job Entry";
+    }
+
+    if (!landingCreationType || !landingRecordType) {
+      if (activeJobEntryTab === "existing") {
+        return entryScreenMode === "estimate" ? "Existing Estimate" : "Existing Job";
+      }
+
+      if (activeJobEntryTab === "new") {
+        return entryScreenMode === "estimate" ? "New Estimate" : "New Job";
+      }
+
+      return "Job Entry";
+    }
+
+    const recordLabel = landingRecordType === "existing" ? "Existing" : "New";
+
+    const creationLabel = landingCreationType === "estimate" ? "Estimate" : "Job";
+
+    return `${recordLabel} ${creationLabel}`;
+  }, [
+    showEntryLanding,
+    landingCreationType,
+    landingRecordType,
+  ]);
+
+  const isNewJobCreationMode =
+    activeJobEntryTab === "new" && entryScreenMode !== "estimate" && !header.jobNo;
+
+  useEffect(() => {
+    document.title = `${selectedEntryLabel} | Comart`;
+  }, [selectedEntryLabel]);
+
+
   useEffect(() => {
 
-    if (!rateRows.length) return;
+    if (!descriptionPricingRows.length) return;
 
 
 
@@ -5360,13 +6714,11 @@ const JobEntry = () => {
 
       const nextLines = prev.map((line) => {
 
-        if (!String(line.media || "").trim()) return line;
-
-        if (line.hsn && line.rate) return line;
+        if (!String(line.description || "").trim()) return line;
 
 
 
-        const pricing = findPricingFromRows(line.media, customerRateRows, rateRows);
+        const pricing = findPricingByDescription(line.description, descriptionPricingRows);
 
 
 
@@ -5376,7 +6728,7 @@ const JobEntry = () => {
 
         changed = true;
 
-        return applyPricing(line, pricing);
+        return applyDescriptionPricing(line, pricing);
 
       });
 
@@ -5386,7 +6738,7 @@ const JobEntry = () => {
 
     });
 
-  }, [customerRateRows, rateRows]);
+  }, [descriptionPricingRows]);
 
 
 
@@ -5408,13 +6760,19 @@ const JobEntry = () => {
 
     if (field === "client") {
 
-      const customer = customers.find((item) => getCustomerId(item) === value);
+      const customer = findCustomerForSelection(customers, value);
 
       const clientName = customer ? getCustomerName(customer) : "";
 
       const panCard = customer ? getCustomerPanCard(customer) : "";
 
-      const nextCustomerRates = getCustomerRates(rateRows, value, clientName);
+      const nextCustomerRates = getCustomerRates(rateRows, value, clientName, panCard);
+
+      if (!nextCustomerRates.length) {
+        toast.warning(
+          `No product rate found for ${clientName || "this customer"}. Please add product rate before creating estimate.`
+        );
+      }
 
 
 
@@ -5424,23 +6782,39 @@ const JobEntry = () => {
 
         prev.map((line) => {
 
-          if (!String(line.media || "").trim()) return clearMediaPricing(line);
+          if (!String(line.description || "").trim()) {
+
+            return recalculateLine({
+
+              ...line,
+
+              internalMedia: "",
+
+              externalMedia: "",
+
+              hsn: "",
+
+              rate: "",
+
+              amount: "",
+
+            });
+
+          }
 
 
 
-          const pricing = findPricingFromRows(
+          const pricing = findPricingByDescription(
 
-            line.media,
+            line.description,
 
-            nextCustomerRates,
-
-            nextCustomerRates.length ? nextCustomerRates : rateRows
+            nextCustomerRates
 
           );
 
 
 
-          if (pricing) return applyPricing(line, pricing);
+          if (pricing) return applyDescriptionPricing(line, pricing);
 
 
 
@@ -5486,7 +6860,9 @@ const JobEntry = () => {
 
       const clientId = matchedCustomer ? getCustomerId(matchedCustomer) : selectedJob?.customerId || "";
 
-      const panCard = matchedCustomer ? getCustomerPanCard(matchedCustomer) : "";
+      const panCard =
+        selectedJob?.panCard ||
+        (matchedCustomer ? getCustomerPanCard(matchedCustomer) : "");
 
       const savedDraft = value ? getAllDrafts()[value] : null;
 
@@ -5544,6 +6920,8 @@ const JobEntry = () => {
 
   const handleCreateNewJob = async () => {
 
+    if (isCreatingJobRef.current) return;
+
     const users = getLoggedInUser();
 
     const userId = users?.user_id || users?.userid || users?.userId || "";
@@ -5556,7 +6934,7 @@ const JobEntry = () => {
 
     const customerName = header.clientName || "";
 
-    const customerId = header.client || "";
+    let customerId = header.client || "";
 
     const customerPanCard = normalizePanCard(header.panCard) || selectedClientPanCard;
 
@@ -5582,15 +6960,46 @@ const JobEntry = () => {
 
 
 
+    const missingRequiredDeadlines = getRowsMissingRequiredDeadlines();
+
+    if (missingRequiredDeadlines.length) {
+
+      showRequiredDeadlineWarning(missingRequiredDeadlines);
+
+      return;
+
+    }
+
+    const missingRequiredImplementation = getRowsMissingRequiredImplementation();
+
+    if (missingRequiredImplementation.length) {
+
+      showRequiredImplementationWarning(missingRequiredImplementation);
+
+      return;
+
+    }
+
+
+
+    isCreatingJobRef.current = true;
+
+    setIsCreatingJob(true);
+
     const loadingToast = toast.loading("Creating new job...");
 
 
 
     try {
 
-      setIsCreatingJob(true);
+      customerId = await resolveCustomerIdForSave(customerId, customerName, locationId);
 
 
+
+      const jobDescription = lines
+        .map((line) => getStoredLineDescription(line))
+        .filter(Boolean)
+        .join(" | ");
 
       const payload = [
 
@@ -5642,7 +7051,7 @@ const JobEntry = () => {
 
 
 
-          jobdesc: "",
+          jobdesc: jobDescription,
 
           projectname: header.projectName || "",
 
@@ -5653,8 +7062,6 @@ const JobEntry = () => {
         },
 
       ];
-
-
 
       const response = await axios.post(config.JobSummary.URL.Addjobdetails, payload);
 
@@ -5736,6 +7143,10 @@ const JobEntry = () => {
 
         lines,
 
+        estimateMailChargeRows,
+
+        estimateChargeGroupSalons,
+
         savedAt: new Date().toISOString(),
 
       };
@@ -5746,7 +7157,10 @@ const JobEntry = () => {
 
       setSaveStatus(`New job created: ${createdJobNo}`);
 
-      setActiveJobEntryTab("existing");
+      // Keep the user on the New Job screen after creation.
+      // The generated job number and entered line items remain visible so the
+      // user can continue editing or save without being moved to Existing Job.
+      setActiveJobEntryTab("new");
 
 
 
@@ -5782,6 +7196,8 @@ const JobEntry = () => {
 
     } finally {
 
+      isCreatingJobRef.current = false;
+
       setIsCreatingJob(false);
 
     }
@@ -5790,7 +7206,7 @@ const JobEntry = () => {
 
 
 
-  const updateLine = (id, field, value) => {
+  const updateLine = (id, field, value, selectedOption = null) => {
 
     if (deadlineLineFields.has(field) && isBackDatedDeadlineValue(value)) {
 
@@ -5812,11 +7228,21 @@ const JobEntry = () => {
 
     setDraftSyncDisabled(false);
 
+    // Unit is a common setting for the complete grid.
+    // Changing it from any row updates and recalculates every row.
+    if (field === "unit") {
+      const commonUnit = normalizeDimensionUnit(value);
+      setLines((prev) =>
+        prev.map((line) => recalculateLine({ ...line, unit: commonUnit }))
+      );
+      return;
+    }
+
 
 
     if (field === "store") {
 
-      const selectedStore = storeMasterRows.find(
+      const selectedStore = selectedOption?.store || storeMasterRows.find(
 
         (store) => normalizeText(store.storeName) === normalizeText(nextValue)
 
@@ -5832,7 +7258,7 @@ const JobEntry = () => {
 
           if (!selectedStore) {
 
-            const nextLine = { ...line, store: nextValue, panCard: "" };
+            const nextLine = { ...line, store: nextValue, storeCode: "", panCard: "" };
 
             return { ...nextLine, sequenceNo: buildLineSequence(nextLine) };
 
@@ -5846,6 +7272,8 @@ const JobEntry = () => {
 
             store: selectedStore.storeName,
 
+            storeCode: selectedStore.storeCode || "",
+
             panCard: selectedStore.panCard || "",
 
             salonAddress: formatStoreShipTo(selectedStore) || line.salonAddress,
@@ -5853,6 +7281,10 @@ const JobEntry = () => {
             brandingLocation: selectedStore.location || line.brandingLocation,
 
             city: selectedStore.city || line.city,
+
+            articleCode: selectedStore.storeCode || "",
+
+            visualCode: selectedStore.storeCode || "",
 
           };
 
@@ -6060,13 +7492,55 @@ const JobEntry = () => {
 
         if (field === "media") {
 
-          return nextValue ? applyPricing(nextLine, findPricing(nextValue)) : clearMediaPricing(nextLine);
+          return applyMediaMasterSelection(nextLine, nextValue);
 
         }
 
 
 
-        if (["width", "height", "billingWidth", "billingHeight", "qty", "rate"].includes(field)) {
+        if (field === "description") {
+
+          if (!nextValue) {
+
+            return recalculateLine({
+
+              ...nextLine,
+
+              description: "",
+
+              productrateId: "",
+
+              internalMedia: "",
+
+              externalMedia: "",
+
+              rate: "",
+
+              amount: "",
+
+            });
+
+          }
+
+
+
+          const descriptionPricing =
+            selectedOption?.pricing ||
+            findPricingByDescription(nextValue, descriptionPricingRows);
+
+
+
+          return descriptionPricing
+
+            ? applyDescriptionPricing(nextLine, descriptionPricing)
+
+            : recalculateLine({ ...nextLine, productrateId: "" });
+
+        }
+
+
+
+        if (["unit", "width", "height", "billingWidth", "billingHeight", "qty", "rate"].includes(field)) {
 
           return recalculateLine(nextLine);
 
@@ -6096,7 +7570,8 @@ const JobEntry = () => {
 
     setLines((prev) => {
 
-      const newLine = createLine(prev.length);
+      const commonUnit = normalizeDimensionUnit(prev[0]?.unit || "inch");
+      const newLine = { ...createLine(prev.length), unit: commonUnit };
 
       return [...prev, newLine];
 
@@ -6396,6 +7871,9 @@ const JobEntry = () => {
 
       const next = [...prev];
 
+      let commonUnit = normalizeDimensionUnit(prev[0]?.unit || "inch");
+      let pastedCommonUnitFound = false;
+
       const targetIndex = next.findIndex((line) => line.id === options.lineId);
 
       const hasOnlyBlankLine = next.length === 1 && isLineBlank(next[0]);
@@ -6462,6 +7940,11 @@ const JobEntry = () => {
 
           patch[column.key] = nextValue;
 
+          if (column.key === "unit" && !pastedCommonUnitFound && nextValue) {
+            commonUnit = normalizeDimensionUnit(nextValue);
+            pastedCommonUnitFound = true;
+          }
+
         });
 
 
@@ -6478,7 +7961,9 @@ const JobEntry = () => {
 
 
 
-      return next;
+      return next.map((line) =>
+        recalculateLine({ ...line, unit: commonUnit })
+      );
 
     });
 
@@ -6668,7 +8153,7 @@ const JobEntry = () => {
 
       "Media",
 
-      "Element Group",
+      "BOQ",
 
       ...productColumns,
 
@@ -6851,6 +8336,9 @@ const JobEntry = () => {
 
 
   const openEstimateMail = () => {
+    if (entryScreenMode !== "estimate" || isConvertedEstimateJobCard) {
+      return;
+    }
 
     if (!estimateLineItems.length) {
 
@@ -6862,7 +8350,14 @@ const JobEntry = () => {
 
 
 
-    setEstimateMailChargeRows([]);
+    setEstimateChargeScope(
+      estimateChargeGroupSalons.length >= 2 ? "group" : "single"
+    );
+    if (!estimateChargeSalon) {
+      setEstimateChargeSalon(
+        String(estimateLineItems[0]?.salonName || "").trim()
+      );
+    }
 
     setEstimateMail(buildDefaultEstimateMail());
 
@@ -6908,6 +8403,50 @@ const JobEntry = () => {
 
   };
 
+  const updateEstimateMailStoreCharge = (target, chargeKey, value) => {
+    const normalizedAmount = normalizeNumericPasteValue(value);
+    const chargeType = ESTIMATE_MAIL_CHARGE_TYPES.find((item) => item.key === chargeKey);
+
+    if (!chargeType || !target) return;
+
+    setEstimateMailChargeRows((prev) => {
+      const existingIndex = prev.findIndex(
+        (row) =>
+          row.chargeKey === chargeKey &&
+          normalizeText(row.salonName) === normalizeText(target.salonName) &&
+          normalizeText(row.billingLocation) === normalizeText(target.billingLocation)
+      );
+
+      if (existingIndex >= 0) {
+        return prev.map((row, index) =>
+          index === existingIndex ? { ...row, amount: normalizedAmount } : row
+        );
+      }
+
+      const scopeKey = sanitizeEstimateFilePart(
+        `${target.key}-${chargeKey}`,
+        "store-charge"
+      );
+
+      return [
+        ...prev,
+        {
+          estimateLineKey: `${target.parentEstimateLineKey}-${chargeKey}-${scopeKey}`,
+          parentEstimateLineKey: target.parentEstimateLineKey,
+          chargeKey,
+          chargeScope: "store",
+          targetSignature: target.key,
+          description: chargeType.label,
+          region: target.region || target.billingLocation,
+          salonName: target.salonName,
+          billingLocation: target.billingLocation,
+          productionLocation: target.productionLocation || "",
+          amount: normalizedAmount,
+        },
+      ];
+    });
+  };
+
 
 
   const addEstimateMailChargeRows = (chargeKey) => {
@@ -6916,63 +8455,138 @@ const JobEntry = () => {
 
     if (!chargeType) return;
 
+    const isGroup = estimateChargeScope === "group";
+    const selectedSalon = String(estimateChargeSalon || "").trim();
+    const selectedGroupSalons = (
+      estimateChargeScope === "group"
+        ? estimateChargeSalonOptions
+        : estimateChargeGroupSalons
+    )
+      .map((salonName) => String(salonName || "").trim())
+      .filter(Boolean);
 
+    if (!isGroup && !selectedSalon) {
+      toast.warning("Select a salon before adding a single-salon charge.");
+      return;
+    }
+
+    if (isGroup && selectedGroupSalons.length < 2) {
+      toast.warning("Select at least two salons for a salon-group charge.");
+      return;
+    }
+
+    const selectedSalonKeys = new Set(
+      (isGroup ? selectedGroupSalons : [selectedSalon]).map(normalizeText)
+    );
+    const targetItems = estimateLineItems.filter((item) =>
+      selectedSalonKeys.has(normalizeText(item.salonName))
+    );
+
+    if (!targetItems.length) {
+      toast.warning("No matching estimate salon rows were found.");
+      return;
+    }
+
+    // A split estimate produces one editable group-charge row per billing
+    // location. This keeps every charge in the correct location PDF.
+    const locationGroups = new Map();
+    targetItems.forEach((item, index) => {
+      const billingLocation =
+        String(item.billingLocation || item.region || "Unassigned").trim() ||
+        "Unassigned";
+      const locationKey = normalizeText(billingLocation);
+      if (!locationGroups.has(locationKey)) {
+        locationGroups.set(locationKey, {
+          billingLocation,
+          items: [],
+        });
+      }
+      locationGroups.get(locationKey).items.push({
+        ...item,
+        _targetIndex: index,
+      });
+    });
+
+    const targetSalonNames = (isGroup ? selectedGroupSalons : [selectedSalon])
+      .slice()
+      .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    const targetSignature = targetSalonNames
+      .map(normalizeText)
+      .join("|");
+    const targetSignatureHash = Array.from(targetSignature).reduce(
+      (hash, character) => ((hash * 31 + character.charCodeAt(0)) >>> 0),
+      0
+    );
 
     setEstimateMailChargeRows((prev) => {
+      const additions = [];
 
-      const existingKeys = new Set(prev.map((row) => row.estimateLineKey));
+      locationGroups.forEach(({ billingLocation, items }) => {
+        const targetItem = items[0];
+        const billingKey = normalizeText(billingLocation);
+        const locationSalonNames = [
+          ...new Set(
+            items
+              .map((item) => String(item.salonName || "").trim())
+              .filter(Boolean)
+          ),
+        ].sort((a, b) =>
+          a.localeCompare(b, undefined, { sensitivity: "base" })
+        );
+        const duplicate = prev.some(
+          (row) =>
+            row.chargeKey === chargeType.key &&
+            row.chargeScope === estimateChargeScope &&
+            row.targetSignature === targetSignature &&
+            normalizeText(row.billingLocation) === billingKey
+        );
+        if (duplicate) return;
 
+        const parentKey =
+          targetItem.estimateLineKey ||
+          `estimate-line-${targetItem._targetIndex || 0}`;
+        const scopeKey = sanitizeEstimateFilePart(
+          `${estimateChargeScope}-${targetSignatureHash}-${billingKey}-${targetSignature}`,
+          "charge-target"
+        );
 
+        additions.push({
+          estimateLineKey: `${parentKey}-${chargeType.key}-${scopeKey}`,
+          parentEstimateLineKey: parentKey,
+          chargeKey: chargeType.key,
+          chargeScope: estimateChargeScope,
+          targetSignature,
+          description: chargeType.label,
+          region: targetItem.region || billingLocation,
+          salonName: isGroup
+            ? `Salon Group (${locationSalonNames.length}): ${locationSalonNames.join(", ")}`
+            : targetItem.salonName || selectedSalon,
+          groupSalonNames: isGroup ? locationSalonNames : [],
+          billingLocation,
+          productionLocation: targetItem.productionLocation || "",
+          amount: "",
+        });
+      });
 
-      const newRows = estimateLineItems
+      if (!additions.length) {
+        toast.info(
+          `${chargeType.label} already exists for the selected ${
+            isGroup ? "salon group" : "salon"
+          }.`
+        );
+        return prev;
+      }
 
-        .map((item, index) => {
-
-          const parentKey = item.estimateLineKey || `estimate-line-${index}`;
-
-          const estimateLineKey = `${parentKey}-${chargeType.key}`;
-
-
-
-          if (existingKeys.has(estimateLineKey)) return null;
-
-
-
-          return {
-
-            estimateLineKey,
-
-            parentEstimateLineKey: parentKey,
-
-            chargeKey: chargeType.key,
-
-            description: chargeType.label,
-
-            region: item.region || "",
-
-            salonName: item.salonName || "",
-
-            billingLocation: item.billingLocation || item.region || "",
-
-            productionLocation: item.productionLocation || "",
-
-            amount: "",
-
-          };
-
-        })
-
-        .filter(Boolean);
-
-
-
-      return [...prev, ...newRows];
-
+      return [...prev, ...additions];
     });
 
   };
 
-
+  const removeEstimateMailCharge = (estimateLineKey) => {
+    setEstimateMailChargeRows((prev) =>
+      prev.filter((row) => row.estimateLineKey !== estimateLineKey)
+    );
+  };
 
   const downloadEstimateAttachment = () => {
 
@@ -7054,6 +8668,549 @@ const JobEntry = () => {
 
 
 
+  const buildEstimateSavePayload = ({
+    lineItems = estimateLineItems,
+    attachmentGroups = estimateAttachmentGroups,
+    sourceHeader = header,
+    mailTo = "",
+    mailSubject = "",
+    mailBody = "",
+    status = "Created",
+    sentAtUtc = "",
+  } = {}) => {
+    const users = getLoggedInUser();
+    const savedAtUtc = new Date().toISOString();
+    const payloadTotals = getEstimateTotals(lineItems);
+    const attachmentDetails = attachmentGroups.map((group) => ({
+      billingLocation: group.label || "",
+      fileName: group.fileName || "",
+      rowCount: group.items.length,
+    }));
+    const sourceRows = lines.filter((line) => !isLineBlank(line));
+    const normalizedSourceRows = sourceRows.map((line) => ({
+      ...line,
+      description: getStoredLineDescription(line),
+      Description: getStoredLineDescription(line),
+      details: getStoredLineDescription(line),
+      Details: getStoredLineDescription(line),
+      nameSubCode: getStoredLineDescription(line),
+      NameSubCode: getStoredLineDescription(line),
+    }));
+    const normalizedLineItems = lineItems.map((item) => ({
+      ...item,
+      description: getStoredLineDescription(item),
+      Description: getStoredLineDescription(item),
+    }));
+
+    return {
+      id: null,
+      jobNo: sourceHeader.jobNo || "",
+      date: sourceHeader.date || "",
+      Date: sourceHeader.date || "",
+      jobDate: sourceHeader.date || "",
+      JobDate: sourceHeader.date || "",
+      jobdate: sourceHeader.date || "",
+      "Job Date": sourceHeader.date || "",
+      client: sourceHeader.clientName || "",
+      subClient: sourceHeader.subClient || "",
+      projectName: sourceHeader.projectName || "",
+      customerName: sourceHeader.clientName || sourceHeader.client || "",
+      panCard:
+        sourceHeader.panCard ||
+        lineItems?.find((item) => item.panCard)?.panCard ||
+        sourceRows?.find((item) => item.panCard)?.panCard ||
+        "",
+      mailTo,
+      mailSubject,
+      mailBody,
+      totalSqFt: String(payloadTotals.billableSqftTotal || ""),
+      amount: String(payloadTotals.amountTotal || ""),
+      gstAmount: String(payloadTotals.gstAmount || ""),
+      grandTotal: String(payloadTotals.grandTotal || ""),
+      status,
+      createdBy: users?.username || users?.userName || users?.emailid || "",
+      ...(sentAtUtc ? { sentAtUtc } : {}),
+      attachmentCount: attachmentGroups.length,
+      attachmentNames: attachmentGroups.map((group) => group.fileName).join(", "),
+      billingLocations: attachmentDetails.map((group) => group.billingLocation).join(", "),
+      fullEstimateJson: JSON.stringify({
+        header: sourceHeader,
+        rows: normalizedLineItems,
+        sourceRows: normalizedSourceRows,
+        totals: payloadTotals,
+        attachments: attachmentDetails,
+        savedAtUtc,
+        ...(sentAtUtc ? { sentAtUtc } : {}),
+      }),
+      lines: normalizedLineItems.map((item) => ({
+        store: item.salonName || "",
+        storeCode: item.storeCode || "",
+        city: item.region || "",
+        billingLocation: item.billingLocation || item.region || "",
+        productionLocation: item.productionLocation || "",
+        description: getStoredLineDescription(item),
+        media: item.media || "",
+        hsnCode: item.hsn || "",
+        articleCode: item.articleCode || item.visualCode || "",
+        visualCode: item.visualCode || "",
+        qty: String(item.qty || ""),
+        unit: normalizeDimensionUnit(item.unit || item.Unit || item.uom || item.UOM),
+        width: String(item.width || ""),
+        height: String(item.height || ""),
+        totalSqFt: String(item.billableSqft || item.sqft || ""),
+        rate: String(item.rate || ""),
+        amount: String(item.amount || ""),
+      })),
+    };
+  };
+
+  const getEstimateFormData = (estimate) => {
+    let saved = {};
+    const raw = estimate?.fullEstimateJson ?? estimate?.FullEstimateJson ?? "";
+    if (raw && typeof raw === "string") saved = JSON.parse(raw);
+    else if (raw && typeof raw === "object") saved = raw;
+
+    const savedHeader = saved?.header || {};
+    const apiLines = Array.isArray(estimate?.lines)
+      ? estimate.lines
+      : Array.isArray(estimate?.Lines)
+        ? estimate.Lines
+        : [];
+    const savedRows = Array.isArray(saved?.sourceRows) && saved.sourceRows.length
+      ? saved.sourceRows
+      : apiLines;
+    const savedEstimateRows = Array.isArray(saved?.rows)
+      ? saved.rows
+      : Array.isArray(saved?.Rows)
+        ? saved.Rows
+        : [];
+    const savedBaseLineKeys = savedEstimateRows
+      .filter((row) => !row?.isChargeRow && !row?.IsChargeRow && !row?.chargeKey && !row?.ChargeKey)
+      .map((row) => String(row?.estimateLineKey || row?.EstimateLineKey || "").trim())
+      .filter(Boolean)
+      .sort((left, right) => right.length - left.length);
+    const nextChargeRows = savedEstimateRows
+      .filter((row) => {
+        const description = String(row?.description || row?.Description || "").toLowerCase();
+        return Boolean(
+          row?.isChargeRow ||
+            row?.IsChargeRow ||
+            row?.chargeKey ||
+            row?.ChargeKey ||
+            description.includes(" charges")
+        );
+      })
+      .map((row, index) => {
+        const description = String(row?.description || row?.Description || "").trim();
+        const inferredChargeKey = description.toLowerCase().includes("installation")
+          ? "installationCharges"
+          : description.toLowerCase().includes("transport")
+            ? "transportationCharges"
+            : description.toLowerCase().includes("layout")
+              ? "layoutingCharges"
+              : "";
+        const chargeKey = row?.chargeKey || row?.ChargeKey || inferredChargeKey;
+        const estimateLineKey = String(
+          row?.estimateLineKey || row?.EstimateLineKey || `estimate-charge-${index}`
+        );
+        const parentEstimateLineKey =
+          row?.parentEstimateLineKey ||
+          row?.ParentEstimateLineKey ||
+          savedBaseLineKeys.find((key) => estimateLineKey.startsWith(`${key}-`)) ||
+          savedBaseLineKeys[0] ||
+          "";
+
+        return {
+          estimateLineKey,
+          parentEstimateLineKey,
+          chargeKey,
+          chargeScope: row?.chargeScope || row?.ChargeScope || "store",
+          targetSignature: row?.targetSignature || row?.TargetSignature || "",
+          description:
+            description ||
+            ESTIMATE_MAIL_CHARGE_TYPES.find((type) => type.key === chargeKey)?.label ||
+            "Additional Charges",
+          region: row?.region || row?.Region || row?.billingLocation || row?.BillingLocation || "",
+          salonName: row?.salonName || row?.SalonName || row?.store || row?.Store || "",
+          billingLocation: row?.billingLocation || row?.BillingLocation || row?.region || row?.Region || "",
+          productionLocation: row?.productionLocation || row?.ProductionLocation || "",
+          amount: String(row?.amount || row?.Amount || row?.lineTotal || row?.LineTotal || ""),
+        };
+      })
+      .filter((row) => row.chargeKey && toNumber(row.amount) > 0);
+
+    const nextHeader = {
+      ...header,
+      ...savedHeader,
+      jobNo: savedHeader.jobNo || estimate?.jobNo || estimate?.JobNo || "",
+      clientName: savedHeader.clientName || estimate?.client || estimate?.Client || estimate?.customerName || estimate?.CustomerName || "",
+      client: savedHeader.client || estimate?.client || estimate?.Client || estimate?.customerName || estimate?.CustomerName || "",
+      subClient: savedHeader.subClient || estimate?.subClient || estimate?.SubClient || "",
+      projectName: savedHeader.projectName || estimate?.projectName || estimate?.ProjectName || "",
+      customerEmail: savedHeader.customerEmail || estimate?.mailTo || estimate?.MailTo || "",
+    };
+
+    const nextLines = (savedRows.length ? savedRows : [createLine(0)]).map((row, index) => {
+      const media =
+        row?.media ||
+        row?.Media ||
+        row?.externalMedia ||
+        row?.ExternalMedia ||
+        row?.internalMedia ||
+        row?.InternalMedia ||
+        "";
+      const elementGroup =
+        row?.elementGroup ||
+        row?.ElementGroup ||
+        row?.["Element Group"] ||
+        row?.subgroup ||
+        row?.Subgroup ||
+        row?.elementGroupName ||
+        row?.ElementGroupName ||
+        "";
+      const articleCode =
+        row?.articleCode ||
+        row?.ArticleCode ||
+        row?.visualCode ||
+        row?.VisualCode ||
+        "";
+
+      const normalizedLine = {
+        ...createLine(index),
+        ...row,
+        id: row?.id || row?._id || `${Date.now()}-${index}`,
+        store: row?.store || row?.Store || row?.salonName || row?.SalonName || "",
+        storeCode: row?.storeCode || row?.StoreCode || row?.storecode || row?.STORECODE || "",
+        city: row?.city || row?.City || row?.region || row?.Region || "",
+        description:
+          row?.description ||
+          row?.Description ||
+          row?.details ||
+          row?.Details ||
+          row?.jobdesc ||
+          row?.jobDesc ||
+          "",
+        simplifiedProductName:
+          row?.simplifiedProductName ||
+          row?.SimplifiedProductName ||
+          "",
+        productAsPerRateCard:
+          row?.productAsPerRateCard ||
+          row?.ProductAsPerRateCard ||
+          "",
+        prodLoc: row?.prodLoc || row?.productionLocation || row?.ProductionLocation || "",
+        billLoc: row?.billLoc || row?.billingLocation || row?.BillingLocation || row?.region || row?.Region || "",
+        hsn: row?.hsn || row?.hsnCode || row?.HsnCode || row?.HSN || "",
+        media,
+        internalMedia: row?.internalMedia || row?.InternalMedia || media,
+        externalMedia: row?.externalMedia || row?.ExternalMedia || media,
+        elementGroup,
+        articleCode,
+        visualCode: row?.visualCode || row?.VisualCode || articleCode,
+        qty: row?.qty || row?.Qty || row?.QTY || "",
+        unit: normalizeDimensionUnit(row?.unit || row?.Unit || row?.uom || row?.UOM),
+        width: row?.width || row?.Width || "",
+        height: row?.height || row?.Height || "",
+        billingWidth: row?.billingWidth || row?.BillingWidth || row?.["Billing Width"] || "",
+        billingHeight: row?.billingHeight || row?.BillingHeight || row?.["Billing Height"] || "",
+        sqft: row?.sqft || row?.totalSqFt || row?.TotalSqFt || row?.billableSqft || row?.BillableSqFt || "",
+        rate:
+          row?.rate ||
+          row?.Rate ||
+          row?.ratePerSqft ||
+          row?.RatePerSqft ||
+          row?.ratePerPsfPu ||
+          row?.RatePerPsfPu ||
+          "",
+        amount: row?.amount || row?.Amount || row?.lineTotal || row?.LineTotal || "",
+      };
+
+      return recalculateLine(withBillingDimensions(normalizedLine));
+    });
+
+    return { nextHeader, nextLines, nextChargeRows };
+  };
+
+  const loadExistingEstimate = (estimate) => {
+    try {
+      const { nextHeader, nextLines, nextChargeRows } = getEstimateFormData(estimate);
+
+      setHeader(nextHeader);
+      setLines(nextLines);
+      setEstimateMailChargeRows(nextChargeRows);
+      setSelectedLineIds([]);
+      setIsEstimatePanelOpen(false);
+      setIsConvertedEstimateJobCard(false);
+      setActiveJobEntryTab("existing");
+      setEntryScreenMode("estimate");
+      toast.success(`Estimate ${estimate?.estimateNo || estimate?.EstimateNo || ""} loaded`);
+    } catch (error) {
+      console.error("Failed to load estimate", error);
+      toast.error("Unable to load the selected estimate details");
+    }
+  };
+
+  const convertEstimateToJobCard = async (estimate) => {
+    if (isCreatingJobRef.current || isSavingRef.current) return;
+
+    let estimateData;
+    try {
+      estimateData = getEstimateFormData(estimate);
+    } catch (error) {
+      console.error("Failed to read estimate for conversion", error);
+      toast.error("Unable to read the selected estimate details");
+      return;
+    }
+
+    const { nextHeader: estimateHeader, nextLines, nextChargeRows } = estimateData;
+    const customerName = String(estimateHeader.clientName || "").trim();
+    const estimateNo = estimate?.estimateNo || estimate?.EstimateNo || "";
+
+    if (!customerName) {
+      toast.warning("Please select client before converting this estimate");
+      return;
+    }
+
+    const rowsToConvert = nextLines.filter((line) => {
+      const media = String(line.media || "").trim();
+      return !isLineBlank(line) && media && media !== "-";
+    });
+    if (!rowsToConvert.length) {
+      toast.warning("This estimate does not have any media line item to convert");
+      return;
+    }
+
+    const stagedJobHeader = {
+      ...estimateHeader,
+      jobNo: estimateHeader.jobNo || estimate?.jobNo || estimate?.JobNo || "",
+    };
+
+    setHeader(stagedJobHeader);
+    setLines(rowsToConvert);
+    setEstimateMailChargeRows(nextChargeRows);
+    setSelectedLineIds([]);
+    setIsEstimatePanelOpen(false);
+    setIsConvertedEstimateJobCard(true);
+    setActiveJobEntryTab("existing");
+    setEntryScreenMode("job");
+    setShowEntryLanding(false);
+    setLandingCreationType("job");
+    setLandingRecordType("existing");
+    setDraftSyncDisabled(false);
+    setSaveStatus(`${estimateNo || "Estimate"} loaded ${rowsToConvert.length} media line item(s) into existing Job Card entry. Select mandatory locations before saving.`);
+    toast.success(`${estimateNo || "Estimate"} media line item(s) loaded into existing Job Card entry`);
+  };
+
+  const createEstimate = async () => {
+    // State updates are asynchronous, so the disabled button alone cannot stop
+    // two click events from starting two Addjobdetails requests in the same tick.
+    if (isCreatingEstimateRef.current) return;
+
+    if (!config?.JobSummary?.URL?.Addjobdetails) {
+      toast.error("Addjobdetails URL is missing in config.JobSummary.URL.Addjobdetails");
+      return;
+    }
+
+    const users = getLoggedInUser();
+    const userId = users?.user_id || users?.userid || users?.userId || "";
+    const locationId = users?.location_id || users?.locationId || "";
+    const emailid = users?.emailid || users?.email || users?.email_id || "";
+    const userName = header.userName || users?.username || users?.userName || "";
+    const customerName = String(header.clientName || "").trim();
+    let customerId = header.client || "";
+
+    if (!userId || !locationId) {
+      toast.error("User or location details not found");
+      return;
+    }
+
+    if (!customerName) {
+      toast.warning("Please select a client before creating the estimate.");
+      return;
+    }
+
+    if (!estimateLineItems.length) {
+      toast.warning("Enter at least one row before creating the estimate.");
+      return;
+    }
+
+    isCreatingEstimateRef.current = true;
+    setIsCreatingEstimate(true);
+
+    const loadingToast = toast.loading("Creating estimate...");
+    let createdJobNo = "";
+
+    try {
+      customerId = await resolveCustomerIdForSave(customerId, customerName, locationId);
+
+      const headerPayload = [
+        {
+          ISnewjob: "1",
+          customername: customerName,
+          customerid: customerId,
+          enteredby: userName,
+          userid: userId,
+          userName,
+          username: userName,
+          UserId: userId,
+          locationid: locationId,
+          emailid,
+          lpono: "",
+          lpodate: "",
+          jobdesc: "Estimate",
+          customerEmail: header.customerEmail || "",
+          jobdate: header.date || "",
+          subclient: header.subClient || "",
+          contactperson: header.contactPerson || "",
+          projectname: header.projectName || "",
+          businessType: header.businessType || "",
+        },
+      ];
+
+      const headerResponse = await axios.post(
+        config.JobSummary.URL.Addjobdetails,
+        headerPayload
+      );
+      createdJobNo =
+        headerResponse?.data?.jobno || headerResponse?.data?.jobNo || headerResponse?.data?.JobNo || "";
+
+      if (!createdJobNo) throw new Error("Job number was not returned by the server");
+
+      const nextHeader = {
+        ...header,
+        jobNo: createdJobNo,
+        client: customerId,
+        clientName: customerName,
+        userName,
+      };
+      const createdOption = {
+        value: createdJobNo,
+        label: `${createdJobNo} (${customerName})`,
+        clientName: customerName,
+        subClient: header.subClient || "",
+        customerId,
+      };
+
+      setHeader(nextHeader);
+      setJobOptions((prev) =>
+        prev.some((option) => option.value === createdJobNo) ? prev : [createdOption, ...prev]
+      );
+
+      const allDrafts = getAllDrafts();
+      delete allDrafts[TEMP_DRAFT_ID];
+      localStorage.setItem(JOB_DRAFT_KEY, JSON.stringify(allDrafts));
+      setDraftSyncDisabled(false);
+
+      // Keep the user on the New Estimate screen after creation.
+      // Only update the generated Job No and success status.
+      setActiveJobEntryTab("new");
+      setEntryScreenMode("estimate");
+
+      const successMessage = `Estimate ${createdJobNo} created`;
+
+      setSaveStatus(successMessage);
+      toast.update(loadingToast, {
+        render: successMessage,
+        type: "success",
+        isLoading: false,
+        autoClose: 2500,
+      });
+
+      return createdJobNo;
+    } catch (error) {
+      console.error("Failed to create estimate", error);
+      const errorMessage = getApiErrorMessage(error, "Failed to create estimate");
+      const message = createdJobNo
+        ? `Estimate ${createdJobNo} was created, but the screen could not be updated: ${errorMessage}`
+        : errorMessage;
+
+      if (createdJobNo) {
+        // The estimate was created successfully, so remain on the same
+        // New Estimate screen even if a later UI update fails.
+        setActiveJobEntryTab("new");
+        setEntryScreenMode("estimate");
+      }
+
+      setSaveStatus(message);
+      toast.update(loadingToast, {
+        render: message,
+        type: "error",
+        isLoading: false,
+        autoClose: 5000,
+      });
+      return "";
+    } finally {
+      isCreatingEstimateRef.current = false;
+      setIsCreatingEstimate(false);
+    }
+  };
+
+  const saveEstimate = async () => {
+    if (isSendingEstimateMail || isCreatingEstimateRef.current) return;
+
+    if (!estimateLineItems.length) {
+      toast.warning("Enter at least one row before saving estimate.");
+      return;
+    }
+
+    const customerName = String(header.clientName || "").trim();
+    if (!customerName) {
+      toast.warning("Please select a client before saving the estimate.");
+      return;
+    }
+
+    let estimateJobNo = String(header.jobNo || "").trim();
+    if (!estimateJobNo) {
+      estimateJobNo = await createEstimate();
+      if (!estimateJobNo) return;
+    }
+
+    const loadingToast = toast.loading("Saving estimate...");
+
+    try {
+      const estimatePayload = buildEstimateSavePayload({
+        sourceHeader: {
+          ...header,
+          jobNo: estimateJobNo,
+        },
+        lineItems: estimateMailLineItems,
+        attachmentGroups: estimateMailAttachmentGroups,
+        status: "Saved",
+      });
+
+      const saveResponse = await axios.post(config.JobSummary.URL.SaveEstimate, estimatePayload, {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const savedEstimateNo = saveResponse?.data?.estimateNo;
+
+      toast.update(loadingToast, {
+        render: savedEstimateNo
+          ? `Estimate saved successfully (${savedEstimateNo})`
+          : "Estimate saved successfully",
+        type: "success",
+        isLoading: false,
+        autoClose: 2500,
+      });
+
+      setSaveStatus(
+        savedEstimateNo ? `Estimate saved successfully (${savedEstimateNo})` : "Estimate saved successfully"
+      );
+    } catch (error) {
+      console.error("Failed to save estimate", error);
+      const message = getApiErrorMessage(error, "Failed to save estimate");
+      toast.update(loadingToast, {
+        render: message,
+        type: "error",
+        isLoading: false,
+        autoClose: 5000,
+      });
+      setSaveStatus(message);
+    }
+  };
+
   const sendEstimateMail = async (event) => {
 
     event.preventDefault();
@@ -7117,6 +9274,10 @@ const JobEntry = () => {
 
 
     const users = getLoggedInUser();
+    const sendHeader = {
+      ...header,
+      date: header.date || formatDate(new Date()),
+    };
 
     const formData = new FormData();
 
@@ -7142,7 +9303,7 @@ const JobEntry = () => {
 
       const attachmentBlob = createEstimatePdfBlob(
 
-        buildEstimateHeaderForLocation(header, group.label),
+        buildEstimateHeaderForLocation(sendHeader, group.label),
 
         group.items
 
@@ -7178,119 +9339,17 @@ const JobEntry = () => {
 
 
 
-      const estimateTotals = getEstimateTotals(estimateMailLineItems);
-
       const sentAtUtc = new Date().toISOString();
-
-      const estimateAttachmentDetails = estimateMailAttachmentGroups.map((group) => ({
-
-        billingLocation: group.label || "",
-
-        fileName: group.fileName || "",
-
-        rowCount: group.items.length,
-
-      }));
-
-      const estimatePayload = {
-
-        id: null,
-
-        jobNo: header.jobNo || "",
-
-        client: header.clientName || "",
-
-        subClient: header.subClient || "",
-
-        projectName: header.projectName || "",
-
-        customerName: header.clientName || header.client || "",
-
-        panCard:
-
-          header.panCard ||
-
-          estimateMailLineItems?.find((x) => x.panCard)?.panCard ||
-
-          lines?.find((x) => x.panCard)?.panCard ||
-
-          "",
-
+      const estimatePayload = buildEstimateSavePayload({
+        sourceHeader: sendHeader,
+        lineItems: estimateMailLineItems,
+        attachmentGroups: estimateMailAttachmentGroups,
         mailTo: recipients.join(","),
-
         mailSubject: estimateMail.subject.trim(),
-
         mailBody: estimateMail.body.trim(),
-
-        totalSqFt: String(estimateTotals.printableSqftTotal || ""),
-
-        amount: String(estimateTotals.amountTotal || ""),
-
-        gstAmount: String(estimateTotals.gstAmount || ""),
-
-        grandTotal: String(estimateTotals.grandTotal || ""),
-
         status: "Mail Sent",
-
-        createdBy: users?.username || users?.userName || users?.emailid || "",
-
         sentAtUtc,
-
-        attachmentCount: estimateMailAttachmentGroups.length,
-
-        attachmentNames: estimateMailAttachmentGroups.map((group) => group.fileName).join(", "),
-
-        billingLocations: estimateAttachmentDetails.map((group) => group.billingLocation).join(", "),
-
-        fullEstimateJson: JSON.stringify({
-
-          header,
-
-          rows: estimateMailLineItems,
-
-          totals: estimateTotals,
-
-          attachments: estimateAttachmentDetails,
-
-          sentAtUtc,
-
-        }),
-
-        lines: estimateMailLineItems.map((item) => ({
-
-          store: item.salonName || "",
-
-          city: item.region || "",
-
-          billingLocation: item.billingLocation || item.region || "",
-
-          productionLocation: item.productionLocation || "",
-
-          description: item.description || "",
-
-          media: item.media || "",
-
-          hsnCode: item.hsn || "",
-
-          articleCode: item.articleCode || item.visualCode || "",
-
-          visualCode: item.visualCode || "",
-
-          qty: String(item.qty || ""),
-
-          width: String(item.width || ""),
-
-          height: String(item.height || ""),
-
-          totalSqFt: String(item.printableSqft || ""),
-
-          rate: String(item.rate || ""),
-
-          amount: String(item.amount || "")
-
-        })),
-
-      };
+      });
 
 
 
@@ -7392,31 +9451,43 @@ const JobEntry = () => {
 
 
 
-  const buildExistingJobPayload = () => {
+  const buildExistingJobPayload = (sourceHeader = header, sourceLines = lines) => {
 
     const users = getLoggedInUser();
 
     const userId = users?.user_id || users?.userid || users?.userId || "";
 
-    const userName = header.userName || users?.username || users?.userName || "";
+    const userName = sourceHeader.userName || users?.username || users?.userName || "";
 
     const emailid = users?.emailid || users?.email || users?.email_id || "";
 
     const enteredDate = new Date().toISOString();
 
-    const rowsToSave = lines.filter((line) => !isLineBlank(line));
+    const rowsToSave = sourceLines.filter((line) => !isLineBlank(line));
 
 
 
     return rowsToSave.map((line) => {
+      const normalizedLine = recalculateLine(withBillingDimensions(line));
+      const storedDescription = getStoredLineDescription(normalizedLine);
+      const sqft = Number(normalizedLine.billableSqft || calculateSqft(normalizedLine) || 0);
+      const productionSqft = Number(normalizedLine.sqft || calculateProductionSqft(normalizedLine) || 0);
 
-      const sqft = Number(line.sqft || 0);
-
-      const rate = Number(line.rate || 0);
+      const pricing = findPricingByDescription(line.description, descriptionPricingRows);
+      const resolvedRate =
+        pricing?.ratePerSqft ??
+        pricing?.RatePerSqft ??
+        pricing?.ratePerPsfPu ??
+        pricing?.RatePerPsfPu ??
+        pricing?.rate ??
+        pricing?.Rate ??
+        normalizedLine.rate ??
+        0;
+      const rate = Number(resolvedRate);
 
       const amount = roundAmount(sqft * rate);
 
-      const linePanCard = getLinePanCard(line);
+      const linePanCard = getLinePanCard(normalizedLine);
 
 
 
@@ -7424,47 +9495,47 @@ const JobEntry = () => {
 
         ISnewjob: "0",
 
-        JobNo: header.jobNo,
+        JobNo: sourceHeader.jobNo,
 
-        "Job No": header.jobNo,
+        "Job No": sourceHeader.jobNo,
 
-        Client: header.clientName,
+        Client: sourceHeader.clientName,
 
-        CLIENT: header.clientName,
+        CLIENT: sourceHeader.clientName,
 
-        SubClient: header.subClient,
+        SubClient: sourceHeader.subClient,
 
-        "Sub Client": header.subClient,
+        "Sub Client": sourceHeader.subClient,
 
-        "Job Date": header.date,
+        "Job Date": sourceHeader.date,
 
-        Date: header.date,
+        Date: sourceHeader.date,
 
-        businessType: header.businessType || "",
+        businessType: sourceHeader.businessType || "",
 
-        customerEmail: header.customerEmail || "",
+        customerEmail: sourceHeader.customerEmail || "",
 
-        contactPerson: header.contactPerson || "",
+        contactPerson: sourceHeader.contactPerson || "",
 
-        lpono: header.poNo || "",
+        lpono: sourceHeader.poNo || "",
 
-        lpodate: header.poDate || "",
+        lpodate: sourceHeader.poDate || "",
 
-        potype: header.poType || "",
+        potype: sourceHeader.poType || "",
 
         jobdesc: "",
 
-        projectname: header.projectName || "",
+        projectname: sourceHeader.projectName || "",
 
-        projectName: header.projectName || "",
+        projectName: sourceHeader.projectName || "",
 
-        ProjectName: header.projectName || "",
+        ProjectName: sourceHeader.projectName || "",
 
-        "Salon/Store Name": line.store,
+        "Salon/Store Name": normalizedLine.store,
 
-        SalonStoreName: line.store,
+        SalonStoreName: normalizedLine.store,
 
-        Store: line.store,
+        Store: normalizedLine.store,
 
         panCard: linePanCard,
 
@@ -7476,113 +9547,145 @@ const JobEntry = () => {
 
         PANNo: linePanCard,
 
-        BrandingLocation: line.brandingLocation,
+        BrandingLocation: normalizedLine.brandingLocation,
 
-        "Branding Location": line.brandingLocation,
+        "Branding Location": normalizedLine.brandingLocation,
 
-        SequenceNo: line.sequenceNo || buildLineSequence(line),
+        SequenceNo: normalizedLine.sequenceNo || buildLineSequence(normalizedLine),
 
-        Sequence: line.sequenceNo || buildLineSequence(line),
+        Sequence: normalizedLine.sequenceNo || buildLineSequence(normalizedLine),
 
-        City: line.city,
+        City: normalizedLine.city,
 
-        CITY: line.city,
+        CITY: normalizedLine.city,
 
-        Description: line.description,
+        Description: storedDescription,
 
-        description: line.description,
+        description: storedDescription,
 
-        ProductionLocation: line.prodLoc,
+        ProductrateId: normalizedLine.productrateId || "",
 
-        "Production Location": line.prodLoc,
+        productrateId: normalizedLine.productrateId || "",
 
-        BillingLocation: line.billLoc,
+        Details: storedDescription,
 
-        "Billing  Location": line.billLoc,
+        details: storedDescription,
 
-        SalonAddress: line.salonAddress,
+        jobdesc: storedDescription,
 
-        "SALON ADDRESS": line.salonAddress,
+        "Name & Sub Code": storedDescription,
 
-        "Salon/Store Address": line.salonAddress,
+        ProductionLocation: normalizedLine.prodLoc,
 
-        SalonStoreAddress: line.salonAddress,
+        "Production Location": normalizedLine.prodLoc,
 
-        PrintingMachine: line.printingMachine,
+        BillingLocation: normalizedLine.billLoc,
 
-        "Printing Machine": line.printingMachine,
+        "Billing  Location": normalizedLine.billLoc,
 
-        PrintReadyFile: line.printReadyFile,
+        SalonAddress: normalizedLine.salonAddress,
 
-        "Print Ready File": line.printReadyFile,
+        "SALON ADDRESS": normalizedLine.salonAddress,
 
-        Remarks: line.remarks,
+        "Salon/Store Address": normalizedLine.salonAddress,
 
-        "Remarks/Instructions": line.remarks,
+        SalonStoreAddress: normalizedLine.salonAddress,
 
-        Media: line.media,
+        PrintingMachine: normalizedLine.printingMachine,
 
-        InternalMedia: line.internalMedia,
+        "Printing Machine": normalizedLine.printingMachine,
 
-        "Internal Media": line.internalMedia,
+        PrintReadyFile: normalizedLine.printReadyFile,
 
-        ExternalMedia: line.externalMedia,
+        "Print Ready File": normalizedLine.printReadyFile,
 
-        "External Media": line.externalMedia,
+        Remarks: normalizedLine.remarks,
 
-        "Element Group": line.elementGroup,
+        "Remarks/Instructions": normalizedLine.remarks,
 
-        ElementGroup: line.elementGroup,
+        Media: normalizedLine.media,
 
-        Subgroup: line.elementGroup,
+        InternalMedia: normalizedLine.internalMedia,
 
-        Description: line.description,
+        "Internal Media": normalizedLine.internalMedia,
 
-        description: line.description,
+        ExternalMedia: normalizedLine.externalMedia,
 
-        VisualCode: line.visualCode,
+        "External Media": normalizedLine.externalMedia,
 
-        "VISUAL CODE": line.visualCode,
+        "Element Group": normalizedLine.elementGroup,
 
-        articleCode: line.visualCode,
+        ElementGroup: normalizedLine.elementGroup,
 
-        ArticleCode: line.visualCode,
+        Subgroup: normalizedLine.elementGroup,
 
+        StoreCode: normalizedLine.storeCode,
 
+        storeCode: normalizedLine.storeCode,
 
-        Qty: line.qty,
+        VisualCode: normalizedLine.visualCode,
 
-        QTY: line.qty,
+        "Visual Code": normalizedLine.visualCode,
 
-        HSN: line.hsn,
+        "VISUAL CODE": normalizedLine.visualCode,
 
-        HsnCode: line.hsn,
+        articleCode: normalizedLine.visualCode,
 
-        "HSN / SAC": line.hsn,
+        ArticleCode: normalizedLine.visualCode,
 
-        Width: line.width,
+        Qty: normalizedLine.qty,
 
-        Height: line.height,
+        QTY: normalizedLine.qty,
 
-        BillingWidth: getLineBillingWidth(line),
+        Unit: normalizeDimensionUnit(normalizedLine.unit),
 
-        BillingHeight: getLineBillingHeight(line),
+        unit: normalizeDimensionUnit(normalizedLine.unit),
 
-        billingWidth: getLineBillingWidth(line),
+        UOM: normalizeDimensionUnit(normalizedLine.unit),
 
-        billingHeight: getLineBillingHeight(line),
+        HSN: normalizedLine.hsn,
 
-        "Billing Width": getLineBillingWidth(line),
+        HsnCode: normalizedLine.hsn,
 
-        "Billing Height": getLineBillingHeight(line),
+        "HSN Code": normalizedLine.hsn,
 
-        TotalSqFt: String(sqft),
+        "HSN / SAC": normalizedLine.hsn,
 
-        "Total Sq.ft": String(sqft),
+        Width: normalizedLine.width,
 
-        "Total Sq.f": String(sqft),
+        Height: normalizedLine.height,
+
+        BillingWidth: getLineBillingWidth(normalizedLine),
+
+        BillingHeight: getLineBillingHeight(normalizedLine),
+
+        billingWidth: getLineBillingWidth(normalizedLine),
+
+        billingHeight: getLineBillingHeight(normalizedLine),
+
+        "Billing Width": getLineBillingWidth(normalizedLine),
+
+        "Billing Height": getLineBillingHeight(normalizedLine),
+
+        BillingSqFt: String(normalizedLine.billableSqft || sqft || ""),
+
+        "Billing Sq.ft": String(normalizedLine.billableSqft || sqft || ""),
+
+        totalCalcSqFt: String(normalizedLine.billableSqft || sqft || ""),
+
+        TotalSqFt: String(productionSqft),
+
+        "Total Sq.ft": String(productionSqft),
+
+        "Total Sq.f": String(productionSqft),
+
+        BillableSqFt: String(normalizedLine.billableSqft || sqft || ""),
+
+        billableSqFt: String(normalizedLine.billableSqft || sqft || ""),
 
         Rate: String(rate),
+
+        rate: String(rate),
 
         Amount: String(amount),
 
@@ -7604,11 +9707,11 @@ const JobEntry = () => {
 
         // "Layouting charges": String(layoutingCharges),
 
-        // Lamination: line.laminationFlag,
+        Lamination: line.laminationFlag,
 
-        // LAMINATION: line.laminationFlag,
+        LAMINATION: line.laminationFlag,
 
-        // LaminationFlag: line.laminationFlag,
+        LaminationFlag: line.laminationFlag,
 
         "Lamination Flag": line.laminationFlag,
 
@@ -7624,11 +9727,35 @@ const JobEntry = () => {
 
         "Mounting Flag": line.mountingFlag,
 
+        "MOUNTING": line.mountingFlag,
+
         TypeOfMounting: line.mounting,
 
         "Type of Mounting": line.mounting,
 
         Implementation: line.implementation,
+
+        Installation: line.implementation,
+
+        "Machine Name": line.printingMachine,
+
+        "Print Ready Available": line.printReadyFile,
+
+        "Designer Name": line.designerName || "",
+
+        "Designer ID": line.designerId || "",
+
+        "Designer Deadline": line.designerDeadline || "",
+
+        "Printer Name": line.printerPrintingName || line.printingMachine || "",
+
+        "ACTUAL COMPLETED TIME": line.actCompleteTime || "",
+
+        "ON TIME DELAYED 2": line.onTimeDelayed || "",
+
+        "No of Art work": line.noOfArtwork || "",
+
+        "Artworker Deadline": line.artworkerDeadline || "",
 
         Deadline: line.jobDeadline,
 
@@ -7658,8 +9785,8 @@ const JobEntry = () => {
 
 
 
-  const getRowsMissingRequiredLocations = () =>
-    lines
+  const getRowsMissingRequiredLocations = (sourceLines = lines) =>
+    sourceLines
       .map((line, index) => ({ line, rowNo: index + 1 }))
       .filter(({ line }) => !isLineBlank(line))
       .map(({ line, rowNo }) => {
@@ -7669,6 +9796,34 @@ const JobEntry = () => {
         return { rowNo, missingFields };
       })
       .filter(({ missingFields }) => missingFields.length);
+
+
+
+const getRowsMissingRequiredDeadlines = (sourceLines = lines) =>
+  sourceLines
+    .map((line, index) => ({ line, rowNo: index + 1 }))
+    .filter(({ line }) => !isLineBlank(line))
+    .map(({ line, rowNo }) => {
+        const missingFields = [];
+        if (requiredDeadlineLineFields.some((field) => !String(line[field] || "").trim())) {
+          missingFields.push("Job Deadline");
+        }
+        return { rowNo, missingFields };
+    })
+    .filter(({ missingFields }) => missingFields.length);
+
+const getRowsMissingRequiredImplementation = (sourceLines = lines) =>
+  sourceLines
+    .map((line, index) => ({ line, rowNo: index + 1 }))
+    .filter(({ line }) => !isLineBlank(line))
+    .map(({ line, rowNo }) => {
+      const missingFields = [];
+      if (requiredImplementationLineFields.some((field) => !String(line[field] || "").trim())) {
+        missingFields.push("Implementation");
+      }
+      return { rowNo, missingFields };
+    })
+    .filter(({ missingFields }) => missingFields.length);
 
 
 
@@ -7686,11 +9841,39 @@ const JobEntry = () => {
 
 
 
+  const showRequiredDeadlineWarning = (missingRows) => {
+    const preview = missingRows
+      .slice(0, 5)
+      .map(({ rowNo, missingFields }) => `Row ${rowNo}: ${missingFields.join(", ")}`)
+      .join("; ");
+    const extraCount = missingRows.length - 5;
+    const message = `Please select mandatory deadline field(s): ${preview}${extraCount > 0 ? ` and ${extraCount} more row(s)` : ""}.`;
+
+    toast.warning(message);
+    setSaveStatus(message);
+  };
+
+  const showRequiredImplementationWarning = (missingRows) => {
+    const preview = missingRows
+      .slice(0, 5)
+      .map(({ rowNo, missingFields }) => `Row ${rowNo}: ${missingFields.join(", ")}`)
+      .join("; ");
+    const extraCount = missingRows.length - 5;
+    const message = `Please select mandatory implementation field(s): ${preview}${extraCount > 0 ? ` and ${extraCount} more row(s)` : ""}.`;
+
+    toast.warning(message);
+    setSaveStatus(message);
+  };
+
+
+
   const saveExistingJobLines = async () => {
+
+    if (isSavingRef.current) return;
 
     if (!header.jobNo) {
 
-      toast.warning("⚠️ Please select a job number");
+      toast.warning("Please select a job number");
 
       return;
 
@@ -7712,13 +9895,31 @@ const JobEntry = () => {
 
 
 
+    const missingRequiredDeadlines = getRowsMissingRequiredDeadlines();
+
+    if (missingRequiredDeadlines.length) {
+
+      showRequiredDeadlineWarning(missingRequiredDeadlines);
+
+      return;
+
+    }
+
+    const missingRequiredImplementation = getRowsMissingRequiredImplementation();
+    if (missingRequiredImplementation.length) {
+      showRequiredImplementationWarning(missingRequiredImplementation);
+      return;
+    }
+
+
+
     const payload = buildExistingJobPayload();
 
 
 
     if (!payload.length) {
 
-      toast.warning("⚠️ Please enter at least one line item");
+      toast.warning("Please enter at least one line item");
 
       return;
 
@@ -7726,13 +9927,15 @@ const JobEntry = () => {
 
 
 
+    isSavingRef.current = true;
+
+    setIsSaving(true);
+
     const loadingToast = toast.loading("Saving job data...");
 
 
 
     try {
-
-      setIsSaving(true);
 
       await axios.post(config.JobSummary.URL.Addjobdetails, payload);
 
@@ -7740,7 +9943,7 @@ const JobEntry = () => {
 
       toast.update(loadingToast, {
 
-        render: `✅ ${payload.length} item(s) added to ${header.jobNo}`,
+        render: `${payload.length} item(s) added to ${header.jobNo}`,
 
         type: "success",
 
@@ -7766,7 +9969,7 @@ const JobEntry = () => {
 
       toast.update(loadingToast, {
 
-        render: error?.response?.data?.message || error?.message || "❌ Failed to save job entry",
+        render: error?.response?.data?.message || error?.message || "Failed to save job entry",
 
         type: "error",
 
@@ -7781,6 +9984,8 @@ const JobEntry = () => {
       setSaveStatus(error?.response?.data?.message || error?.message || "Failed to save job entry lines.");
 
     } finally {
+
+      isSavingRef.current = false;
 
       setIsSaving(false);
 
@@ -7828,11 +10033,13 @@ const JobEntry = () => {
 
   useEffect(() => {
 
-    if (activeJobEntryTab === "estimateList") {
+    if (activeJobEntryTab !== "estimateList") return;
 
-      fetchEstimates();
+    if (estimateLoadAttemptedRef.current) return;
 
-    }
+    estimateLoadAttemptedRef.current = true;
+
+    fetchEstimates();
 
   }, [activeJobEntryTab, fetchEstimates]);
 
@@ -7857,16 +10064,6 @@ const JobEntry = () => {
         event.preventDefault();
 
         addLine();
-
-      }
-
-
-
-      if (event.altKey && event.key.toLowerCase() === "m") {
-
-        event.preventDefault();
-
-        addStore();
 
       }
 
@@ -7932,9 +10129,515 @@ const JobEntry = () => {
 
 
 
+  const continueLandingSelection = () => {
+    if (!landingCreationType) {
+      toast.warning("Please select Estimate or Job Card Creation");
+      return;
+    }
+    setLandingStage(2);
+  };
+
+  const openSelectedEntryScreen = () => {
+    if (!landingRecordType) {
+      toast.warning("Please select New or Existing");
+      return;
+    }
+
+    const isExistingScreen = landingRecordType === "existing";
+
+    setEntryScreenMode(landingCreationType === "estimate" ? "estimate" : "job");
+    setActiveJobEntryTab(isExistingScreen ? "existing" : "new");
+    setShowEntryLanding(false);
+
+    const isExistingEstimate = isExistingScreen && landingCreationType === "estimate";
+    const isExistingJob = isExistingScreen && landingCreationType === "job";
+
+    setIsDraftPanelOpen(false);
+    setIsEstimatePanelOpen(false);
+
+    if (!isExistingScreen) {
+      setHeader(createEmptyHeader());
+      setLines([createLine(0)]);
+      setSelectedLineIds([]);
+      setCopiedLines([]);
+      setSaveStatus("");
+      setEstimateMail({ to: "", subject: "", body: "" });
+      setEstimateMailChargeRows([]);
+      setEstimateChargeScope("single");
+      setEstimateChargeSalon("");
+      setEstimateChargeGroupSalons([]);
+      setIsConvertedEstimateJobCard(false);
+      setDraftSyncDisabled(false);
+    }
+
+    if (isExistingJob) {
+      const savedDrafts = getSortedDrafts();
+      setDraftList(savedDrafts);
+      setIsDraftPanelOpen(true);
+    }
+
+    if (isExistingEstimate) {
+      estimateLoadAttemptedRef.current = true;
+      fetchEstimates();
+      setIsEstimatePanelOpen(true);
+    }
+  };
+
+  const returnToEntryLanding = () => {
+    setIsConvertedEstimateJobCard(false);
+    setShowEntryLanding(true);
+    setLandingStage(1);
+    setLandingCreationType("");
+    setLandingRecordType("");
+  };
+
+  if (showEntryLanding) {
+    const options =
+      landingStage === 1
+        ? [
+            {
+              value: "estimate",
+              title: "Estimate",
+              description: "Create an estimate for a new or existing job.",
+              icon: <Mail size={28} />,
+            },
+            {
+              value: "job",
+              title: "Job Card Creation",
+              description: "Create a new job card or continue an existing Job ID.",
+              icon: <FilePlus size={28} />,
+            },
+          ]
+        : [
+            {
+              value: "new",
+              title: "New",
+              description:
+                landingCreationType === "estimate"
+                  ? "Open a blank estimate form."
+                  : "Open a blank job-card form.",
+              icon: <Plus size={28} />,
+            },
+            {
+              value: "existing",
+              title: "Existing",
+              description:
+                landingCreationType === "estimate"
+                  ? "Search the Job ID list and prepare an estimate."
+                  : "Search the Job ID list and add job-card details.",
+              icon: <Clipboard size={28} />,
+            },
+          ];
+
+    const selectedValue =
+      landingStage === 1 ? landingCreationType : landingRecordType;
+
+    return (
+      <div className="job-entry-page">
+        <main
+          className="job-entry-shell"
+          style={{
+            minHeight: "calc(100vh - 110px)",
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "flex-start",
+            paddingTop: "48px",
+          }}
+        >
+          <section
+            style={{
+              width: "min(900px, 96%)",
+              margin: "0 auto",
+              background: "#fff",
+              border: "1px solid #dbe4f0",
+              borderRadius: "16px",
+              boxShadow: "0 18px 45px rgba(31, 54, 92, 0.10)",
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                padding: "28px 32px 18px",
+                borderBottom: "1px solid #e8edf5",
+                background: "linear-gradient(135deg, #f8fbff 0%, #eef4ff 100%)",
+              }}
+            >
+              <div style={{ display: "flex", justifyContent: "space-between", gap: "16px" }}>
+                <div>
+                  <div
+                    style={{
+                      color: "#2f5fd0",
+                      fontSize: "12px",
+                      fontWeight: 800,
+                      letterSpacing: "0.08em",
+                      textTransform: "uppercase",
+                      marginBottom: "6px",
+                    }}
+                  >
+                    Step {landingStage} of 2
+                  </div>
+                  <h1 style={{ margin: 0, fontSize: "28px", color: "#17233c" }}>
+                    {landingStage === 1
+                      ? "Job ID Creation"
+                      : landingCreationType === "estimate"
+                        ? "Estimate Setup"
+                        : "Job Card Setup"}
+                  </h1>
+                  <p style={{ margin: "8px 0 0", color: "#64748b" }}>
+                    {landingStage === 1
+                      ? "Select what you want to create."
+                      : "Choose whether this is for a new or an existing job."}
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: "7px", paddingTop: "8px" }}>
+                  {[1, 2].map((step) => (
+                    <span
+                      key={step}
+                      style={{
+                        width: step === landingStage ? "34px" : "12px",
+                        height: "8px",
+                        borderRadius: "999px",
+                        background: step <= landingStage ? "#2f5fd0" : "#cbd5e1",
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: "30px 32px 34px" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                  gap: "18px",
+                }}
+              >
+                {options.map((option) => {
+                  const isSelected = selectedValue === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        landingStage === 1
+                          ? setLandingCreationType(option.value)
+                          : setLandingRecordType(option.value)
+                      }
+                      style={{
+                        textAlign: "left",
+                        padding: "24px",
+                        minHeight: "170px",
+                        borderRadius: "14px",
+                        border: isSelected
+                          ? "2px solid #2f5fd0"
+                          : "1px solid #dbe4f0",
+                        background: isSelected ? "#eef4ff" : "#fff",
+                        boxShadow: isSelected
+                          ? "0 10px 25px rgba(47, 95, 208, 0.15)"
+                          : "0 6px 18px rgba(31, 54, 92, 0.06)",
+                        cursor: "pointer",
+                        color: "#17233c",
+                      }}
+                    >
+                      <div style={{ display: "flex", justifyContent: "space-between" }}>
+                        <span
+                          style={{
+                            width: "52px",
+                            height: "52px",
+                            borderRadius: "13px",
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            background: isSelected ? "#2f5fd0" : "#edf2f7",
+                            color: isSelected ? "#fff" : "#2f5fd0",
+                          }}
+                        >
+                          {option.icon}
+                        </span>
+                        <span
+                          style={{
+                            width: "22px",
+                            height: "22px",
+                            borderRadius: "50%",
+                            border: isSelected
+                              ? "6px solid #2f5fd0"
+                              : "2px solid #b8c4d6",
+                            background: "#fff",
+                            boxSizing: "border-box",
+                          }}
+                        />
+                      </div>
+                      <h2 style={{ margin: "20px 0 8px", fontSize: "21px" }}>
+                        {option.title}
+                      </h2>
+                      <p style={{ margin: 0, lineHeight: 1.55, color: "#64748b" }}>
+                        {option.description}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div
+                style={{
+                  marginTop: "26px",
+                  paddingTop: "22px",
+                  borderTop: "1px solid #e8edf5",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <div>
+                  {landingStage === 2 && (
+                    <button
+                      type="button"
+                      className="job-secondary-btn"
+                      onClick={() => {
+                        setLandingStage(1);
+                        setLandingRecordType("");
+                      }}
+                    >
+                      Back
+                    </button>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className="job-primary-btn"
+                  style={{ minWidth: "150px", justifyContent: "center" }}
+                  onClick={
+                    landingStage === 1
+                      ? continueLandingSelection
+                      : openSelectedEntryScreen
+                  }
+                >
+                  <CheckSquare size={17} />
+                  <span>{landingStage === 1 ? "Continue" : "Open Form"}</span>
+                </button>
+              </div>
+            </div>
+          </section>
+        </main>
+        <ToastContainer position="top-right" autoClose={3000} />
+      </div>
+    );
+  }
+
   return (
 
     <div className="job-entry-page">
+
+      <style>{`
+        .job-lines-table th,
+        .job-lines-table td {
+          padding: 2px 3px !important;
+          min-width: 0 !important;
+        }
+        .job-lines-table input:not([type="checkbox"]),
+        .job-lines-table select {
+          min-width: 0 !important;
+          width: 100% !important;
+          height: 26px;
+          padding: 1px 3px;
+          font-size: 10px;
+        }
+        .job-lines-table col.job-col-description { width: 280px !important; }
+        .job-lines-table col.job-col-city { width: 56px !important; }
+        .job-lines-table col.job-col-store { width: 108px !important; }
+        .job-lines-table col.job-col-address { width: 132px !important; }
+        .job-lines-table col.job-col-branding { width: 72px !important; }
+        .job-lines-table col.job-col-small { width: 60px !important; }
+        .job-lines-table col.job-col-machine { width: 64px !important; }
+        .job-lines-table col.job-col-print-ready { width: 64px !important; }
+        .job-lines-table col.job-col-qty { width: 40px !important; }
+        .job-lines-table col.job-col-unit { width: 54px !important; }
+        .job-lines-table col.job-col-number { width: 54px !important; }
+        .job-lines-table col.job-col-charge { width: 64px !important; }
+        .job-lines-table col.job-col-flag { width: 52px !important; }
+        .job-lines-table col.job-col-visual { width: 60px !important; }
+        .job-lines-table col.job-col-medium { width: 96px !important; }
+        .job-lines-table col.job-col-element { width: 72px !important; }
+        .job-lines-table col.job-col-media { width: 150px !important; }
+        .job-lines-table col.job-col-implementation { width: 76px !important; }
+        .job-lines-table col.job-col-deadline { width: 104px !important; }
+        .job-lines-table col.job-col-remarks { width: 104px !important; }
+        .estimate-lines-table th,
+        .estimate-lines-table td { padding: 3px 4px !important; }
+        .job-lines-table {
+          table-layout: fixed !important;
+          width: max-content !important;
+          min-width: 0 !important;
+        }
+        .job-lines-table col:not(.job-col-select),
+        .estimate-lines-table col:not(.job-col-select) {
+          width: 70px !important;
+          min-width: 70px !important;
+          max-width: 70px !important;
+        }
+        /* Keep product descriptions readable after the generic column rule. */
+        .job-lines-table col.job-col-description {
+          width: 280px !important;
+          min-width: 280px !important;
+          max-width: 280px !important;
+        }
+        /* Keep Media readable. This must come after the generic 82px column rule. */
+        .job-lines-table col.job-col-media {
+          width: 150px !important;
+          min-width: 150px !important;
+          max-width: 150px !important;
+        }
+        .estimate-lines-table col.estimate-col-region {
+          width: 86px !important;
+          min-width: 86px !important;
+          max-width: 86px !important;
+        }
+        .estimate-lines-table col.estimate-col-description {
+          width: 260px !important;
+          min-width: 260px !important;
+          max-width: 260px !important;
+        }
+        .estimate-lines-table col.estimate-col-salon {
+          width: 150px !important;
+          min-width: 150px !important;
+          max-width: 150px !important;
+        }
+        .estimate-lines-table col.estimate-col-article {
+          width: 72px !important;
+          min-width: 72px !important;
+          max-width: 72px !important;
+        }
+        .estimate-lines-table col.estimate-col-media {
+          width: 145px !important;
+          min-width: 145px !important;
+          max-width: 145px !important;
+        }
+        .job-lines-table col.job-col-select,
+        .estimate-lines-table col.job-col-select {
+          width: 34px !important;
+          min-width: 34px !important;
+          max-width: 34px !important;
+        }
+        .estimate-lines-table col.estimate-col-production-width,
+        .estimate-lines-table col.estimate-col-production-height,
+        .estimate-lines-table col.estimate-col-billing-width,
+        .estimate-lines-table col.estimate-col-billing-height {
+          width: 76px !important;
+          min-width: 76px !important;
+          max-width: 76px !important;
+        }
+        .estimate-lines-table col.estimate-col-sqft,
+        .estimate-lines-table col.estimate-col-qty {
+          width: 48px !important;
+          min-width: 48px !important;
+          max-width: 48px !important;
+        }
+        .estimate-lines-table col.estimate-col-billable-sqft {
+          width: 68px !important;
+          min-width: 68px !important;
+          max-width: 68px !important;
+        }
+        .estimate-lines-table col.estimate-col-rate {
+          width: 62px !important;
+          min-width: 62px !important;
+          max-width: 62px !important;
+        }
+        .estimate-lines-table col.estimate-col-amount {
+          width: 92px !important;
+          min-width: 92px !important;
+          max-width: 92px !important;
+        }
+        .estimate-lines-table th.estimate-col-production-width,
+        .estimate-lines-table th.estimate-col-production-height,
+        .estimate-lines-table th.estimate-col-billing-width,
+        .estimate-lines-table th.estimate-col-billing-height,
+        .estimate-lines-table th.estimate-col-rate,
+        .estimate-lines-table th.estimate-col-amount {
+          white-space: normal !important;
+          word-break: break-word;
+        }
+        .job-lines-table th {
+          white-space: normal !important;
+          line-height: 1.15 !important;
+          font-size: 10px !important;
+          overflow-wrap: anywhere;
+        }
+        .job-lines-table td {
+          font-size: 10.5px !important;
+        }
+        .estimate-lines-table th {
+          font-size: 9px !important;
+          line-height: 1.05 !important;
+        }
+        .estimate-lines-table td {
+          font-size: 9px !important;
+        }
+        .job-lines-table input:not([type="checkbox"]),
+        .job-lines-table select,
+        .job-lines-table .job-cell-select__control {
+          height: 26px !important;
+          min-height: 26px !important;
+          font-size: 10.5px !important;
+        }
+        .job-lines-table .job-cell-select__value-container {
+          height: 26px !important;
+          padding: 0 3px !important;
+        }
+        .job-lines-table .job-cell-select__indicators {
+          height: 26px !important;
+        }
+        .job-lines-table .job-required-select .job-cell-select__control {
+          border-color: #dc3545 !important;
+          box-shadow: 0 0 0 1px rgba(220, 53, 69, 0.18) !important;
+        }
+        .job-lines-table input[type="checkbox"] {
+          width: 16px !important;
+          height: 16px !important;
+          min-width: 16px !important;
+          margin: 0 !important;
+        }
+        .job-lines-scroll,
+        .estimate-lines-scroll {
+          scrollbar-width: thin;
+        }
+        .estimate-lines-scroll {
+          width: 100%;
+          min-height: 280px;
+          max-height: calc(100vh - 365px) !important;
+          overflow: auto !important;
+          overscroll-behavior: contain;
+          scrollbar-gutter: stable;
+        }
+        .estimate-lines-table thead th {
+          position: sticky;
+          top: 0;
+          z-index: 6;
+          background: #eef2f7;
+          box-shadow: 0 1px 0 #d7dee8;
+        }
+        .job-common-unit {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 3px 7px;
+          background: #fff3a3;
+          border: 1px solid #e6c900;
+          border-radius: 4px;
+          white-space: nowrap;
+        }
+        .job-common-unit select {
+          height: 26px;
+          min-width: 70px;
+          padding: 1px 5px;
+          border: 1px solid #b8c2d1;
+          border-radius: 3px;
+          background: #fff;
+          font-size: 11px;
+        }
+      `}</style>
 
       <main className="job-entry-shell">
 
@@ -7942,17 +10645,29 @@ const JobEntry = () => {
 
           <div className="job-entry-title">
 
-            <h1>Job Entry</h1>
+          <h1>{selectedEntryLabel}</h1>
 
             <p>
-
-              {header.jobNo ? `Adding rows to ${header.jobNo}` : "Select a job number"}{" "}
-
-              - {lines.length} salon/store(s) - {lines.length} line(s)
-
+              {activeJobEntryTab === "existing"
+                ? header.jobNo
+                  ? `${selectedEntryLabel}: ${header.jobNo}`
+                  : `${selectedEntryLabel}: Select a job number`
+                : `${selectedEntryLabel}: Enter the details`}
+              {" - "}
+              {lines.length} salon/store(s)
+              {" - "}
+              {lines.length} line(s)
               {draftRestored ? " - Draft restored" : ""}
-
             </p>
+
+            <button
+              type="button"
+              className="job-secondary-btn"
+              onClick={returnToEntryLanding}
+              style={{ marginTop: "10px" }}
+            >
+              Change Creation Type
+            </button>
 
           </div>
 
@@ -7960,7 +10675,7 @@ const JobEntry = () => {
 
           <div className="job-entry-actions">
 
-            {activeJobEntryTab === "existing" ? (
+            {(activeJobEntryTab === "existing" || (activeJobEntryTab === "new" && entryScreenMode !== "estimate")) ? (
 
               <>
 
@@ -7970,7 +10685,7 @@ const JobEntry = () => {
 
                     <span>TOTAL SQ.F</span>
 
-                    <strong>{totals.sqft.toLocaleString("en-IN")}</strong>
+                    <strong>{summarySqftTotal.toLocaleString("en-IN")}</strong>
 
                   </div>
 
@@ -7978,7 +10693,7 @@ const JobEntry = () => {
 
 
 
-                <button className="job-primary-btn" type="button" onClick={addLine}>
+                <button className="job-primary-btn job-top-action-btn" type="button" onClick={addLine}>
 
                   <Plus size={18} />
 
@@ -7986,85 +10701,73 @@ const JobEntry = () => {
 
                 </button>
 
-
-
                 <button
-
-                  className="job-secondary-btn job-new-job-top"
-
                   type="button"
-
-                  onClick={() => setActiveJobEntryTab("new")}
-
-                  title="Open add new job"
-
+                  className={`job-primary-btn job-top-action-btn ${(entryScreenMode !== "estimate" || isConvertedEstimateJobCard) ? "job-action-send-disabled" : ""}`}
+                  title={(entryScreenMode === "estimate" && !isConvertedEstimateJobCard) ? "Send estimate" : "Available only before converting to job card"}
+                  onClick={openEstimateMail}
+                  disabled={entryScreenMode !== "estimate" || isConvertedEstimateJobCard}
+                  aria-disabled={entryScreenMode !== "estimate" || isConvertedEstimateJobCard}
                 >
-
-                  <FilePlus size={16} />
-
-                  <span>Add New Job</span>
-
+                  <Mail size={16} />
+                  <span>{entryScreenMode === "estimate" ? "Send Estimate" : "Send Mail"}</span>
                 </button>
 
+                {entryScreenMode === "estimate" && (
+                  <button
+                    type="button"
+                    className="job-secondary-btn job-top-action-btn"
+                    onClick={saveEstimate}
+                    disabled={isCreatingEstimate || isSendingEstimateMail}
+                    title="Save the estimate to the estimate collection"
+                  >
+                    <Save size={16} />
+                    <span>Save Estimate</span>
+                  </button>
+                )}
 
-
-                <button className="job-secondary-btn" type="button" onClick={refreshElementGroups}>
-
-                  <Plus size={14} />
-
-                  Refresh Groups
-
-                </button>
-
-
-
-                <button className="job-secondary-btn" type="button" onClick={() => (window.location.href = "/element-group-master") }>
-
-                  <Plus size={14} />
-
-                  Manage Element Groups
-
-                </button>
-
-
-
-                <Link className="job-secondary-btn job-link-btn" to="/storemaster" title="Open Store Master">
-
-                  <ExternalLink size={14} />
-
-                  Store Master
-
-                </Link>
+                {entryScreenMode !== "estimate" && (
+                  <button
+                    type="button"
+                    className="job-primary-btn job-top-action-btn"
+                    title={isNewJobCreationMode ? "Create new job" : "Send to Production"}
+                    onClick={isNewJobCreationMode ? handleCreateNewJob : saveExistingJobLines}
+                    disabled={isNewJobCreationMode ? isCreatingJob : isSaving}
+                  >
+                    {isNewJobCreationMode ? <FilePlus size={16} /> : <Save size={16} />}
+                    <span>
+                      {isNewJobCreationMode
+                        ? isCreatingJob
+                          ? "Creating..."
+                          : "Create Job"
+                        : isSaving
+                          ? "Sending"
+                          : "Send to Production"}
+                    </span>
+                  </button>
+                )}
 
 
 
                 <div className="job-icon-group" aria-label="Job actions">
 
-                  <button type="button" title="New salon/store" onClick={addStore}>
+                  {entryScreenMode !== "estimate" && (
+                    <button type="button" title="Show Drafts" onClick={showDrafts}>
 
-                    <FolderPlus size={16} />
+                      <Save size={16} />
 
-                    <span>Salon/Store</span>
+                      <span>Draft</span>
 
-                  </button>
-
-
-
-                  <button type="button" title="Show Drafts" onClick={showDrafts}>
-
-                    <Save size={16} />
-
-                    <span>Draft</span>
-
-                  </button>
+                    </button>
+                  )}
 
 
 
-                  <button type="button" title="Copy selected rows for Excel" onClick={copyLines}>
+                  <button type="button" title="Copy selected row(s)" onClick={copyLines}>
 
                     <Copy size={16} />
 
-                    <span>Copy</span>
+                    <span>Copy Row</span>
 
                   </button>
 
@@ -8074,7 +10777,7 @@ const JobEntry = () => {
 
                     <Clipboard size={16} />
 
-                    <span>Paste</span>
+                    <span>Paste Row</span>
 
                   </button>
 
@@ -8082,7 +10785,7 @@ const JobEntry = () => {
 
                     type="button"
 
-                    title="Paste Excel column or range as new rows"
+                    title="Copy rows from Excel and paste them here"
 
                     onClick={() => pasteExcelRangeFromClipboard({ append: true, field: "visualCode" })}
 
@@ -8090,7 +10793,7 @@ const JobEntry = () => {
 
                     <Clipboard size={16} />
 
-                    <span>Excel Range</span>
+                    <span>Paste from Excel</span>
 
                   </button>
 
@@ -8100,45 +10803,7 @@ const JobEntry = () => {
 
                     <Trash2 size={16} />
 
-                    <span>Delete</span>
-
-                  </button>
-
-
-
-                  <button
-
-                    type="button"
-
-                    title={entryScreenMode === "estimate" ? "Save disabled in estimate mode" : "Save"}
-
-                    onClick={saveExistingJobLines}
-
-                    disabled={isSaving || entryScreenMode === "estimate"}
-
-                  >
-
-                    <Save size={16} />
-
-                    <span>{isSaving ? "Saving" : "Save"}</span>
-
-                  </button>
-
-
-
-                  <button
-
-                    type="button"
-
-                    title={entryScreenMode === "estimate" ? "Send estimate" : "Send estimate mail"}
-
-                    onClick={openEstimateMail}
-
-                  >
-
-                    <Mail size={16} />
-
-                    <span>{entryScreenMode === "estimate" ? "Send Estimate" : "Send Mail"}</span>
+                    <span>Delete Row</span>
 
                   </button>
 
@@ -8154,11 +10819,15 @@ const JobEntry = () => {
 
 
 
-                  <button type="button" title="Clear job entry" onClick={clearJobEntry} className="danger">
+                  <button
+                    type="button"
+                    title="Save current job entry to drafts"
+                    onClick={() => saveCurrentDraft(true)}
+                  >
 
-                    <RotateCcw size={16} />
+                    <Save size={16} />
 
-                    <span>Clear</span>
+                    <span>Save to Drafts</span>
 
                   </button>
 
@@ -8176,6 +10845,52 @@ const JobEntry = () => {
 
               </button>
 
+            ) : entryScreenMode === "estimate" ? (
+
+              <>
+
+                <button
+
+                  className="job-primary-btn job-create-job-btn"
+
+                  type="button"
+
+                  onClick={createEstimate}
+
+                  disabled={isCreatingEstimate || isSendingEstimateMail}
+
+                  title="Save the estimate header and all line records"
+
+                >
+
+                  <FilePlus size={16} />
+
+                  <span>{isCreatingEstimate ? "Creating..." : "Create Estimate"}</span>
+
+                </button>
+
+                {/* <button
+
+                  className="job-secondary-btn job-new-job-top"
+
+                  type="button"
+
+                  onClick={openEstimateMail}
+
+                  disabled={isCreatingEstimate || isSendingEstimateMail}
+
+                  title="Send estimate by email"
+
+                >
+
+                  <Mail size={16} />
+
+                  <span>Send Estimate</span>
+
+                </button> */}
+
+              </>
+
             ) : (
 
               <button
@@ -8184,25 +10899,17 @@ const JobEntry = () => {
 
                 type="button"
 
-                onClick={entryScreenMode === "estimate" ? openEstimateMail : handleCreateNewJob}
+                onClick={handleCreateNewJob}
 
-                disabled={entryScreenMode === "estimate" ? isSendingEstimateMail : isCreatingJob}
+                disabled={isCreatingJob}
 
-                title={entryScreenMode === "estimate" ? "Send estimate" : "Create new job"}
+                title="Create new job"
 
               >
 
-                {entryScreenMode === "estimate" ? <Mail size={16} /> : <FilePlus size={16} />}
+                <FilePlus size={16} />
 
-                <span>
-
-                  {entryScreenMode === "estimate"
-
-                    ? (isSendingEstimateMail ? "Sending..." : "Send Estimate")
-
-                    : (isCreatingJob ? "Creating..." : "Create Job")}
-
-                </span>
+                <span>{isCreatingJob ? "Creating..." : "Create Job"}</span>
 
               </button>
 
@@ -8214,153 +10921,8 @@ const JobEntry = () => {
 
 
 
-        <nav className="job-entry-tabs" aria-label="Job entry mode">
-
-          <button
-
-            type="button"
-
-            className={`job-entry-tab ${activeJobEntryTab === "new" ? "active" : ""}`}
-
-            onClick={() => setActiveJobEntryTab("new")}
-
-          >
-
-            <FilePlus size={15} />
-
-            Add New Job
-
-          </button>
-
-          <button
-
-            type="button"
-
-            className={`job-entry-tab ${activeJobEntryTab === "existing" ? "active" : ""}`}
-
-            onClick={() => setActiveJobEntryTab("existing")}
-
-          >
-
-            <Clipboard size={15} />
-
-            Existing Job
-
-          </button>
-
-          <button
-
-            type="button"
-
-            className={`job-entry-tab ${activeJobEntryTab === "estimateList" ? "active" : ""}`}
-
-            onClick={() => setActiveJobEntryTab("estimateList")}
-
-          >
-
-            <Mail size={15} />
-
-            Estimate
-
-          </button>
-
-        </nav>
-
-
-
-        <div
-
-          className="job-entry-radio-group"
-
-          style={{
-
-            display: activeJobEntryTab === "estimateList" ? "none" : "flex",
-
-            gap: "18px",
-
-            alignItems: "center",
-
-            margin: "12px 0",
-
-            fontWeight: 700,
-
-          }}
-
-        >
-
-          <label
-
-            style={{
-
-              display: "inline-flex",
-
-              alignItems: "center",
-
-              gap: "6px",
-
-              cursor: "pointer",
-
-            }}
-
-          >
-
-            <input
-
-              type="radio"
-
-              name="entryScreenMode"
-
-              value="job"
-
-              checked={entryScreenMode === "job"}
-
-              onChange={() => setEntryScreenMode("job")}
-
-            />
-
-            Job Entry
-
-          </label>
-
-
-
-          <label
-
-            style={{
-
-              display: "inline-flex",
-
-              alignItems: "center",
-
-              gap: "6px",
-
-              cursor: "pointer",
-
-            }}
-
-          >
-
-            <input
-
-              type="radio"
-
-              name="entryScreenMode"
-
-              value="estimate"
-
-              checked={entryScreenMode === "estimate"}
-
-              onChange={() => setEntryScreenMode("estimate")}
-
-            />
-
-            Estimate
-
-          </label>
-
-        </div>
-
-
+        {/* Entry tabs and Estimate/Job Entry radio selector removed.
+            The landing wizard now controls the selected creation and record type. */}
 
         {activeJobEntryTab === "estimateList" ? (
 
@@ -8553,20 +11115,6 @@ const JobEntry = () => {
                 placeholder="Search customer"
 
               />
-
-              {header.client && (
-
-                <small className="job-rate-hint">
-
-                  {customerRateRows.length
-
-                    ? `${customerRateRows.length} customer rate(s) available`
-
-                    : "Using general product media rates"}
-
-                </small>
-
-              )}
 
             </label>
 
@@ -8800,7 +11348,7 @@ const JobEntry = () => {
 
 
 
-        {activeJobEntryTab === "existing" && (
+        {(activeJobEntryTab === "existing" || (activeJobEntryTab === "new" && entryScreenMode !== "estimate")) && (
 
           <>
 
@@ -8813,6 +11361,28 @@ const JobEntry = () => {
                 <span>Job Date: {header.date || "-"}</span>
 
                 <span>Client: {header.clientName || "-"}</span>
+
+                <label className="job-common-unit">
+                  <strong>Unit:</strong>
+                  <select
+                    value={normalizeDimensionUnit(lines[0]?.unit || "inch")}
+                    onChange={(event) => {
+                      const commonUnit = normalizeDimensionUnit(event.target.value);
+                      setLines((previousLines) =>
+                        previousLines.map((line) =>
+                          recalculateLine({ ...line, unit: commonUnit })
+                        )
+                      );
+                    }}
+                    aria-label="Common measurement unit for all rows"
+                  >
+                    {DIMENSION_UNIT_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
 
                 <span>Sub Client: {header.subClient || "-"}</span>
 
@@ -8844,6 +11414,8 @@ const JobEntry = () => {
 
             {entryScreenMode === "estimate" ? (
 
+              <>
+
               <section
 
                 className="job-lines-wrap estimate-lines-wrap"
@@ -8860,79 +11432,85 @@ const JobEntry = () => {
 
                   style={{
 
-                    minHeight: "auto",
+                    minHeight: lines.length > 5 ? "280px" : "auto",
 
                     height: "auto",
 
-                    maxHeight: lines.length > 8 ? "420px" : "none",
+                    maxHeight: "calc(100vh - 365px)",
 
                     overflowX: "auto",
 
-                    overflowY: lines.length > 8 ? "auto" : "visible",
+                    overflowY: "auto",
 
                   }}
 
                 >
 
-                  <table className="job-lines-table estimate-lines-table">
+                  <table
+                    className="job-lines-table estimate-lines-table"
+                    style={{
+                      width: "100%",
+                      minWidth: "100%",
+                      maxWidth: "100%",
+                      tableLayout: "fixed",
+                    }}
+                  >
 
                     <colgroup>
 
-                      <col className="job-col-select" />
+                      <col className="job-col-select estimate-col-select" />
 
                       {activeJobEntryTab === "new" && (
 
                         <>
 
-                          <col style={{ width: "170px", minWidth: "170px" }} />
+                          <col style={{ width: "90px", minWidth: "90px" }} />
 
-                          <col style={{ width: "260px", minWidth: "260px" }} />
+                          <col style={{ width: "120px", minWidth: "120px" }} />
 
-                          <col style={{ width: "190px", minWidth: "190px" }} />
+                          <col style={{ width: "90px", minWidth: "90px" }} />
 
-                          <col style={{ width: "190px", minWidth: "190px" }} />
+                          <col style={{ width: "90px", minWidth: "90px" }} />
 
-                          <col style={{ width: "190px", minWidth: "190px" }} />
+                          <col style={{ width: "90px", minWidth: "90px" }} />
 
-                          <col style={{ width: "190px", minWidth: "190px" }} />
+                          <col style={{ width: "90px", minWidth: "90px" }} />
 
-                          <col style={{ width: "240px", minWidth: "240px" }} />
+                          <col style={{ width: "120px", minWidth: "120px" }} />
 
-                          <col style={{ width: "220px", minWidth: "220px" }} />
+                          <col style={{ width: "110px", minWidth: "110px" }} />
 
                         </>
 
                       )}
 
-                      <col style={{ width: "150px", minWidth: "150px" }} />
+                      <col className="estimate-col-region" />
 
-                      <col style={{ width: "240px", minWidth: "240px" }} />
+                      <col className="estimate-col-description" />
 
-                      <col style={{ width: "180px", minWidth: "180px" }} />
+                      <col className="estimate-col-salon" />
 
-                      <col style={{ width: "220px", minWidth: "220px" }} />
+                      <col className="estimate-col-article" />
 
-                      <col style={{ width: "120px", minWidth: "120px" }} />
+                      <col className="estimate-col-media" />
 
-                      <col style={{ width: "120px", minWidth: "120px" }} />
+                      <col className="estimate-col-production-width" />
 
-                      <col style={{ width: "100px", minWidth: "100px" }} />
+                      <col className="estimate-col-production-height" />
 
-                      <col style={{ width: "90px", minWidth: "90px" }} />
+                      <col className="estimate-col-sqft" />
 
-                      <col style={{ width: "110px", minWidth: "110px" }} />
+                      <col className="estimate-col-qty" />
 
-                      <col style={{ width: "110px", minWidth: "110px" }} />
+                      <col className="estimate-col-billing-width" />
 
-                      <col style={{ width: "130px", minWidth: "130px" }} />
+                      <col className="estimate-col-billing-height" />
 
-                      <col style={{ width: "110px", minWidth: "110px" }} />
+                      <col className="estimate-col-billable-sqft" />
 
-                      <col style={{ width: "130px", minWidth: "130px" }} />
+                      <col className="estimate-col-rate" />
 
-                      <col style={{ width: "220px", minWidth: "220px" }} />
-
-                      <col style={{ width: "120px", minWidth: "120px" }} />
+                      <col className="estimate-col-amount" />
 
                     </colgroup>
 
@@ -8982,31 +11560,29 @@ const JobEntry = () => {
 
                         <th>Region</th>
 
-                        <th>Salon Name</th>
+                        <th>Description</th>
 
-                        <th>Article Code</th>
+                        <th>Salon Name / City / Address</th>
 
-                        <th>Media</th>
+                        <th className="estimate-article-cell" style={{ width: "72px", minWidth: "72px", maxWidth: "72px" }}>Article Code</th>
 
-                        <th>Width Inch</th>
+                        <th className="estimate-media-cell" style={{ width: "145px", minWidth: "145px", maxWidth: "145px" }}>Media</th>
 
-                        <th>Height Inch</th>
+                        <th>Prod W</th>
 
-                        <th>Sq.Ft</th>
+                        <th>Prod H</th>
+
+                        <th>SqFt</th>
 
                         <th>Qty</th>
 
-                        <th>Width Ft</th>
+                        <th>{activeJobEntryTab === "existing" ? "Est W" : "Width Ft"}</th>
 
-                        <th>Height Ft</th>
+                        <th>{activeJobEntryTab === "existing" ? "Est H" : "Height Ft"}</th>
 
-                        <th>Printable Sqft</th>
+                        <th>Est SqFt</th>
 
                         <th>Rate</th>
-
-                        <th>HSN Code</th>
-
-                        <th>Description</th>
 
                         <th>Amount</th>
 
@@ -9018,19 +11594,27 @@ const JobEntry = () => {
 
                       {lines.length ? lines.map((line, index) => {
 
-                        const width = toNumber(getLineBillingWidth(line) || line.width);
+                        const productionWidth = dimensionToInches(line.width, line.unit);
 
-                        const height = toNumber(getLineBillingHeight(line) || line.height);
+                        const productionHeight = dimensionToInches(line.height, line.unit);
+
+                        const width = dimensionToInches(getLineBillingWidth(line) || line.width, line.unit);
+
+                        const height = dimensionToInches(getLineBillingHeight(line) || line.height, line.unit);
 
                         const qty = toNumber(line.qty) || 1;
 
+                        const productionSqft = productionWidth > 0 && productionHeight > 0
+                          ? roundAmount((productionWidth * productionHeight * qty) / 144)
+                          : 0;
+
                         const sqftPerUnit = width > 0 && height > 0 ? roundAmount((width * height) / 144) : 0;
 
-                        const printableSqft = toNumber(line.sqft) || roundAmount(sqftPerUnit * qty);
+                        const billableSqft = toNumber(line.billableSqft) || roundAmount(sqftPerUnit * qty) || toNumber(line.sqft);
 
                         const rate = toNumber(line.rate);
 
-                        const amount = toNumber(line.amount) || roundAmount(printableSqft * rate);
+                        const amount = toNumber(line.amount) || roundAmount(billableSqft * rate);
 
 
 
@@ -9196,11 +11780,51 @@ const JobEntry = () => {
 
                                 isClearable
 
+                                isSearchable
+
+                                inputId={`job-description-${line.id}`}
+
+                                options={descriptionSelectOptions}
+
+                                value={getSelectedOption(descriptionSelectOptions, line.description)}
+
+                                onChange={(option) =>
+
+                                  updateLine(line.id, "description", option?.value || "", option)
+
+                                }
+
+                                placeholder="Select product"
+
+                                noOptionsMessage={() =>
+
+                                  header.client ? "No products for selected customer" : "Select customer first"
+
+                                }
+
+                              />
+
+                            </td>
+
+                            <td className="job-salon-details-cell">
+
+                              <Select
+
+                                classNamePrefix="job-cell-select"
+
+                                styles={compactSelectStyles}
+
+                                menuPortalTarget={selectPortalTarget()}
+
+                                isClearable
+
                                 options={storeSelectOptions}
 
-                                value={getSelectedOption(storeSelectOptions, line.store)}
+                                value={getSelectedStoreOption(line)}
 
-                                onChange={(option) => updateLine(line.id, "store", option?.value || "")}
+                                onChange={(option) =>
+                                  updateLine(line.id, "store", option?.value || "", option)
+                                }
 
                                 placeholder={header.client ? "Select salon" : "Select client"}
 
@@ -9208,7 +11832,7 @@ const JobEntry = () => {
 
                             </td>
 
-                            <td>
+                            <td className="estimate-article-cell">
 
                               <input
 
@@ -9228,7 +11852,7 @@ const JobEntry = () => {
 
                             </td>
 
-                            <td>
+                            <td className="estimate-media-cell">
 
                               <Select
 
@@ -9255,15 +11879,11 @@ const JobEntry = () => {
                             <td>
 
                               <input
-
-                                value={line.width}
-
-                                type="number"
-
-                                onChange={(event) => updateLine(line.id, "width", event.target.value)}
-
+                                {...getFourDigitNumberInputProps(
+                                  line.width,
+                                  (value) => updateLine(line.id, "width", value)
+                                )}
                                 {...getPasteCellProps(line.id, "width")}
-
                               />
 
                             </td>
@@ -9271,78 +11891,83 @@ const JobEntry = () => {
                             <td>
 
                               <input
-
-                                value={line.height}
-
-                                type="number"
-
-                                onChange={(event) => updateLine(line.id, "height", event.target.value)}
-
+                                {...getFourDigitNumberInputProps(
+                                  line.height,
+                                  (value) => updateLine(line.id, "height", value)
+                                )}
                                 {...getPasteCellProps(line.id, "height")}
-
                               />
 
                             </td>
 
-                            <td><input value={sqftPerUnit || ""} readOnly className="job-readonly-input" /></td>
+                            <td><input value={productionSqft || ""} readOnly className="job-readonly-input" /></td>
 
                             <td>
 
                               <input
-
-                                value={line.qty}
-
-                                type="number"
-
-                                onChange={(event) => updateLine(line.id, "qty", event.target.value)}
-
+                                {...getFourDigitNumberInputProps(
+                                  line.qty,
+                                  (value) => updateLine(line.id, "qty", value),
+                                  0
+                                )}
                                 {...getPasteCellProps(line.id, "qty")}
-
                               />
 
                             </td>
 
-                            <td><input value={width ? roundAmount(width / 12) : ""} readOnly className="job-readonly-input" /></td>
+                            <td>
+                              {activeJobEntryTab === "existing" ? (
+                                <input
+                                  {...getFourDigitNumberInputProps(
+                                    line.billingWidth,
+                                    (value) => updateLine(line.id, "billingWidth", value)
+                                  )}
+                                  placeholder="Estimated width"
+                                  {...getPasteCellProps(line.id, "billingWidth")}
+                                />
+                              ) : (
+                                <input
+                                  value={width ? roundAmount(width / 12) : ""}
+                                  readOnly
+                                  className="job-readonly-input"
+                                />
+                              )}
+                            </td>
 
-                            <td><input value={height ? roundAmount(height / 12) : ""} readOnly className="job-readonly-input" /></td>
+                            <td>
+                              {activeJobEntryTab === "existing" ? (
+                                <input
+                                  {...getFourDigitNumberInputProps(
+                                    line.billingHeight,
+                                    (value) => updateLine(line.id, "billingHeight", value)
+                                  )}
+                                  placeholder="Estimated height"
+                                  {...getPasteCellProps(line.id, "billingHeight")}
+                                />
+                              ) : (
+                                <input
+                                  value={height ? roundAmount(height / 12) : ""}
+                                  readOnly
+                                  className="job-readonly-input"
+                                />
+                              )}
+                            </td>
 
-                            <td><input value={printableSqft || ""} readOnly className="job-readonly-input" /></td>
+                            <td><input value={billableSqft || ""} readOnly className="job-readonly-input" /></td>
 
                             <td>
 
                               <input
-
-                                value={line.rate}
-
-                                type="number"
-
-                                onChange={(event) => updateLine(line.id, "rate", event.target.value)}
-
+                                {...getFourDigitNumberInputProps(
+                                  line.rate,
+                                  (value) => updateLine(line.id, "rate", value)
+                                )}
                                 {...getPasteCellProps(line.id, "rate")}
-
                               />
 
                             </td>
 
-                            <td><input value={line.hsn || ""} readOnly className="job-readonly-input" /></td>
-
-                            <td>
-
-                              <input
-
-                                value={line.description || ""}
-
-                                onChange={(event) => updateLine(line.id, "description", event.target.value)}
-
-                                placeholder="Description"
-
-                                {...getPasteCellProps(line.id, "description")}
-
-                              />
-
-                            </td>
-
-                            <td><input value={amount || "0"} readOnly className="job-readonly-input" /></td>
+                            <td><input value={formatIndianCurrency(amount)} readOnly className="job-readonly-input" /></td>
 
                           </tr>
 
@@ -9352,7 +11977,7 @@ const JobEntry = () => {
 
                         <tr>
 
-                          <td colSpan={activeJobEntryTab === "new" ? 24 : 16} style={{ textAlign: "center", padding: "18px 12px", color: "#6b7280" }}>
+                          <td colSpan={activeJobEntryTab === "new" ? 23 : 15} style={{ textAlign: "center", padding: "18px 12px", color: "#6b7280" }}>
 
                             No rows in UI. Saved draft is still available in local storage.
 
@@ -9362,6 +11987,57 @@ const JobEntry = () => {
 
                       )}
 
+                      {estimateMailChargeRows.map((row) => (
+                        <tr
+                          key={row.estimateLineKey}
+                          className="estimate-grid-charge-row"
+                          style={{ background: "#fff7ed" }}
+                        >
+                          <td className="select-col">
+                            <button
+                              type="button"
+                              onClick={() => removeEstimateMailCharge(row.estimateLineKey)}
+                              title="Remove charge"
+                              style={{
+                                border: 0,
+                                background: "transparent",
+                                color: "#dc2626",
+                                cursor: "pointer",
+                                padding: "2px",
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </td>
+
+                          {activeJobEntryTab === "new" && <td colSpan={8}></td>}
+
+                          <td>{row.billingLocation || row.region || "-"}</td>
+                          <td style={{ fontWeight: 700, color: "#9a3412" }}>
+                            {row.description}
+                          </td>
+                          <td title={(row.groupSalonNames || []).join(", ")}>
+                            {row.salonName || "-"}
+                          </td>
+                          <td colSpan={13}></td>
+                          <td>
+                            <input
+                              type="number"
+                              min="0"
+                              value={row.amount}
+                              onChange={(event) =>
+                                updateEstimateMailCharge(
+                                  row.estimateLineKey,
+                                  event.target.value
+                                )
+                              }
+                              placeholder="Charge amount"
+                              style={{ fontWeight: 700, color: "#9a3412" }}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+
                     </tbody>
 
                   </table>
@@ -9370,23 +12046,21 @@ const JobEntry = () => {
 
               </section>
 
+              </>
+
             ) : (
 
-            <section className="job-lines-wrap" aria-label="Job line items">
-
-              <div className="job-lines-scroll">
-
-                <table className="job-lines-table">
+        <section className="job-lines-wrap">
+  <div className="job-lines-scroll">
+    <table className="job-lines-table">
 
               <colgroup>
 
                 <col className="job-col-select" />
 
-                <col className="job-col-city" />
+                <col className="job-col-description" />
 
                 <col className="job-col-store" />
-
-                <col className="job-col-address" />
 
                 <col className="job-col-branding" />
 
@@ -9398,13 +12072,13 @@ const JobEntry = () => {
 
                 <col className="job-col-print-ready" />
 
-                <col className="job-col-medium" />
+                <col className="job-col-media" />
 
                 <col className="job-col-element" />
 
-                <col className="job-col-visual"style={{ width: "300px", minWidth: "300px" }}  />
+                <col className="job-col-visual" />
 
-                <col className="job-col-qty" style={{ width: "120px", minWidth: "150px" }} />
+                <col className="job-col-qty" />
 
                 <col className="job-col-number" />
 
@@ -9454,9 +12128,9 @@ const JobEntry = () => {
 
                   </th>
 
-                  <th colSpan="8">SALON / STORE DETAILS (SHARED ACROSS TS LINES)</th>
+                  <th colSpan="6">Salon / Store Details (Shared Across TS Lines)</th>
 
-                  <th colSpan={productColumns.length + 5}>LINE ITEM</th>
+                  <th colSpan={productColumns.length + 5}>Line Item</th>
 
                 </tr>
 
@@ -9464,27 +12138,23 @@ const JobEntry = () => {
 
                   <th className="select-col"></th>
 
-                  <th>CITY</th>
-
                   <th>Description</th>
 
-                  <th>SALON/STORE NAME</th>
+                  <th>Salon / Store Name / City / Address</th>
 
-                  <th>SALON/STORE ADDRESS</th>
+                  <th>Branding Location</th>
 
-                  <th>BRANDING LOCATION</th>
+                  <th>Production Location *</th>
 
-                  <th>PROD LOC *</th>
+                  <th>Billing Location *</th>
 
-                  <th>BILL LOC *</th>
+                  <th>Printing Machine</th>
 
-                  <th>PRINTING MACHINE</th>
+                  <th>Print Ready File</th>
 
-                  <th>PRINT READY FILE</th>
+                  <th>Media</th>
 
-                  <th>MEDIA</th>
-
-                  <th>ELEMENT GROUP</th>
+                  <th>BOQ</th>
 
                   {productColumns.map((column) => (
 
@@ -9492,7 +12162,7 @@ const JobEntry = () => {
 
                   ))}
 
-                  <th>REMARKS/INSTRUCTIONS</th>
+                  <th>Remarks / Instructions</th>
 
                 </tr>
 
@@ -9524,7 +12194,7 @@ const JobEntry = () => {
 
 
 
-                    <td>
+                    <td className="job-description-cell">
 
                       <Select
 
@@ -9536,41 +12206,33 @@ const JobEntry = () => {
 
                         isClearable
 
-                        options={citySelectOptions}
+                        isSearchable
 
-                        value={getSelectedOption(citySelectOptions, line.city)}
+                        inputId={`job-description-${line.id}`}
 
-                        onChange={(option) => updateLine(line.id, "city", option?.value || "")}
+                        options={descriptionSelectOptions}
 
-                        placeholder="-"
+                        value={getSelectedOption(descriptionSelectOptions, line.description)}
+
+                        onChange={(option) =>
+
+                          updateLine(line.id, "description", option?.value || "", option)
+
+                        }
+
+                        placeholder="Select product"
+
+                        noOptionsMessage={() =>
+
+                          header.client ? "No products for selected customer" : "Select customer first"
+
+                        }
 
                       />
 
                     </td>
 
-                    <td>
-
-                
-
-                  <input
-
-                    value={line.description || ""}
-
-                    onChange={(event) =>
-
-                      updateLine(line.id, "description", event.target.value)
-
-                    }
-
-                    placeholder="Description"
-
-                  />
-
-                </td>
-
-
-
-                    <td>
+                    <td className="job-salon-details-cell">
 
                       <Select
 
@@ -9584,35 +12246,15 @@ const JobEntry = () => {
 
                         options={storeSelectOptions}
 
-                        value={getSelectedOption(storeSelectOptions, line.store)}
+                        value={getSelectedStoreOption(line)}
 
-                        onChange={(option) => updateLine(line.id, "store", option?.value || "")}
+                        formatOptionLabel={formatStoreOptionLabel}
+
+                        onChange={(option) =>
+                          updateLine(line.id, "store", option?.value || "", option)
+                        }
 
                         placeholder={header.client ? "Select store" : "Select client"}
-
-                      />
-
-                    </td>
-
-                    <td>
-
-                      <Select
-
-                        classNamePrefix="job-cell-select"
-
-                        styles={compactSelectStyles}
-
-                        menuPortalTarget={selectPortalTarget()}
-
-                        isClearable
-
-                        options={storeAddressSelectOptions}
-
-                        value={getSelectedOption(storeAddressSelectOptions, line.salonAddress)}
-
-                        onChange={(option) => updateLine(line.id, "salonAddress", option?.value || "")}
-
-                        placeholder={header.client ? "Select ship to" : "Select client"}
 
                       />
 
@@ -9774,6 +12416,8 @@ const JobEntry = () => {
 
                       <CreatableSelect
 
+                        className={`job-cell-select ${String(line.implementation || "").trim() ? "" : "job-required-select"}`}
+
                         classNamePrefix="job-cell-select"
 
                         styles={compactSelectStyles}
@@ -9815,33 +12459,24 @@ const JobEntry = () => {
                     <td>
 
                       <input
-
-                        value={line.qty}
-
-                        type="number"
-
-                        onChange={(event) => updateLine(line.id, "qty", event.target.value)}
-
+                        {...getFourDigitNumberInputProps(
+                          line.qty,
+                          (value) => updateLine(line.id, "qty", value),
+                          0
+                        )}
                         {...getPasteCellProps(line.id, "qty")}
-
                       />
 
                     </td>
 
-
-
                     <td>
 
                       <input
-
-                        value={line.width}
-
-                        type="number"
-
-                        onChange={(event) => updateLine(line.id, "width", event.target.value)}
-
+                        {...getFourDigitNumberInputProps(
+                          line.width,
+                          (value) => updateLine(line.id, "width", value)
+                        )}
                         {...getPasteCellProps(line.id, "width")}
-
                       />
 
                     </td>
@@ -9851,15 +12486,11 @@ const JobEntry = () => {
                     <td>
 
                       <input
-
-                        value={line.height}
-
-                        type="number"
-
-                        onChange={(event) => updateLine(line.id, "height", event.target.value)}
-
+                        {...getFourDigitNumberInputProps(
+                          line.height,
+                          (value) => updateLine(line.id, "height", value)
+                        )}
                         {...getPasteCellProps(line.id, "height")}
-
                       />
 
                     </td>
@@ -9869,15 +12500,11 @@ const JobEntry = () => {
                     <td>
 
                       <input
-
-                        value={line.billingWidth ?? getLineBillingWidth(line)}
-
-                        type="number"
-
-                        onChange={(event) => updateLine(line.id, "billingWidth", event.target.value)}
-
+                        {...getFourDigitNumberInputProps(
+                          line.billingWidth ?? getLineBillingWidth(line),
+                          (value) => updateLine(line.id, "billingWidth", value)
+                        )}
                         {...getPasteCellProps(line.id, "billingWidth")}
-
                       />
 
                     </td>
@@ -9887,15 +12514,11 @@ const JobEntry = () => {
                     <td>
 
                       <input
-
-                        value={line.billingHeight ?? getLineBillingHeight(line)}
-
-                        type="number"
-
-                        onChange={(event) => updateLine(line.id, "billingHeight", event.target.value)}
-
+                        {...getFourDigitNumberInputProps(
+                          line.billingHeight ?? getLineBillingHeight(line),
+                          (value) => updateLine(line.id, "billingHeight", value)
+                        )}
                         {...getPasteCellProps(line.id, "billingHeight")}
-
                       />
 
                     </td>
@@ -9904,7 +12527,7 @@ const JobEntry = () => {
 
                     <td>
 
-                      <input value={line.sqft} readOnly className="job-readonly-input" />
+                      <input value={line.billableSqft || line.sqft || ""} readOnly className="job-readonly-input" />
 
                     </td>
 
@@ -10032,7 +12655,7 @@ const JobEntry = () => {
 
                         onChange={(option) => updateLine(line.id, "implementation", option?.value || "")}
 
-                        placeholder="-"
+                        placeholder="Select implementation"
 
                       />
 
@@ -10043,15 +12666,17 @@ const JobEntry = () => {
                     <td>
 
                      <DatePicker
-
   selected={line.jobDeadline ? new Date(line.jobDeadline) : null}
-
   onChange={(date) => updateLine(line.id, "jobDeadline", date)}
-
   showTimeSelect
-
+  timeIntervals={15}
   dateFormat="dd-MMM-yyyy hh:mm aa"
-
+  placeholderText="Select job deadline"
+  className="job-deadline-picker-input"
+  wrapperClassName="job-deadline-picker-wrapper"
+  popperClassName="job-deadline-picker-popper"
+  portalId="root"
+  showPopperArrow={false}
 />
 
                     </td>
@@ -10061,17 +12686,18 @@ const JobEntry = () => {
                     <td>
 
                   <DatePicker
-
   selected={line.printerDeadline ? new Date(line.printerDeadline) : null}
-
   onChange={(date) => updateLine(line.id, "printerDeadline", date)}
-
   showTimeSelect
-
+  timeIntervals={15}
   dateFormat="dd-MMM-yyyy hh:mm aa"
-
+  placeholderText="Select printer deadline"
   minDate={new Date()}
-
+  className="job-deadline-picker-input"
+  wrapperClassName="job-deadline-picker-wrapper"
+  popperClassName="job-deadline-picker-popper"
+  portalId="root"
+  showPopperArrow={false}
 />
 
                     </td>
@@ -10122,39 +12748,9 @@ const JobEntry = () => {
 
 
 
-        <section className="job-entry-footer">
-
-          <button className="job-wide-add" type="button" onClick={addLine}>
-
-            <FilePlus size={17} />
-
-            Add Row
-
-            <kbd>Alt+N</kbd>
-
-          </button>
-
-
-
-          <button className="job-new-store" type="button" onClick={addStore}>
-
-            <FolderPlus size={17} />
-
-            New Salon/Store
-
-            <kbd>Alt+M</kbd>
-
-          </button>
-
-        </section>
-
-
-
         <p className="job-shortcuts">
-
-            Shortcuts: Ctrl+S Save - Ctrl+E PDF - Ctrl+C/V Copy/Paste - Ctrl+A Select All - Ctrl+X Delete - Alt+N Add Line - Alt+M New Salon/Store - Esc Clear selection
-
-          </p>
+          Shortcuts: Ctrl+S Save - Ctrl+E PDF - Ctrl+C/V Copy/Paste - Ctrl+A Select All - Ctrl+X Delete - Alt+N Add Line - Esc Clear selection
+        </p>
 
           </>
 
@@ -10163,6 +12759,71 @@ const JobEntry = () => {
       </main>
 
 
+
+      {isEstimatePanelOpen && (
+        <div className="job-draft-backdrop" role="presentation" onClick={() => setIsEstimatePanelOpen(false)}>
+          <section className="job-draft-panel" role="dialog" aria-modal="true" aria-labelledby="estimate-popup-title" onClick={(event) => event.stopPropagation()}>
+            <div className="job-draft-header">
+              <div>
+                <h2 id="estimate-popup-title">All Estimates</h2>
+                <p>{isLoadingEstimates ? "Loading estimates..." : estimateRows.length ? `${estimateRows.length} estimate(s) available` : "No estimates found"}</p>
+              </div>
+              <button type="button" className="job-draft-close" onClick={() => setIsEstimatePanelOpen(false)}>x</button>
+            </div>
+            <div className="job-draft-toolbar">
+              <span>Select an existing estimate from the list below.</span>
+              <button type="button" className="job-primary-btn" onClick={fetchEstimates} disabled={isLoadingEstimates}>
+                <RotateCcw size={16} />
+                {isLoadingEstimates ? "Loading..." : "Refresh"}
+              </button>
+            </div>
+            <div className="job-draft-list">
+              {isLoadingEstimates ? (
+                <div style={{ padding: 24, textAlign: "center" }}>Loading estimates...</div>
+              ) : estimateRows.length ? (
+                estimateRows.map((item, index) => {
+                  const estimateNo = item.estimateNo || item.EstimateNo || "Estimate";
+                  const jobNo = item.jobNo || item.JobNo || "-";
+                  const client = item.client || item.Client || item.customerName || item.CustomerName || "No client";
+                  const projectName = item.projectName || item.ProjectName || "-";
+                  const grandTotal = item.grandTotal || item.GrandTotal || 0;
+                  const status = item.status || item.Status || "-";
+                  return (
+                    <article className="job-draft-card" key={item.id || item._id || estimateNo || index}>
+                      <div>
+                        <strong>{estimateNo}</strong>
+                        <span>{client}</span>
+                        <small>Job No: {jobNo}</small>
+                        <dl className="job-draft-details">
+                          <div><dt>Project</dt><dd>{projectName}</dd></div>
+                          <div><dt>Total Sq.ft</dt><dd>{item.totalSqFt || item.TotalSqFt || "-"}</dd></div>
+                          <div><dt>Grand Total</dt><dd>{formatIndianCurrency(grandTotal)}</dd></div>
+                          <div><dt>Status</dt><dd>{status}</dd></div>
+                        </dl>
+                      </div>
+                      <div className="job-draft-card-actions">
+                        <button
+                          type="button"
+                          className="job-draft-convert-btn"
+                          onClick={() => convertEstimateToJobCard(item)}
+                          disabled={isCreatingJob || isSaving}
+                        >
+                          Convert to Job Card
+                        </button>
+                        <button type="button" onClick={() => loadExistingEstimate(item)}>
+                          Load
+                        </button>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <div style={{ padding: 24, textAlign: "center" }}>No estimates found.</div>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
 
       {isDraftPanelOpen && (
 
@@ -10482,48 +13143,74 @@ const JobEntry = () => {
 
                   <strong>Current Job Rows</strong>
 
-                  <span>Total amount: {estimateMailTotals.amountTotal.toLocaleString("en-IN")}</span>
+                  <span>Total amount: {formatIndianCurrency(estimateMailTotals.amountTotal)}</span>
 
                 </div>
 
-                <div className="job-mail-charge-actions">
+                <div
+                  className="job-mail-charge-target"
+                  style={{
+                    marginBottom: "12px",
+                    padding: "12px",
+                    border: "1px solid #dbe3ef",
+                    borderRadius: "8px",
+                    background: "#f8fafc",
+                  }}
+                >
+                  <div style={{ fontSize: "13px", fontWeight: 700, marginBottom: "10px" }}>
+                    Store-wise Additional Charges
+                  </div>
 
-                  <button
+                  <div style={{ overflowX: "auto" }}>
+                    <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                      <thead>
+                        <tr>
+                          <th style={{ textAlign: "left", padding: "6px 8px" }}>Region</th>
+                          <th style={{ textAlign: "left", padding: "6px 8px" }}>Store / City / Address</th>
+                          <th style={{ textAlign: "right", padding: "6px 8px" }}>Installation</th>
+                          <th style={{ textAlign: "right", padding: "6px 8px" }}>Transportation</th>
+                          <th style={{ textAlign: "right", padding: "6px 8px" }}>Adaptation</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {estimateMailChargeTargets.map((target) => {
+                          const findChargeAmount = (chargeKey) =>
+                            estimateMailChargeRows.find(
+                              (row) =>
+                                row.chargeKey === chargeKey &&
+                                normalizeText(row.salonName) === normalizeText(target.salonName) &&
+                                normalizeText(row.billingLocation) === normalizeText(target.billingLocation)
+                            )?.amount || "";
 
-                    type="button"
-
-                    onClick={() => addEstimateMailChargeRows("installationCharges")}
-
-                  >
-
-                    Installation Charges
-
-                  </button>
-
-                  <button
-
-                    type="button"
-
-                    onClick={() => addEstimateMailChargeRows("transportationCharges")}
-
-                  >
-
-                    Transportation Charges
-
-                  </button>
-
-                  <button
-
-                    type="button"
-
-                    onClick={() => addEstimateMailChargeRows("layoutingCharges")}
-
-                  >
-
-                    Layouting Charges
-
-                  </button>
-
+                          return (
+                            <tr key={target.key}>
+                              <td style={{ padding: "6px 8px" }}>{target.region || "-"}</td>
+                              <td style={{ padding: "6px 8px", minWidth: "320px" }}>
+                                {target.storeDisplayName || target.salonName || "-"}
+                              </td>
+                              {ESTIMATE_MAIL_CHARGE_TYPES.map((chargeType) => (
+                                <td key={chargeType.key} style={{ padding: "6px 8px" }}>
+                                  <input
+                                    type="number"
+                                    value={findChargeAmount(chargeType.key)}
+                                    onChange={(event) =>
+                                      updateEstimateMailStoreCharge(
+                                        target,
+                                        chargeType.key,
+                                        event.target.value
+                                      )
+                                    }
+                                    placeholder="0"
+                                    style={{ width: "100%", textAlign: "right" }}
+                                  />
+                                </td>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
 
                 <div className="job-mail-preview-table-wrap current-job-rows-container">
@@ -10536,7 +13223,9 @@ const JobEntry = () => {
 
                         <th>Region</th>
 
-                        <th>Salon Name</th>
+                        <th>
+                          <span>Salon Name</span>
+                        </th>
 
                         <th>Description / Media</th>
 
@@ -10548,13 +13237,17 @@ const JobEntry = () => {
 
                         <th>Amount</th>
 
+                        <th>Action</th>
+
                       </tr>
 
                     </thead>
 
                     <tbody>
 
-                      {estimateMailLineItems.map((item) => (
+                      {estimateMailLineItems
+                        .filter((item) => !item.isChargeRow)
+                        .map((item) => (
 
                         <tr
 
@@ -10566,23 +13259,29 @@ const JobEntry = () => {
 
                           <td>{item.region || "-"}</td>
 
-                          <td>{item.salonName || "-"}</td>
+                          <td>
+                            <span>{item.salonName || "-"}</span>
+                          </td>
 
                           <td>{item.isChargeRow ? "" : item.media || "-"}</td>
 
                           <td>{item.qty || "-"}</td>
 
-                          <td>{item.printableSqft || "-"}</td>
+                          <td>{item.billableSqft || item.sqft || "-"}</td>
 
                           <td>{toNumber(item.rate).toLocaleString("en-IN")}</td>
 
-                          <td>{toNumber(item.amount).toLocaleString("en-IN")}</td>
+                          <td>{formatIndianCurrency(item.amount)}</td>
+
+                          <td>-</td>
 
                         </tr>
 
                       ))}
 
-                      {estimateMailChargeRows.map((row) => (
+                      {estimateMailChargeRows
+                        .filter((row) => toNumber(row.amount))
+                        .map((row) => (
 
                         <tr key={row.estimateLineKey} className="job-mail-charge-edit-row">
 
@@ -10616,6 +13315,24 @@ const JobEntry = () => {
 
                             />
 
+                          </td>
+
+                          <td>
+                            <button
+                              type="button"
+                              onClick={() => removeEstimateMailCharge(row.estimateLineKey)}
+                              title="Remove charge"
+                              style={{
+                                border: "1px solid #fecaca",
+                                color: "#dc2626",
+                                background: "#fff",
+                                borderRadius: "5px",
+                                padding: "4px 8px",
+                                cursor: "pointer",
+                              }}
+                            >
+                              Remove
+                            </button>
                           </td>
 
                         </tr>

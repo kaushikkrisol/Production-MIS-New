@@ -70,12 +70,30 @@ const CompletedPrinting = () => {
         }
     }, []);
 
+    const getLocationId = () => {
+    try {
+        const users = JSON.parse(localStorage.getItem("users"));
+
+        return (
+            users?.message?.location_id ||
+            users?.message?.locationId ||
+            users?.location_id ||
+            users?.locationId ||
+            ""
+        );
+    } catch {
+        return "";
+    }
+};
+
 
     const handleFetchCompletedPrinting = async () => {
             setLoading(true);
             try {
-
-                const response = await axios.post(config.Printing.URL.GetCompletedPrinting, {
+                const payload = {
+                locationId: getLocationId()
+            };               
+             const response = await axios.post(config.Printing.URL.GetCompletedPrinting, payload, {
                     timeout: 10000,
                     headers: {
                         'Content-Type': 'application/json' // Ensure the correct content type
@@ -267,144 +285,318 @@ const CompletedPrinting = () => {
         console.log(`Production id: ${id}`);
     };
 
+    const selectStyles = {
+    control: (base, state) => ({
+        ...base,
+        minHeight: "44px",
+        height: "44px",
+        borderColor: state.isFocused ? "#95312f" : "#dbe0e6",
+        boxShadow: state.isFocused
+            ? "0 0 0 1px #95312f"
+            : "none",
+        "&:hover": {
+            borderColor: "#95312f"
+        }
+    }),
+
+    valueContainer: (base) => ({
+        ...base,
+        height: "42px",
+        padding: "0 12px"
+    }),
+
+    indicatorsContainer: (base) => ({
+        ...base,
+        height: "42px"
+    }),
+
+    menuPortal: (base) => ({
+        ...base,
+        zIndex: 99999
+    }),
+
+    menu: (base) => ({
+        ...base,
+        zIndex: 99999
+    }),
+
+    option: (base, state) => ({
+        ...base,
+        cursor: "pointer",
+        backgroundColor: state.isSelected
+            ? "#95312f"
+            : state.isFocused
+                ? "#f5e8e7"
+                : "#ffffff",
+        color: state.isSelected ? "#ffffff" : "#212529"
+    })
+};
+
 
     const  handleDetailedreason  = (e) => {
         const value = e.target.value;
         setDetailedReason(value);
         if (value) setError('');
     }
-    return (
-      <div className="completed-printing-page">
-  {/* Row 1 */}
-  <Row className="g-3 align-items-end">
-    <Col lg={8}>
-      <Form.Group>
-        <Form.Label>Job No</Form.Label>
-        <Select
-          options={jobNoOptions}
-          value={jobNoOptions.find(o => o.value === selectedExJobNumber) || null}
-          onChange={handleExJobNoSelectChange}
-          placeholder="Select Job No"
-        />
-      </Form.Group>
-    </Col>
+ return (
+    <div className="completed-printing-page">
 
-    <Col lg={2} className="d-grid">
-      <Button onClick={handleSearch}>Search</Button>
-    </Col>
+        <div className="completed-printing-filter-card">
 
-    <Col lg={2} className="d-grid">
-      <Button onClick={handleReprint} variant="danger">Reprint</Button>
-    </Col>
-  </Row>
+            <Row className="g-3 align-items-end">
+                <Col xl={8} lg={7} md={12}>
+                    <Form.Group>
+                        <Form.Label className="completed-printing-label">
+                            Job No
+                        </Form.Label>
 
-  {/* Row 2 */}
-  <Row className="g-3 mt-1">
-    <Col lg={6}>
-      <Form.Label>Reason for Reprint</Form.Label>
-      <Select
-        options={reasonOptions}
-        value={reasonOptions.find(o => o.value === reason) || null}
-        onChange={handlereason}
-        placeholder="Select reason"
-      />
-    </Col>
+                        <Select
+                            classNamePrefix="completed-select"
+                            options={jobNoOptions}
+                            value={
+                                jobNoOptions.find(
+                                    option =>
+                                        option.value === selectedExJobNumber
+                                ) || null
+                            }
+                            onChange={handleExJobNoSelectChange}
+                            placeholder="Select Job No"
+                            isClearable
+                            isSearchable
+                            styles={selectStyles}
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
+                            maxMenuHeight={220}
+                            noOptionsMessage={() => "No job numbers found"}
+                        />
+                    </Form.Group>
+                </Col>
 
-    <Col lg={6}>
-      <Form.Label>Detailed Remark</Form.Label>
-      <Form.Control
-        type="text"
-        placeholder="Enter detailed reason"
-        value={detailedReason}
-        onChange={handleDetailedreason}
-      />
-    </Col>
+                <Col xl={2} lg={2} md={6}>
+                    <Button
+                        type="button"
+                        className="completed-search-button"
+                        onClick={handleSearch}
+                        disabled={loading}
+                    >
+                        {loading ? "Loading..." : "Search"}
+                    </Button>
+                </Col>
 
-    {error && <div className="text-danger mt-2">{error}</div>}
-  </Row>
-            <div style={{ overflowX: 'auto', overflowY: 'auto' }}>
-                <Table striped bordered hover className='w-100 mb-0'>
-                    <thead>
-                        <tr>
-                        <th><Form.Check
+                <Col xl={2} lg={3} md={6}>
+                    <Button
+                        type="button"
+                        className="completed-reprint-button"
+                        onClick={handleReprint}
+                    >
+                        Reprint
+                    </Button>
+                </Col>
+            </Row>
+
+            <Row className="g-3 completed-reason-row">
+                <Col xl={6} lg={6} md={12}>
+                    <Form.Group>
+                        <Form.Label className="completed-printing-label">
+                            Reason for Reprint
+                        </Form.Label>
+
+                        <Select
+                            classNamePrefix="completed-select"
+                            options={reasonOptions}
+                            value={
+                                reasonOptions.find(
+                                    option => option.value === reason
+                                ) || null
+                            }
+                            onChange={handlereason}
+                            placeholder="Select reason"
+                            isClearable
+                            isSearchable
+                            styles={selectStyles}
+                            menuPortalTarget={document.body}
+                            menuPosition="fixed"
+                            maxMenuHeight={220}
+                        />
+                    </Form.Group>
+                </Col>
+
+                <Col xl={6} lg={6} md={12}>
+                    <Form.Group>
+                        <Form.Label className="completed-printing-label">
+                            Detailed Remark
+                        </Form.Label>
+
+                        <Form.Control
+                            type="text"
+                            className="completed-reason-input"
+                            placeholder="Enter detailed reason"
+                            value={detailedReason}
+                            onChange={handleDetailedreason}
+                        />
+                    </Form.Group>
+                </Col>
+            </Row>
+
+            {error && (
+                <div className="completed-printing-error">
+                    {error}
+                </div>
+            )}
+        </div>
+
+        <div className="completed-printing-table-container">
+            <Table
+                bordered
+                hover
+                responsive={false}
+                className="completed-printing-table"
+            >
+                <thead>
+                    <tr>
+                        <th className="checkbox-column">
+                            <Form.Check
                                 type="checkbox"
                                 onChange={handleSelectAllChange}
                                 checked={isSelectAllChecked}
-                            /></th>
-                            <th>Date</th>
-                            <th>Job ID</th>
-                            <th>Printer Name</th>
-                            <th>Qty</th>
-                            <th>Print W.</th>
-                            <th>Print L.</th>
-                            <th>Print SQ.Ft.</th>
-                            <th>Media</th>
-                            <th>Implementation (Y/N)</th>
-                            <th>Deadline</th>
-                            <th>Lamination Media Type</th>
-                            <th>Mounting</th>
-                            <th>Salon Address</th>
-                            <th>Client</th>
-                            <th>Sub Client</th>
-                            <th>Account Manager</th>
-                            <th>Visual Code</th>
-                            <th>Name Sub Code</th>
-                            <th>Remarks</th>
+                            />
+                        </th>
 
+                        <th>Date</th>
+                        <th>Job ID</th>
+                        <th>Printer Name</th>
+                        <th>Qty</th>
+                        <th>Print W.</th>
+                        <th>Print L.</th>
+                        <th>Print SQ.Ft.</th>
+                        <th>Media</th>
+                        <th>Implementation (Y/N)</th>
+                        <th>Deadline</th>
+                        <th>Lamination Media Type</th>
+                        <th>Mounting</th>
+                        <th>Salon Address</th>
+                        <th>Client</th>
+                        <th>Sub Client</th>
+                        <th>Account Manager</th>
+                        <th>Visual Code</th>
+                        <th>Name Sub Code</th>
+                        <th>Remarks</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {loading ? (
+                        <tr>
+                            <td
+                                colSpan={20}
+                                className="completed-empty-row"
+                            >
+                                Loading completed printing records...
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {filteredData.length > 0 ? (
-                            filteredData.map((row) => (
-                                <tr key={row.id}>
-                                    <td>
+                    ) : filteredData.length > 0 ? (
+                        filteredData.map((row, index) => {
+                            const rowId =
+                                row.id ||
+                                row._id ||
+                                `${row.jobNo}-${index}`;
+
+                            return (
+                                <tr key={rowId}>
+                                    <td className="checkbox-column">
                                         <Form.Check
-                                            key={row.id}
                                             type="checkbox"
-                                            checked={!!selectedRows[row.id]}
-                                            onChange={() => handleCheckboxChange(row.id)}
+                                            checked={
+                                                !!selectedRows[rowId]
+                                            }
+                                            onChange={() =>
+                                                handleCheckboxChange(rowId)
+                                            }
                                             disabled={row.isCompleted}
                                         />
                                     </td>
-                                    <td>{row.date}</td>
-                                    <td>{row.jobNo}</td>
-                                    <td>{'-'}</td>
-                                    <td>{row.qty}</td>
+
+                                    <td>{row.date || "-"}</td>
+                                    <td>{row.jobNo || "-"}</td>
+
                                     <td>
-    {row.width && !isNaN(parseFloat(row.width)) ? (Math.ceil(parseFloat(row.width) * 100) / 100).toFixed(2) : ''}
-  </td>
-  <td>
-    {row.height && !isNaN(parseFloat(row.height)) ? (Math.ceil(parseFloat(row.height) * 100) / 100).toFixed(2) : ''}
-  </td>
-  <td>
-    {row.totalSqFt && !isNaN(parseFloat(row.totalSqFt)) ? (Math.ceil(parseFloat(row.totalSqFt) * 100) / 100).toFixed(2) : ''}
-  </td>
-                                    <td>{row.media}</td>
-                                    <td>{row.implementation}</td>
-                                    <td>{row.deadline}</td>
-                                    <td>{row.lamination}</td>
-                                    <td>{row.mounting}</td>
-                                    <td>{row.salonAddress}</td>
-                                    <td>{row.client}</td>
-                                    <td>{row.subClient}</td>
-                                    <td>{row.accountManager}</td>
-                                    <td>{row.visualCode}</td>
-                                    <td>{row.nameSubCode}</td>
-                                    <td>{row.remarks}</td>
+                                        {Array.isArray(row.printerName)
+                                            ? row.printerName.join(", ")
+                                            : row.printerName || "-"}
+                                    </td>
+
+                                    <td>{row.qty ?? "-"}</td>
+
+                                    <td>
+                                        {row.width &&
+                                        !Number.isNaN(
+                                            Number.parseFloat(row.width)
+                                        )
+                                            ? Number.parseFloat(
+                                                  row.width
+                                              ).toFixed(2)
+                                            : "-"}
+                                    </td>
+
+                                    <td>
+                                        {row.height &&
+                                        !Number.isNaN(
+                                            Number.parseFloat(row.height)
+                                        )
+                                            ? Number.parseFloat(
+                                                  row.height
+                                              ).toFixed(2)
+                                            : "-"}
+                                    </td>
+
+                                    <td>
+                                        {row.totalSqFt &&
+                                        !Number.isNaN(
+                                            Number.parseFloat(
+                                                row.totalSqFt
+                                            )
+                                        )
+                                            ? Number.parseFloat(
+                                                  row.totalSqFt
+                                              ).toFixed(2)
+                                            : "-"}
+                                    </td>
+
+                                    <td>{row.media || "-"}</td>
+                                    <td>{row.implementation || "-"}</td>
+                                    <td>{row.deadline || "-"}</td>
+                                    <td>{row.lamination || "-"}</td>
+                                    <td>{row.mounting || "-"}</td>
+                                    <td>{row.salonAddress || "-"}</td>
+                                    <td>{row.client || "-"}</td>
+                                    <td>{row.subClient || "-"}</td>
+                                    <td>{row.accountManager || "-"}</td>
+                                    <td>{row.visualCode || "-"}</td>
+                                    <td>{row.nameSubCode || "-"}</td>
+                                    <td>{row.remarks || "-"}</td>
                                 </tr>
-                            ))
-                        ) : (
-                            <tr>
-                                <td colSpan="20" className="text-center">No results found</td>
-                            </tr>
-                        )}
-                        
-                    </tbody>
-                </Table>
-                <div><ToastContainer /></div>
-            </div>
+                            );
+                        })
+                    ) : (
+                        <tr>
+                            <td
+                                colSpan={20}
+                                className="completed-empty-row"
+                            >
+                                No completed printing records found
+                            </td>
+                        </tr>
+                    )}
+                </tbody>
+            </Table>
         </div>
-    );
+
+        <ToastContainer
+            position="top-right"
+            autoClose={3000}
+        />
+    </div>
+);
 };
 
 export default CompletedPrinting;

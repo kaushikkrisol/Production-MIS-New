@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import PptxGenJS from "pptxgenjs";
 import { jsPDF } from "jspdf";
@@ -11,8 +11,10 @@ import exportCoverTemplate from "./whatsapp-export-assets/image2.png";
 import exportLogo from "./whatsapp-export-assets/image3.jpeg";
 import exportThankYouTemplate from "./whatsapp-export-assets/image4.png";
 
-const PAGE_SIZE = 1000;
-const MAX_INITIAL_ROWS = 10000;
+// Keep the dashboard light: only this many job/store cards are returned and
+// rendered at one time. The API must apply Skip/Limit for this to be effective.
+const PAGE_SIZE = 12;
+const CARD_PREVIEW_IMAGE_COUNT = 4;
 const EXPORT_SLIDE_WIDTH = 13.333;
 const EXPORT_SLIDE_HEIGHT = 7.5;
 const EXPORT_IMAGES_PER_PAGE = 4;
@@ -396,6 +398,96 @@ const getImageUrls = (item = {}) => {
   return [...new Set(urls)];
 };
 
+const groupImplementationRows = (rows = []) =>
+  Array.from(
+    rows
+      .reduce((map, item, index) => {
+        const itemJobNo = getImplementationValue(
+          item,
+          "jobNo",
+          "JobNo",
+          "jobNumber",
+          "JobNumber",
+          "comartJobNo",
+          "ComartJobNo"
+        );
+        const itemStoreName = getImplementationValue(
+          item,
+          "storeName",
+          "StoreName",
+          "salonStoreName",
+          "SalonStoreName",
+          "store",
+          "Store"
+        );
+
+        // Do not merge unrelated incomplete records when both values are absent.
+        const normalizedJobNo = normalizeSearchText(itemJobNo);
+        const normalizedStoreName = normalizeSearchText(itemStoreName);
+        const key =
+          normalizedJobNo || normalizedStoreName
+            ? `${normalizedJobNo}__${normalizedStoreName}`
+            : `missing-identifiers-${index}`;
+        const mediaFiles = getMediaFiles(item);
+
+        if (!map.has(key)) {
+          map.set(key, { ...item, mediaFiles: [...mediaFiles] });
+          return map;
+        }
+
+        const existingItem = map.get(key);
+        const existingMediaFiles = getMediaFiles(existingItem);
+        const seenUrls = new Set(
+          existingMediaFiles
+            .map((file) =>
+              typeof file === "string"
+                ? file
+                : getValue(
+                    file,
+                    "url",
+                    "Url",
+                    "fileUrl",
+                    "FileUrl",
+                    "imageUrl",
+                    "ImageUrl",
+                    "path",
+                    "Path"
+                  )
+            )
+            .map(normalizeSearchText)
+            .filter(Boolean)
+        );
+
+        const newMediaFiles = mediaFiles.filter((file) => {
+          const url =
+            typeof file === "string"
+              ? file
+              : getValue(
+                  file,
+                  "url",
+                  "Url",
+                  "fileUrl",
+                  "FileUrl",
+                  "imageUrl",
+                  "ImageUrl",
+                  "path",
+                  "Path"
+                );
+          const normalizedUrl = normalizeSearchText(url);
+          if (!normalizedUrl || seenUrls.has(normalizedUrl)) return false;
+          seenUrls.add(normalizedUrl);
+          return true;
+        });
+
+        map.set(key, {
+          ...existingItem,
+          mediaFiles: [...existingMediaFiles, ...newMediaFiles],
+        });
+        return map;
+      }, new Map())
+      .values()
+  );
+
 const getUploadedFilesCount = (item = {}) => {
   const count = getImplementationValue(item, "uploadedFilesCount", "UploadedFilesCount", "mediaFilesCount", "MediaFilesCount");
   return count || getMediaFiles(item).length;
@@ -430,10 +522,33 @@ const parseFileNameTimestamp = (fileName) => {
   const minute = Number(digits.slice(10, 12) || "0");
   const second = Number(digits.slice(12, 14) || "0");
 
-  if (!year || !month || !day || month > 12 || day > 31) return null;
+  const currentYear = new Date().getFullYear();
+  if (
+    year < 2000 ||
+    year > currentYear + 1 ||
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    hour > 23 ||
+    minute > 59 ||
+    second > 59
+  ) {
+    return null;
+  }
 
   const date = new Date(year, month - 1, day, hour, minute, second);
-  return Number.isNaN(date.getTime()) ? null : date;
+  // Reject rollover dates such as 31-Feb.
+  if (
+    Number.isNaN(date.getTime()) ||
+    date.getFullYear() !== year ||
+    date.getMonth() !== month - 1 ||
+    date.getDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
 };
 
 const getLatestFileNameTimestamp = (item = {}) => {
@@ -453,7 +568,15 @@ const getEffectiveUploadDate = (item = {}) => {
 
   if (explicitValue) {
     const parsed = new Date(explicitValue);
-    if (!Number.isNaN(parsed.getTime())) return parsed;
+    const currentYear = new Date().getFullYear();
+    // Corrupt values such as year 8794/4652 must not be shown or used to sort.
+    if (
+      !Number.isNaN(parsed.getTime()) &&
+      parsed.getFullYear() >= 2000 &&
+      parsed.getFullYear() <= currentYear + 1
+    ) {
+      return parsed;
+    }
   }
 
   return getLatestFileNameTimestamp(item);
@@ -480,6 +603,52 @@ const isWithinDateRange = (date, fromValue, toValue) => {
 
 const getEnteredBy = (item = {}) =>
   getImplementationValue(item, "UploadEnteredBy", "uploadEnteredBy", "enteredby", "enteredBy", "entrdby", "Entrdby");
+
+const getImplementorName = (item = {}) =>
+  getImplementationValue(
+    item,
+    "implementorName",
+    "ImplementorName",
+    "implementerName",
+    "ImplementerName",
+    "implementationBy",
+    "ImplementationBy",
+    "assignName",
+    "AssignName",
+    "assignedTo",
+    "AssignedTo",
+    "assignedName",
+    "AssignedName"
+  ) || getEnteredBy(item);
+
+const getImplementorMobile = (item = {}) =>
+  getImplementationValue(
+    item,
+    "implementorMobile",
+    "ImplementorMobile",
+    "implementorMobileNo",
+    "ImplementorMobileNo",
+    "implementorPhone",
+    "ImplementorPhone",
+    "implementerMobile",
+    "ImplementerMobile",
+    "mobileNo",
+    "MobileNo",
+    "mobileNumber",
+    "MobileNumber",
+    "mobile",
+    "Mobile",
+    "phone",
+    "Phone",
+    "phoneNo",
+    "PhoneNo",
+    "contactNo",
+    "ContactNo",
+    "contactPersonPhone",
+    "ContactPersonPhone",
+    "contactPhone",
+    "ContactPhone"
+  );
 
 const getImageType = (item = {}) =>
   getMediaFiles(item)
@@ -684,6 +853,8 @@ const getExportInfo = (item = {}) => {
     uploadDate: formatDateTime(uploadDate),
     filesCount: getUploadedFilesCount(item) || getImageUrls(item).length,
     enteredBy: getEnteredBy(item),
+    implementorName: getImplementorName(item),
+    implementorMobile: getImplementorMobile(item),
     imageType: getImageType(item),
     description: getImplementationValue(item, "description", "Description", "remarks", "Remarks"),
     title,
@@ -698,6 +869,8 @@ const getExportMetaLine = (info) =>
     `Status: ${info.status}`,
     `Upload Date: ${info.uploadDate}`,
     `Files: ${info.filesCount || 0}`,
+    info.implementorName ? `Implementor: ${info.implementorName}` : "",
+    info.implementorMobile ? `Mobile: ${info.implementorMobile}` : "",
     info.enteredBy ? `Entered By: ${info.enteredBy}` : "",
   ]
     .filter(Boolean)
@@ -1068,66 +1241,87 @@ const downloadPdfReport = async (item) => {
   return { missingImages: images.filter((image) => image.error).length };
 };
 
-const getImplementationUploads = async ({ pageNo = 1, jobNo = "", storeName = "" } = {}) => {
-  const pagedUrl = config.ImplementationUpload?.URL?.GetAllWithImagesPaged;
-
-  if (pagedUrl) {
-    const params = new URLSearchParams({
-      page: String(pageNo),
-      pageSize: String(PAGE_SIZE),
-    });
-
-    if (jobNo.trim()) params.append("jobNo", jobNo.trim());
-    if (storeName.trim()) params.append("storeName", storeName.trim());
-
-    const response = await axios.get(`${pagedUrl}?${params.toString()}`);
-    const payload = response.data || {};
-
-    return {
-      rows: getRowsFromResponse(payload.data || payload),
-      page: Number(payload.page || pageNo),
-      pageSize: Number(payload.pageSize || PAGE_SIZE),
-      totalRecords: Number(payload.totalRecords || payload.totalCount || 0),
-      totalPages: Number(payload.totalPages || 1),
-    };
-  }
-
-  const url =
+const getImplementationUploads = async ({
+  pageNo = 1,
+  jobNo = "",
+  storeName = "",
+  dateFrom = "",
+  dateTo = "",
+  signal,
+} = {}) => {
+  // Use the exact route already present in the user's config.js:
+  // https://productionapi.comart.in/api/ImplementationUpload/GetAllWithImages
+  const implementationUrl =
     config.ImplementationUpload?.URL?.GetAllWithImages ||
     config.ImplementationUpload?.URL?.GetAllImplementationUpload;
 
-  if (!url) {
-    throw new Error(
-      "ImplementationUpload URL missing. Please add GetAllWithImagesPaged or GetAllWithImages in config.js"
-    );
+  if (!implementationUrl) {
+    throw new Error("GetAllWithImages is missing in config.js.");
   }
 
-  const response = await axios.get(url);
-  const allRows = getRowsFromResponse(response.data)
-    .filter((row) => getMediaFiles(row).length > 0)
-    .sort((a, b) => {
-      const dateA = getEffectiveUploadDate(a)?.getTime() || 0;
-      const dateB = getEffectiveUploadDate(b)?.getTime() || 0;
-      return dateB - dateA;
-    })
-    .slice(0, MAX_INITIAL_ROWS);
+  const params = new URLSearchParams({
+    page: String(pageNo),
+    pageSize: String(PAGE_SIZE),
+  });
 
-  const filteredRows = filterImplementationRows(allRows, jobNo, storeName);
-  const totalRecords = filteredRows.length;
-  const totalPages = Math.max(1, Math.ceil(totalRecords / PAGE_SIZE));
-  const startIndex = (pageNo - 1) * PAGE_SIZE;
+  if (jobNo.trim()) params.append("jobNo", jobNo.trim());
+  if (storeName.trim()) params.append("storeName", storeName.trim());
+  if (dateFrom) params.append("dateFrom", dateFrom);
+  if (dateTo) params.append("dateTo", dateTo);
+
+  const response = await axios.get(
+    `${implementationUrl}?${params.toString()}`,
+    { signal }
+  );
+  const payload = response.data || {};
+  const returnedRows = getRowsFromResponse(payload.data || payload);
+  const hasServerPaging =
+    payload &&
+    !Array.isArray(payload) &&
+    (
+      payload.totalRecords !== undefined ||
+      payload.totalCount !== undefined ||
+      payload.totalPages !== undefined
+    );
+
+  // New backend: use its already-paged result directly.
+  // Existing backend: filter/sort/page the returned array so the UI still
+  // renders only 12 cards and never loads all images into the DOM.
+  const filteredRows = hasServerPaging
+    ? returnedRows
+    : returnedRows
+        .filter((row) => jobMatches(row, jobNo))
+        .filter((row) => storeMatches(row, storeName))
+        .filter((row) =>
+          isWithinDateRange(getEffectiveUploadDate(row), dateFrom, dateTo)
+        );
+
+  // The legacy API can return several upload rows for the same job/store.
+  // Combine those rows before calculating totals and before applying paging.
+  const groupedAndSortedRows = groupImplementationRows(filteredRows)
+        .sort((a, b) => {
+          const dateA = getEffectiveUploadDate(a)?.getTime() || 0;
+          const dateB = getEffectiveUploadDate(b)?.getTime() || 0;
+          return dateB - dateA;
+        });
+
+  const totalRecords = hasServerPaging
+    ? Number(payload.totalRecords ?? payload.totalCount ?? returnedRows.length)
+    : groupedAndSortedRows.length;
+  const pageSize = Number(payload.pageSize || PAGE_SIZE);
+  const startIndex = (pageNo - 1) * pageSize;
+  const rows = hasServerPaging
+    ? groupedAndSortedRows
+    : groupedAndSortedRows.slice(startIndex, startIndex + pageSize);
 
   return {
-    rows: filteredRows.slice(startIndex, startIndex + PAGE_SIZE),
-    page: pageNo,
-    pageSize: PAGE_SIZE,
+    rows,
+    page: Number(payload.page || pageNo),
+    pageSize,
     totalRecords,
-    totalPages,
+    totalPages: Number(payload.totalPages || Math.max(1, Math.ceil(totalRecords / pageSize))),
   };
 };
-
-const filterImplementationRows = (rows, jobNumber, store) =>
-  rows.filter((row) => jobMatches(row, jobNumber) && storeMatches(row, store));
 
 const WhatsappDashboard = () => {
   const [jobNo, setJobNo] = useState("");
@@ -1145,12 +1339,21 @@ const WhatsappDashboard = () => {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalRecords, setTotalRecords] = useState(0);
+  const activeRequestRef = useRef(null);
+  const requestNumberRef = useRef(0);
 
   const loadImplementationData = async (pageNo = 1, overrideFilters = null) => {
     const activeJobNo = overrideFilters?.jobNo ?? jobNo;
     const activeStoreName = overrideFilters?.storeName ?? storeName;
     const activeDateFrom = overrideFilters?.dateFrom ?? dateFrom;
     const activeDateTo = overrideFilters?.dateTo ?? dateTo;
+
+    // React StrictMode and quick page/filter clicks can start a second request.
+    // Cancel the older request so its response cannot overwrite the latest page.
+    activeRequestRef.current?.abort();
+    const controller = new AbortController();
+    activeRequestRef.current = controller;
+    const requestNumber = ++requestNumberRef.current;
 
     setLoading(true);
     setError(null);
@@ -1162,7 +1365,12 @@ const WhatsappDashboard = () => {
         pageNo,
         jobNo: activeJobNo,
         storeName: activeStoreName,
+        dateFrom: activeDateFrom,
+        dateTo: activeDateTo,
+        signal: controller.signal,
       });
+
+      if (requestNumber !== requestNumberRef.current) return;
 
       const groupedRows = Array.from(
         result.rows
@@ -1238,8 +1446,7 @@ const WhatsappDashboard = () => {
         return dateB - dateA;
       });
 
-      // Apply the date-range filter client-side so it works no matter which API path served
-      // the rows (the backend endpoints don't currently accept date filter params).
+      // This is a safety check. The backend should apply this filter before Skip/Limit.
       const dateFilteredRows = groupedRows.filter((row) =>
         isWithinDateRange(getEffectiveUploadDate(row), activeDateFrom, activeDateTo)
       );
@@ -1247,7 +1454,7 @@ const WhatsappDashboard = () => {
       setImplementationData(dateFilteredRows);
       setPage(result.page);
       setTotalPages(result.totalPages);
-      setTotalRecords(dateFilteredRows.length);
+      setTotalRecords(result.totalRecords);
 
       if (!dateFilteredRows.length) {
         setError(
@@ -1257,6 +1464,7 @@ const WhatsappDashboard = () => {
         );
       }
     } catch (err) {
+      if (axios.isCancel(err) || err?.code === "ERR_CANCELED") return;
       setError(
         err?.message ||
           err.response?.data?.message ||
@@ -1268,12 +1476,16 @@ const WhatsappDashboard = () => {
       setTotalPages(1);
       setPage(1);
     } finally {
-      setLoading(false);
+      if (requestNumber === requestNumberRef.current) {
+        setLoading(false);
+      }
     }
   };
 
   useEffect(() => {
     loadImplementationData();
+    return () => activeRequestRef.current?.abort();
+    // Initial page only. Filters load when Search is clicked.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -1460,6 +1672,8 @@ const WhatsappDashboard = () => {
               const imageUrls = getImageUrls(item);
               const uploadDate = getEffectiveUploadDate(item);
               const uploadedBy = getEnteredBy(item);
+              const implementorName = getImplementorName(item);
+              const implementorMobile = getImplementorMobile(item);
               const filesCount = getUploadedFilesCount(item);
               const imageType = getImageType(item);
               const itemJobNo = getImplementationValue(
@@ -1497,6 +1711,12 @@ const WhatsappDashboard = () => {
                           <strong>Date:</strong> {formatDate(uploadDate)}
                         </p>
                         <p>
+                          <strong>Implementor Name:</strong> {implementorName || "N/A"}
+                        </p>
+                        <p>
+                          <strong>Mobile Number:</strong> {implementorMobile || "N/A"}
+                        </p>
+                        <p>
                           <strong>Files:</strong> {filesCount || 0}
                           {imageType && <span className="image-type-text"> {imageType}</span>}
                         </p>
@@ -1516,7 +1736,7 @@ const WhatsappDashboard = () => {
                         <div className="implementation-images mt-3">
                           <strong>Images:</strong>
                           <div className="image-gallery">
-                            {imageUrls.map((img, imgIndex) => (
+                            {imageUrls.slice(0, CARD_PREVIEW_IMAGE_COUNT).map((img, imgIndex) => (
                               <div key={img} className="image-thumbnail">
                                 <DashboardImage
                                   src={img}
@@ -1527,6 +1747,15 @@ const WhatsappDashboard = () => {
                               </div>
                             ))}
                           </div>
+                          {imageUrls.length > CARD_PREVIEW_IMAGE_COUNT && (
+                            <button
+                              type="button"
+                              className="btn btn-link btn-sm px-0 mt-1"
+                              onClick={() => setSelectedItem(item)}
+                            >
+                              View all {imageUrls.length} images
+                            </button>
+                          )}
                         </div>
                       )}
 
@@ -1630,6 +1859,12 @@ const WhatsappDashboard = () => {
                 </p>
                 <p>
                   <strong>Upload Date:</strong> {formatDateTime(getEffectiveUploadDate(selectedItem))}
+                </p>
+                <p>
+                  <strong>Implementor Name:</strong> {getImplementorName(selectedItem) || "N/A"}
+                </p>
+                <p>
+                  <strong>Mobile Number:</strong> {getImplementorMobile(selectedItem) || "N/A"}
                 </p>
                 <p>
                   <strong>Files:</strong> {getUploadedFilesCount(selectedItem) || 0}

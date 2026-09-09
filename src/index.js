@@ -1,5 +1,6 @@
 import React from "react";
 import { BrowserRouter } from "react-router-dom";
+import axios from "axios";
 import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
 import "../node_modules/bootstrap/dist/js/bootstrap.bundle.js";
 import { base_path } from "./environment.jsx";
@@ -13,6 +14,20 @@ import { createRoot } from "react-dom/client";
 import { Provider } from "react-redux";
 import store from "./core/redux/store.jsx";
 import AllRoutes from "./Router/router.jsx";
+
+const APP_API_TIMEOUT_MS = 60000;
+
+axios.defaults.timeout = APP_API_TIMEOUT_MS;
+axios.interceptors.request.use((requestConfig) => {
+  const nextConfig = { ...requestConfig };
+  const requestTimeout = Number(nextConfig.timeout);
+
+  if (!Number.isFinite(requestTimeout) || requestTimeout < APP_API_TIMEOUT_MS) {
+    nextConfig.timeout = APP_API_TIMEOUT_MS;
+  }
+
+  return nextConfig;
+});
 
 const rootElement = document.getElementById("root");
 

@@ -476,7 +476,13 @@ const WeeklyAuditReport = () => {
     } catch (error) {
       console.error("Weekly audit report failed", error);
       setRows([]);
-      setMessage("Unable to generate weekly audit report. Please check API connection.");
+      const status = error?.response?.status;
+      const apiMessage = error?.response?.data?.message || error?.response?.data?.title;
+      setMessage(
+        status === 500
+          ? "The audit report service could not generate this report. Please contact the API team."
+          : apiMessage || "Unable to generate weekly audit report. Please try again."
+      );
     } finally {
       setLoading(false);
     }

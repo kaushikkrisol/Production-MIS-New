@@ -26,7 +26,7 @@ const fallbackCustomers = [
 
 const getCustomerKey = (customer) =>
   String(
-    customer?.customeR_ID ?? customer?.CustomerId ?? customer?.CUSTOMER_ID ?? ""
+    customer?.customeR_ID ?? customer?.customerId ?? customer?.CustomerId ?? customer?.CUSTOMER_ID ?? ""
   ).trim();
 
 const normalizeText = (value) =>
@@ -34,6 +34,12 @@ const normalizeText = (value) =>
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+
+// Explicit aliases preserve division/branch distinctions for other customers.
+export const normalizeCustomerName = (value) => {
+  const name = normalizeText(value);
+  return name === "loreal india private limited r i mum" ? "loreal india" : name;
+};
 
 export const mergeFallbackCustomers = (customers) => {
   const merged = new Map();
@@ -85,15 +91,12 @@ export const findCustomerRecord = (customers, source = {}) => {
     .map(normalizeText)
     .filter(Boolean);
 
-  return (
-    customerList.find((customer) => {
-      const customerName = normalizeText(customer?.customeR_NAME);
-      return (
-        customerName &&
-        candidateNames.some((name) => name === customerName)
-      );
-    }) || null
-  );
+  const nameOf = (customer) => customer?.customeR_NAME || customer?.customerName || customer?.CustomerName || customer?.CUSTOMER_NAME;
+  const exact = customerList.filter((customer) => candidateNames.includes(normalizeText(nameOf(customer))));
+  if (exact.length) return exact.length === 1 ? exact[0] : null;
+  const aliases = candidateNames.map(normalizeCustomerName);
+  const matches = customerList.filter((customer) => aliases.includes(normalizeCustomerName(nameOf(customer))));
+  return matches.length === 1 ? matches[0] : null;
 };
 
 export default fallbackCustomers;

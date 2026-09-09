@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import Select from 'react-select';
 import config from '../../../../config';
@@ -14,6 +14,7 @@ const getLoggedInUser = () => {
 
 const getRows = (data) => {
   if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.stores)) return data.stores;
   if (Array.isArray(data?.items)) return data.items;
   if (Array.isArray(data?.data)) return data.data;
   if (Array.isArray(data?.result)) return data.result;
@@ -159,8 +160,27 @@ const formatCustomerOption = (option, { context }) => {
   );
 };
 
+const getStoreId = (store) =>
+  String(
+    store?.id ??
+      store?._id?.$oid ??
+      store?._id ??
+      store?.storeId ??
+      store?.StoreId ??
+      ''
+  ).trim();
+
 const normalizeStoreRow = (store) => ({
-  id: store?.id || store?._id || store?.storeId || store?.StoreId || '',
+  id: getStoreId(store),
+  storeCode: String(
+    store?.storeCode ??
+      store?.StoreCode ??
+      store?.storecode ??
+      store?.STORECODE ??
+      store?.code ??
+      store?.Code ??
+      ''
+  ).trim(),
   storeName: store?.storeName || store?.StoreName || store?.name || '',
   address: store?.address || store?.Address || store?.storeAddress || store?.StoreAddress || '',
   location: store?.location || store?.Location || '',
@@ -194,6 +214,8 @@ const getDistinctStoreRows = (rows) => {
 };
 
 const StoreMaster = () => {
+  const customerLoadStartedRef = useRef(false);
+  const storeLoadStartedRef = useRef(false);
   const [customers, setCustomers] = useState([]);
   const [stores, setStores] = useState([]);
   const [form, setForm] = useState({
@@ -201,6 +223,7 @@ const StoreMaster = () => {
     customerName: '',
     gstNo: '',
     panCard: '',
+    storeCode: '',
     storeName: '',
     address: '',
     location: '',
@@ -244,6 +267,9 @@ const StoreMaster = () => {
   const selectedCustomerOption = getSelectedOption(customerOptions, form.customerId);
 
   useEffect(() => {
+    if (customerLoadStartedRef.current) return;
+
+    customerLoadStartedRef.current = true;
     const users = getLoggedInUser();
     const locationId = users?.location_id || users?.locationId || '';
 
@@ -266,18 +292,20 @@ const StoreMaster = () => {
   }, []);
 
   useEffect(() => {
-    if (form.customerId) {
-      // Fetch stores for selected customer
-      axios.get(`${config.Store.URL.List}?customerId=${encodeURIComponent(form.customerId)}`, { timeout: 10000 })
-        .then(res => setStores(getDistinctStoreRows(getRows(res.data).map(normalizeStoreRow))))
-        .catch((error) => {
-          console.error('Error loading stores', error);
-          setStores([]);
-        });
-    } else {
-      setStores([]);
-    }
-  }, [form.customerId]);
+    if (storeLoadStartedRef.current) return;
+
+    storeLoadStartedRef.current = true;
+    axios.get(config.Store.URL.List, { timeout: 10000 })
+      .then(res => {
+        const rows = getRows(res.data).map(normalizeStoreRow);
+        setStores(getDistinctStoreRows(rows));
+      })
+      .catch((error) => {
+        console.error('Error loading stores', error);
+        setStores([]);
+        setMessage('Error loading stores');
+      });
+  }, []);
 
   const handleChange = e => {
     const { name, value } = e.target;
@@ -311,41 +339,18 @@ const StoreMaster = () => {
   };
 
   const buildPayload = () => {
-    const users = getLoggedInUser();
-    const locationId = users?.location_id || users?.locationId || '';
-    const userName = users?.username || users?.userName || users?.name || '';
     const panCard = form.panCard || getPanFromGstin(form.gstNo);
 
     return {
-      id: '',
-      customerId: form.customerId,
       CustomerId: form.customerId,
-      customerName: form.customerName,
-      CustomerName: form.customerName,
-      gstNo: form.gstNo,
-      GstNo: form.gstNo,
-      GSTNo: form.gstNo,
-      panCard,
       PanCard: panCard,
-      panNo: panCard,
-      storeName: form.storeName,
-      StoreName: form.storeName,
-      address: form.address,
-      Address: form.address,
-      location: form.location,
-      Location: form.location,
-      city: form.city,
-      City: form.city,
-      locationId,
-      locationid: locationId,
-      Enteredby: userName,
-      Entereddat: new Date().toISOString(),
+      StoreCode: form.storeCode.trim(),
+      StoreName: form.storeName.trim(),
+      Address: form.address.trim(),
+      Location: form.location.trim(),
+      City: form.city.trim(),
     };
   };
-
-  const selectedCustomerGstNo = form.gstNo || getCustomerGstNo(
-    customers.find(customer => getCustomerId(customer) === String(form.customerId))
-  );
 
   const handleSubmit = async e => {
     e.preventDefault();
@@ -366,7 +371,7 @@ const StoreMaster = () => {
         return;
       }
 
-      if (!payload.panCard) {
+      if (!payload.PanCard) {
         setMessage('Please enter a valid GST No. PAN could not be generated.');
         setLoading(false);
         return;
@@ -377,9 +382,8 @@ const StoreMaster = () => {
         headers: { 'Content-Type': 'application/json' },
       });
       setMessage('Store added successfully');
-      setForm({ ...form, panCard: payload.panCard, storeName: '', address: '', location: '', city: '' });
-      // Refresh store list
-      const res = await axios.get(`${config.Store.URL.List}?customerId=${encodeURIComponent(form.customerId)}`, { timeout: 10000 });
+      setForm({ ...form, panCard: payload.PanCard, storeCode: '', storeName: '', address: '', location: '', city: '' });
+      const res = await axios.get(config.Store.URL.List, { timeout: 10000 });
       setStores(getDistinctStoreRows(getRows(res.data).map(normalizeStoreRow)));
     } catch (error) {
       console.error('Error adding store', error);
@@ -519,7 +523,7 @@ const StoreMaster = () => {
 
         <div className="store-master-header">
           <h4>Store Master</h4>
-          <span className="store-master-count">{customerOptions.length} Customers</span>
+          <span className="store-master-count">{stores.length} Stores</span>
         </div>
 
         {message && <div className="alert alert-info">{message}</div>}
@@ -558,6 +562,10 @@ const StoreMaster = () => {
               <input name="panCard" value={form.panCard} className="form-control store-readonly-box" readOnly required />
             </div>
             <div className="col-lg-3 col-md-6">
+              <label>Store Code</label>
+              <input name="storeCode" value={form.storeCode} onChange={handleChange} className="form-control" required />
+            </div>
+            <div className="col-lg-3 col-md-6">
               <label>Store Name</label>
               <input name="storeName" value={form.storeName} onChange={handleChange} className="form-control" required />
             </div>
@@ -583,17 +591,17 @@ const StoreMaster = () => {
 
         <div className="store-master-table-panel">
           <div className="store-master-table-title">
-            <h5>Stores for selected customer</h5>
+            <h5>All Stores</h5>
           </div>
           <div className="table-responsive">
             <table className="table table-bordered store-master-table">
               <thead>
                 <tr>
                   <th>Store Name</th>
+                  <th>Store Code</th>
                   <th>Address</th>
                   <th>Location</th>
                   <th>City</th>
-                  <th>GST No</th>
                   <th>PAN Card</th>
                 </tr>
               </thead>
@@ -602,10 +610,10 @@ const StoreMaster = () => {
                   stores.map(s => (
                     <tr key={s.id || s._id || `${s.storeName}-${s.city}`}>
                       <td>{s.storeName || '-'}</td>
+                      <td>{s.storeCode || '-'}</td>
                       <td>{s.address || '-'}</td>
                       <td>{s.location || '-'}</td>
                       <td>{s.city || '-'}</td>
-                      <td>{s.gstNo || selectedCustomerGstNo || '-'}</td>
                       <td>{s.panCard || '-'}</td>
                     </tr>
                   ))

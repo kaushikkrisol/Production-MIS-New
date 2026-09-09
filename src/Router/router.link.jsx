@@ -235,6 +235,8 @@ const Production = lazy(() => import("../feature-module/uiinterface/table/Produc
 const StoreMaster = lazy(() => import("../feature-module/uiinterface/table/store/StoreMaster"));
 const Recce = lazy(() => import("../feature-module/uiinterface/table/Recce"));
 const RetailCustomer = lazy(() => import("../feature-module/uiinterface/table/RetailCustomer"));
+const MediaMaster = lazy(() => import("../feature-module/uiinterface/table/MediaMaster"));
+
 export const publicRoutes = [
   {
     id: 1,
@@ -1656,6 +1658,7 @@ export const publicRoutes = [
     element: <JobEntry />,
     route: Route,
   },
+
   {
     id: 130,
     path: routes.storeMaster,
@@ -1677,6 +1680,13 @@ export const publicRoutes = [
     element: <RetailCustomer />,
     route: Route,
   },
+  {
+    id: 133,
+    path:routes.mediaMaster,
+    name:"mediaMaster",
+    element:<MediaMaster/>,
+    route:Route
+  }
   
 ];
 export const posRoutes = [

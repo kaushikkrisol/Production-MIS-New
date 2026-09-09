@@ -718,15 +718,15 @@ const ElementGroupMaster = () => {
 
   const validateForm = () => {
     if (!canManageElementGroups) {
-      return "Only Branch Manager / Finance / Accounts team users can create or edit element groups.";
+      return "Only Branch Manager / Finance / Accounts team users can create or edit BOQ records.";
     }
 
     if (!String(form.elementGroupCode || "").trim()) {
-      return "Please enter element group code.";
+      return "Please enter BOQ code.";
     }
 
     if (!String(form.elementGroupName || "").trim()) {
-      return "Please enter element group name.";
+      return "Please enter BOQ name.";
     }
 
     return "";
@@ -811,7 +811,7 @@ const ElementGroupMaster = () => {
 
       await fetchElementGroups({ showFallbackMessage: false });
 
-      setMessage(isUpdate ? "Element group updated." : "Element group added.");
+      setMessage(isUpdate ? "BOQ updated." : "BOQ added.");
       setForm(emptyForm);
     } catch (error) {
       console.error("Error saving element group", error);
@@ -860,7 +860,7 @@ const ElementGroupMaster = () => {
 
       if (form.id === rowId) resetForm();
 
-      setMessage("Element group deleted.");
+      setMessage("BOQ deleted.");
     } catch (error) {
       console.error("Error deleting element group", error);
       setMessage("API unavailable or failed to delete on server.");
@@ -891,9 +891,9 @@ const ElementGroupMaster = () => {
 
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
           <div>
-            <h4 className="mb-1">Element Group Master</h4>
+            <h4 className="mb-1">BOQ Master</h4>
             <p className="text-muted mb-0">
-              Maintain master element groups with group code, name, description and status.
+              Maintain master BOQ records with code, name, description and status.
             </p>
           </div>
 
@@ -917,11 +917,11 @@ const ElementGroupMaster = () => {
           </Alert>
         )}
 
-        {isLoading && <Alert variant="info">Loading element groups...</Alert>}
+        {isLoading && <Alert variant="info">Loading BOQ records...</Alert>}
 
         {!canManageElementGroups && (
           <Alert variant="warning">
-            Element group creation and editing is limited to Branch Manager /
+            BOQ creation and editing is limited to Branch Manager /
             Finance / Accounts team users.
           </Alert>
         )}
@@ -929,7 +929,7 @@ const ElementGroupMaster = () => {
         <Card className="element-group-card mb-3">
           <Card.Body>
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-              <h5 className="mb-0">Element Group List</h5>
+              <h5 className="mb-0">BOQ List</h5>
 
               <Form.Control
                 style={{ maxWidth: 320 }}
@@ -944,8 +944,8 @@ const ElementGroupMaster = () => {
                 <tr>
                   <th>Customer</th>
                   <th>PAN Card</th>
-                  <th>Element Group Code</th>
-                  <th>Element Group Name</th>
+                  <th>BOQ Code</th>
+                  <th>BOQ Name</th>
                   <th>Description</th>
                   <th>Status</th>
                   <th>Action</th>
@@ -994,7 +994,7 @@ const ElementGroupMaster = () => {
                 ) : (
                   <tr>
                     <td colSpan={7} className="text-center text-muted">
-                      No element groups found.
+                      No BOQ records found.
                     </td>
                   </tr>
                 )}
@@ -1030,7 +1030,7 @@ const ElementGroupMaster = () => {
 
                 <Col md={3}>
                   <Form.Group>
-                    <Form.Label>Element Group Code</Form.Label>
+                    <Form.Label>BOQ Code</Form.Label>
                     <Form.Control
                       value={form.elementGroupCode}
                       onChange={(e) =>
@@ -1056,7 +1056,7 @@ const ElementGroupMaster = () => {
 
                 <Col md={5}>
                   <Form.Group>
-                    <Form.Label>Element Group Name</Form.Label>
+                    <Form.Label>BOQ Name</Form.Label>
                     <Form.Control
                       value={form.elementGroupName}
                       onChange={(e) =>

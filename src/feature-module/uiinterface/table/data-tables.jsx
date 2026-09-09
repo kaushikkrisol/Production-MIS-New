@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { all_routes } from "../../../Router/all_routes";
 import { Modal, ModalBody, ModalHeader, Table as ExcelTable } from 'reactstrap';
 import { Table, Tab, Form, Nav, NavItem, Button, Row, NavLink, Card, Col, CardBody, Alert, Spinner, InputGroup } from 'react-bootstrap';
@@ -137,6 +137,7 @@ const formatAlertTime = (value) => {
     hour12: true,
   });
 };
+
 
 const getRowsFromApiResponse = (data) => {
   if (Array.isArray(data)) return data;
@@ -312,6 +313,8 @@ const normalizeStoredProgressAlert = (row = {}) => {
 // import { el } from "date-fns/locale";
 
 const DataTables = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   // const [searchText, setSearchText] = useState("");
   //const [selectTable, setSelectTable] = useState("CS");
   // const [isMobile, setIsMobile] = useState(false);
@@ -329,6 +332,7 @@ const DataTables = () => {
   const [headers, setHeaders] = useState([]);
   const [hsnCode, setHsnCode] = useState("");
   const [data, setData] = useState([]);
+  const [uploadData, setUploadData] = useState([]);
   console.log(data);
 
   const [selectSearchTerm, setSelectSearchTerm] = useState('');
@@ -345,6 +349,8 @@ const DataTables = () => {
   const isMountedRef = useRef(false);
   const [totalValues, setTotalValues] = useState({ width: 0, height: 0 });
   const [rolename,setRolename]=useState('');
+  const isAdminDelete =
+    String(rolename || "").trim().toLowerCase() === "admindelete";
   const gridRef = useRef();
   const [validationErrors, setValidationErrors] = useState([]);
   const [showValidationModal, setShowValidationModal] = useState(false);
@@ -422,6 +428,20 @@ const DataTables = () => {
   const [showLength, setShowLength] = useState(false);
   const [actualSqFt, setActualSqFt] = useState(0);
   const [isAlertAccepted, setIsAlertAccepted] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== "undefined" ? window.innerWidth <= 768 : false
+  );
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const gmailStatus = (params.get("gmail") || "").trim().toLowerCase();
+
+    if (gmailStatus !== "failed") return;
+
+    navigate(`${all_routes.signin}?gmail=${encodeURIComponent(gmailStatus)}`, {
+      replace: true,
+    });
+  }, [location.search, navigate]);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -429,6 +449,19 @@ const DataTables = () => {
     return () => {
       isMountedRef.current = false;
       latestJobsRequestRef.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobileViewport(window.innerWidth <= 768);
+    };
+
+    handleResize();
+    window.addEventListener("resize", handleResize);
+
+    return () => {
+      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -490,6 +523,7 @@ const DataTables = () => {
     "Billing Location": "Billing  Location",
     "Visual Code": "VISUAL CODE",
     "Product Details": "Name & Sub Code",
+    "Salon / Store Name": "Salon/Store Name",
     "City": "CITY",
     "Qty": "QTY",
     "Width": "Width",
@@ -508,6 +542,7 @@ const DataTables = () => {
     "Lamination": "LAMINATION",
     "Mounting": "MOUNTING",
     "Implementation": "Implementation",
+    "Branding Location": "Branding Location",
     "Salon / Store Address": "SALON ADDRESS",
     "Remarks / Instructions": "Remarks/Instructions",
   };
@@ -543,7 +578,7 @@ const DataTables = () => {
     { key: 'remarks', placeholder: 'Remarks / Instructions', type: 'text' },
   ]
 
-  const editableFields = [
+const editableFields = [
   "billinglocation",
   "qty",
   "width",
@@ -557,9 +592,22 @@ const DataTables = () => {
 const dropdownFields = ["productionlocation", "billinglocation"];
 const dropdownValues = ["North", "South", "East", "West"];
 
+const normalizedRoleName = String(rolename || "").trim().toLowerCase();
+const canEditBillingLocation =
+  editableFields.includes("billinglocation") &&
+  (
+    normalizedRoleName === "branch manager" ||
+    normalizedRoleName.includes("finance") ||
+    normalizedRoleName.includes("accounts") ||
+    normalizedRoleName.includes("accountant")
+  );
+
 const customColumnDefs = filterConfig.map(column => {
   const fieldKey = column.key.toLowerCase();
-  const isEditable = rolename === "Branch Manager" && editableFields.includes(fieldKey);
+  const isEditable =
+    fieldKey === "billinglocation"
+      ? canEditBillingLocation
+      : normalizedRoleName === "branch manager" && editableFields.includes(fieldKey);
 
   // Dropdown editor for location fields
   if (dropdownFields.includes(fieldKey)) {
@@ -1247,7 +1295,7 @@ const onSelectionChanged = () => {
   }
 };
 
- const [columnDefs] = useState([
+ const columnDefs = useMemo(() => ([
   {
     headerCheckboxSelection: true,
     checkboxSelection: true,
@@ -1298,7 +1346,7 @@ const onSelectionChanged = () => {
       </span>
     )
   }
-]);
+]), [customColumnDefs]);
 
   const defaultColDef = useMemo(() => ({
     flex: 1,
@@ -1314,7 +1362,18 @@ const onSelectionChanged = () => {
   // You can now push them into AG Grid or save to Mongo
   // Example: POST to Addjobdetails API
 
-  axios.post(config.JobSummary.URL.Addjobdetails, orderItems)
+  const currentDate = new Date().toISOString().split("T")[0];
+  const normalizedOrderItems = (Array.isArray(orderItems) ? orderItems : []).map((item) =>
+    normalizeAddJobDetailsRow(item, {
+      currentDate,
+      userName,
+      username: user,
+      userId,
+      emailid,
+    })
+  );
+
+  axios.post(config.JobSummary.URL.Addjobdetails, normalizedOrderItems)
     .then(res => {
       toast.success("Accepted orders added as jobs");
       GetAllJobAccToLocation({ forceRefresh: true }); // Refresh grid
@@ -1665,6 +1724,79 @@ const getRowsFromAnyResponse = (payload) => {
   return [];
 };
 
+const getTotalCountFromAnyResponse = (payload) => {
+  const candidates = [
+    payload?.totalCount,
+    payload?.total,
+    payload?.count,
+    payload?.recordsTotal,
+    payload?.data?.totalCount,
+    payload?.data?.total,
+  ];
+
+  const totalCount = candidates
+    .map(Number)
+    .find((value) => Number.isFinite(value) && value >= 0);
+
+  return totalCount;
+};
+
+const getPageSignature = (rows) => {
+  if (!rows.length) return "";
+
+  const getIdentity = (row) =>
+    row?.id ?? row?._id ?? row?.csId ?? row?.jobNo ?? JSON.stringify(row);
+
+  return `${rows.length}|${getIdentity(rows[0])}|${getIdentity(rows[rows.length - 1])}`;
+};
+
+const JOBS_API_PAGE_SIZE =4000;
+
+const fetchAllJobPages = async (endpoint, basePayload) => {
+  const firstResponse = await axios.post(endpoint, {
+    ...basePayload,
+    pageNumber: 1,
+    pageSize: JOBS_API_PAGE_SIZE,
+  });
+
+  const firstResponseData = firstResponse.data;
+  const firstPageRows = getRowsFromAnyResponse(firstResponseData);
+  const totalCount = getTotalCountFromAnyResponse(firstResponseData);
+
+  if (!totalCount || firstPageRows.length >= totalCount || firstPageRows.length === 0) {
+    return firstPageRows;
+  }
+
+  const allRows = [...firstPageRows];
+  const pageSignatures = new Set([getPageSignature(firstPageRows)]);
+  const actualPageSize = firstPageRows.length;
+  const totalPages = Math.ceil(totalCount / actualPageSize);
+
+  for (let pageNumber = 2; pageNumber <= totalPages; pageNumber += 1) {
+    const response = await axios.post(endpoint, {
+      ...basePayload,
+      pageNumber,
+      pageSize: JOBS_API_PAGE_SIZE,
+    });
+    const pageRows = getRowsFromAnyResponse(response.data);
+
+    if (pageRows.length === 0) break;
+
+    const pageSignature = getPageSignature(pageRows);
+    if (pageSignatures.has(pageSignature)) {
+      console.warn("Jobs API repeated a page; stopping pagination to avoid duplicate rows.");
+      break;
+    }
+
+    pageSignatures.add(pageSignature);
+    allRows.push(...pageRows);
+
+    if (allRows.length >= totalCount || pageRows.length < actualPageSize) break;
+  }
+
+  return allRows.slice(0, totalCount);
+};
+
 const GetAllJobAccToLocation = async ({ forceRefresh = false } = {}) => {
   const users = localStorage.getItem("users");
   if (!users) {
@@ -1702,13 +1834,11 @@ const GetAllJobAccToLocation = async ({ forceRefresh = false } = {}) => {
     const responseData = await fetchCached(
       dashboardApiResponseCache,
       getApiCacheKey(config.JobSummary.URL.GetAllJobsAccToLocation, payload),
-      async () => {
-        const response = await axios.post(
+      () =>
+        fetchAllJobPages(
           config.JobSummary.URL.GetAllJobsAccToLocation,
           payload
-        );
-        return response.data;
-      },
+        ),
       { forceRefresh }
     );
 
@@ -1874,7 +2004,7 @@ const getStoreName = (row) =>
   "Store Not Available";
 
 
-  const getCustomerName = (row) =>
+const getCustomerName = (row) =>
   row.client ||
   row.Client ||
   row.CLIENT ||
@@ -2350,6 +2480,7 @@ const checkImplementationUploadNotifications = useCallback(() => {
   }, [isDraggingAlert, dragStart, dragStartPos]);
 
   const handleAlertMouseDown = (event) => {
+    if (isMobileViewport) return;
     if (!alertRef.current) return;
     const rect = alertRef.current.getBoundingClientRect();
     setIsDraggingAlert(true);
@@ -2440,8 +2571,8 @@ const checkImplementationUploadNotifications = useCallback(() => {
     if (BulkAdd) {
       // Reset states when closing the modal
       setBulkAdd(false);
-      setHeaders([]); // Reset to an empty array
-      // setData([]);    // Reset to an empty array
+      setHeaders([]);
+      setUploadData([]);
     } else {
       setBulkAdd(true);
     }
@@ -2629,6 +2760,47 @@ const getExcelBillingLocation = (row = {}) =>
 const getExcelProductionLocation = (row = {}) =>
   row["Production Location"] ?? row.ProductionLocation ?? row.productionLocation;
 
+const normalizeAddJobDetailsRow = (row = {}, defaults = {}) => {
+  const resolvedJobNo = row["Job No"] ?? row.JobNo ?? row.jobNo ?? "";
+  const resolvedClient =
+    row.CLIENT ?? row.Client ?? row.client ?? row.customerName ?? row.customername ?? "";
+  const resolvedSubClient =
+    row["Sub Client"] ?? row.SubClient ?? row.subClient ?? row.subclient ?? row.category ?? "";
+  const resolvedDate = row.Date ?? row["Job Date"] ?? row.jobdate ?? defaults.currentDate ?? "";
+  const resolvedProductionLocation = getExcelProductionLocation(row) ?? "";
+  const resolvedBillingLocation = getExcelBillingLocation(row) ?? "";
+  const resolvedUserName =
+    row.userName ?? row.username ?? row.UserName ?? defaults.userName ?? defaults.username ?? "";
+  const resolvedUserId =
+    row.UserId ?? row.userId ?? row.userid ?? row.user_id ?? defaults.userId ?? "";
+  const resolvedEmailId = row.emailid ?? row.emailId ?? row.EmailId ?? defaults.emailid ?? "";
+
+  return {
+    ...row,
+    ISnewjob: String(row.ISnewjob ?? row.isnewjob ?? "0"),
+    JobNo: resolvedJobNo,
+    "Job No": resolvedJobNo,
+    Client: resolvedClient,
+    CLIENT: resolvedClient,
+    SubClient: resolvedSubClient,
+    "Sub Client": resolvedSubClient,
+    Date: resolvedDate,
+    "Job Date": resolvedDate,
+    ProductionLocation: resolvedProductionLocation,
+    "Production Location": resolvedProductionLocation,
+    BillingLocation: resolvedBillingLocation,
+    "Billing  Location": resolvedBillingLocation,
+    enteredby: row.enteredby ?? resolvedUserName,
+    userid: row.userid ?? resolvedUserId,
+    UserId: resolvedUserId,
+    user_id: row.user_id ?? resolvedUserId,
+    userName: resolvedUserName,
+    username: row.username ?? resolvedUserName,
+    emailid: resolvedEmailId,
+    entereddt: row.entereddt ?? defaults.currentDate ?? "",
+  };
+};
+
 const validateRequiredLocations = (rows) => {
   const errors = [];
 
@@ -2769,179 +2941,235 @@ const exportValidationErrorsToExcel = async () => {
       setHeaders(Object.values(normalizedHeaderMap));
 
 // Validate mandatory upload fields before preview/submission.
-const errors = [
-  ...validateRequiredLocations(mappedData),
-  ...validateDeadlines(mappedData),
-];
+// Excel validations apply only to Existing Job.
+  if (activeTab === "existingJob") {
+  const errors = [
+    ...validateRequiredLocations(mappedData),
+    ...validateDeadlines(mappedData),
+  ];
 
-if (errors.length > 0) {
-  setData([]);               // block preview
-  showExcelValidationUI(errors);
-  return;
+  if (errors.length > 0) {
+    setUploadData([]);
+    showExcelValidationUI(errors);
+    return;
+  }
 }
 
-setData(mappedData);
-      console.log('✅ Mapped Excel Headers:', Object.values(normalizedHeaderMap));
-      console.log('✅ Parsed Data:', mappedData);
+setUploadData(mappedData);
+
     };
 
     reader.readAsBinaryString(file);
   };
 
-  {/*submitting excel data*/ }
-  const submitDataToAPI = async (e) => {
-    const user_id = getLoggedInUserId();
-    // let ISnewjob = 1;
+ const submitDataToAPI = async (e) => {
+  e.preventDefault();
 
-    if (!user_id) {
-      setError("User not logged in");
-      return;
-    }
-   // if (!emailid) {
-     // toast.error("Email id not found!");
-      //return;
-    //}
-    e.preventDefault();
+  const loggedInUserId = getLoggedInUserId();
 
-    const validationErrors = [
-      ...validateRequiredLocations(data),
-      ...validateDeadlines(data),
+  if (!loggedInUserId) {
+    setError("User not logged in");
+    return;
+  }
+
+  /*
+   * These validations apply only to Existing Job:
+   * - Production Location required
+   * - Billing Location required
+   * - Job Deadline required and valid
+   * - Printer Deadline required and valid
+   */
+  if (activeTab === "existingJob") {
+    const existingJobValidationErrors = [
+      ...validateRequiredLocations(uploadData),
+      ...validateDeadlines(uploadData),
     ];
 
-    if (validationErrors.length > 0) {
-      showExcelValidationUI(validationErrors);
+    if (existingJobValidationErrors.length > 0) {
+      showExcelValidationUI(existingJobValidationErrors);
       return;
     }
 
-    try {
-      startLoading();
+    if (!newJobNo || !String(newJobNo).trim()) {
+      toast.error("Please select an existing Job Number.");
+      return;
+    }
 
-      const dataWithUsernames = data.map(item => ({
-        ...item,  // Spread existing properties
-        userName: userName, // Add the username field
-        user_id: user_id,
-        username: user,
-        emailid: emailid,
+    if (!Array.isArray(uploadData) || uploadData.length === 0) {
+      toast.error("Please upload an Excel file.");
+      return;
+    }
+  }
+
+  try {
+    startLoading();
+
+    if (activeTab === "existingJob") {
+      const existingJobData = uploadData.map((item) => ({
+        ...item,
+        "Job No": newJobNo,
+        CLIENT: clients,
+        UserId: userId || loggedInUserId || "",
+        userName: userName || user || "",
+        user_id: loggedInUserId || userId || "",
+        username: user || userName || "",
+        emailid: emailid || "",
         entereddt: currentDate,
+        ISnewjob: "0",
       }));
 
-      console.log('data with unames', dataWithUsernames, newJobNo, clients, subClients);
-      console.log("API URL: ", config.JobSummary.URL.Addjobdetails);
+      console.log("Existing job payload:", existingJobData);
 
-      // const jobNumbers = [];
+      const response = await axios.post(
+        config.JobSummary.URL.Addjobdetails,
+        existingJobData
+      );
 
-      if (newJobNo != '')
-      {
-        // ISnewjob = 0;
-        let newdata = dataWithUsernames.map(item => ({
-          ...item,  // Spread existing properties
-          "Job No": newJobNo,
-          "CLIENT": clients,
-          "UserId": userId,
-          // "Sub Client": subClients,
+      const jobNoCreated =
+        response?.data?.jobno ||
+        response?.data?.jobNo ||
+        newJobNo ||
+        "";
 
-          ISnewjob:'0'
-        }));
+      setLatestJobNo(jobNoCreated);
 
-        console.log("newdata",newdata);
-        const response = await axios.post(config.JobSummary.URL.Addjobdetails, newdata);
-        console.log("response of the job number", newdata);
-        const jobNoCreated = response.data.jobno || response.data.jobNo || '';
-        setLatestJobNo(jobNoCreated); // after existing job response
-
-        console.log("Job created successfully. Job No:", jobNoCreated);
-        const data = response.config.data;
-        const parsedData = JSON.parse(data);
-        const jobNumbers = parsedData.map(item => item['Job No']);
-        console.log("Data submitted successfully: ", jobNumbers);
-        console.log("data is here ",data)
-
-        if (jobNoCreated) {
-          toast.success(`Job created successfully. Job No: ${jobNoCreated}`);
-        } else {
-          toast.success(`Job created successfully`);
-        }
-
-        
-
-        // Reset the state after submission
-        setHeaders([]);
-        setData([]);
-        setBulkAdd(false);      
-      }
-      else {    
-        // ISnewjob = 1;
-        let newdata = dataWithUsernames.map(item => ({
-          ...item,
-          ISnewjob: '1',
-          "customername": customerName,
-          "businessType": businessType,
-          "customerEmail": customerEmail,
-          "contactPerson": contactPerson,
-          "customerid": customerid,
-          "lpono": lpono,
-          "lpodate": lpoDate.toString(),
-          "potype": poType,
-          "jobdesc": "",
-          "enteredby": userName,
-          "userid": userId,
-          "locationid": locationid,
-          "emailid": emailid,
-        }));
-      
-        const newemptyjob = [{
-          ISnewjob: '1',
-          customername: customerName,
-          businessType: businessType,
-          customerEmail: customerEmail,
-          contactPerson: contactPerson,
-          customerid: customerid,
-          lpono: lpono,
-          lpodate: lpoDate.toString(),
-          potype: poType,
+      toast.success(
+        jobNoCreated
+          ? `Job updated successfully. Job No: ${jobNoCreated}`
+          : "Existing job updated successfully."
+      );
+    } else {
+      /*
+       * New Job:
+       * No Production Location validation
+       * No Billing Location validation
+       * No Job/Printer Deadline validation
+       */
+      const newJobData = [
+        {
+          ISnewjob: "1",
+          customername: customerName || "",
+          businessType: businessType || "",
+          customerEmail: customerEmail || "",
+          contactPerson: contactPerson || "",
+          customerid: customerid || "",
+          lpono: lpono || "",
+          lpodate: lpoDate ? String(lpoDate) : "",
+          potype: poType || "",
+          hsnCode: hsnCode || "",
           jobdesc: "",
-          enteredby: userName,
-          userid: userId,
-          locationid: locationid,
-          emailid: emailid,
-          projectname:projectname,
-        }];
-      
-        newdata = newemptyjob;
-      
-        const response = await axios.post(config.JobSummary.URL.Addjobdetails, newdata);
-      
-        const createdJobNo = response?.data?.jobno || ""; 
-        console.log("Data submitted successfully: ", response);
-        setLatestJobNo(createdJobNo); // after new job response
+          enteredby: userName || "",
+          userid: userId || loggedInUserId,
+          user_id: loggedInUserId,
+          username: user || userName || "",
+          userName: userName || "",
+          locationid: locationid || "",
+          emailid: emailid || "",
+          projectname: projectname || "",
+          entereddt: currentDate,
+        },
+      ];
 
-      
-        if (createdJobNo) {
-          toast.success(`Job created successfully. Job No: ${createdJobNo}`);
-        } else {
-          toast.success("Job created successfully.");
-        }
+      console.log("New job payload:", newJobData);
+
+      const response = await axios.post(
+        config.JobSummary.URL.Addjobdetails,
+        newJobData
+      );
+
+      const createdJobNo =
+        response?.data?.jobno ||
+        response?.data?.jobNo ||
+        "";
+
+      if (createdJobNo && Array.isArray(uploadData) && uploadData.length > 0) {
+        const newJobDetailData = uploadData.map((item) => ({
+          ...item,
+          ISnewjob: "0",
+          JobNo: createdJobNo,
+          "Job No": createdJobNo,
+          client: customerName || item.client || "",
+          CLIENT: customerName || item.CLIENT || item.client || "",
+          customerName: customerName || item.customerName || "",
+          customername: customerName || item.customername || "",
+          customerid: customerid || item.customerid || "",
+          businessType: businessType || item.businessType || "",
+          customerEmail: customerEmail || item.customerEmail || "",
+          contactPerson: contactPerson || item.contactPerson || "",
+          lpono: lpono || item.lpono || "",
+          lpodate: lpoDate ? String(lpoDate) : item.lpodate || "",
+          potype: poType || item.potype || "",
+          hsnCode: hsnCode || item.hsnCode || "",
+          enteredby: userName || item.enteredby || "",
+          userid: userId || loggedInUserId,
+          UserId: userId || loggedInUserId,
+          user_id: loggedInUserId,
+          username: user || userName || item.username || "",
+          userName: userName || item.userName || "",
+          locationid: locationid || item.locationid || "",
+          emailid: emailid || item.emailid || "",
+          projectname: projectname || item.projectname || "",
+          ProductionLocation:
+            item.ProductionLocation || item.productionLocation || item["Production Location"] || "",
+          "Production Location":
+            item["Production Location"] || item.ProductionLocation || item.productionLocation || "",
+          BillingLocation:
+            item.BillingLocation ||
+            item.billingLocation ||
+            item["Billing  Location"] ||
+            item["Billing Location"] ||
+            "",
+          "Billing  Location":
+            item["Billing  Location"] ||
+            item["Billing Location"] ||
+            item.BillingLocation ||
+            item.billingLocation ||
+            "",
+          entereddt: currentDate,
+        }));
+
+        console.log("New job detail payload:", newJobDetailData);
+
+        await axios.post(config.JobSummary.URL.Addjobdetails, newJobDetailData);
       }
 
-      // Reset form and UI
-      resetForm();
-      toggleBulkAdd();
-      // fetchJobs();
-      setHeaders([]);
-      // setData([]);
+      setLatestJobNo(createdJobNo);
 
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        console.error("Axios error: ", error.message);
-      } else {
-        console.error("Unexpected error: ", error);
-      }
-      toast.error(error.message);
-    } finally {
-      stopLoading();
+      toast.success(
+        createdJobNo
+          ? `Job created successfully. Job No: ${createdJobNo}`
+          : "Job created successfully."
+      );
     }
-  };
 
+    resetForm();
+    setProjectname("");
+    setHsnCode("");
+    setHeaders([]);
+    setValidationErrors([]);
+    setShowValidationModal(false);
+    setUploadData([]);
+    setBulkAdd(false);
+
+    GetAllJobAccToLocation({ forceRefresh: true });
+  } catch (error) {
+    console.error("Error submitting job:", error);
+
+    const errorMessage =
+      error?.response?.data?.message ||
+      error?.response?.data ||
+      error?.message ||
+      "Failed to save job.";
+
+    toast.error(
+      typeof errorMessage === "string"
+        ? errorMessage
+        : "Failed to save job."
+    );
+  } finally {
+    stopLoading();
+  }
+};
 
   console.log(customerid);
   
@@ -3229,30 +3457,64 @@ setData(mappedData);
       activeNotificationJobs.some((job) => job.notificationType === rule.notificationType)
     );
 
+  const alertPanelStyle = isMobileViewport
+    ? {
+        position: "fixed",
+        left: 12,
+        right: 12,
+        top: 76,
+        width: "auto",
+        maxHeight: "72vh",
+        zIndex: 1055,
+        borderRadius: 10,
+        overflow: "auto",
+        boxShadow: "0 12px 30px rgba(15,23,42,0.22)",
+        padding: "14px",
+        background: "rgba(255,255,255,0.98)",
+        userSelect: "auto",
+      }
+    : {
+        position: "fixed",
+        left: alertPosition?.left ?? 0,
+        top: alertPosition?.top ?? 0,
+        width: "100vw",
+        height: "100vh",
+        zIndex: 99999,
+        borderRadius: 0,
+        overflow: "auto",
+        boxShadow: "none",
+        padding: "35px",
+        background: "rgba(255,255,255,0.98)",
+        userSelect: "auto",
+      };
+
+  const alertTileStyle = (background, color = "#fff") => ({
+    background,
+    color,
+    borderRadius: isMobileViewport ? 8 : 20,
+    padding: isMobileViewport ? "12px" : "30px",
+    minHeight: isMobileViewport ? "92px" : "220px",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "center",
+    alignItems: "flex-start",
+    boxShadow: isMobileViewport
+      ? "0 6px 18px rgba(0,0,0,0.15)"
+      : "0 14px 40px rgba(0,0,0,0.25)",
+    animation: "pulseBlink 1.2s infinite",
+  });
+
   return (
     <div>
       <div className="page-wrapper">
         <div className="content container-fluid">
           <ToastContainer />
 
-        {activeNotificationJobs.length > 0 && !isAlertAccepted && (
+        {!isAdminDelete && activeNotificationJobs.length > 0 && !isAlertAccepted && (
   <Alert
     ref={alertRef}
     variant="light"
-    style={{
-  position: "fixed",
-  left: 0,
-  top: 0,
-  width: "100vw",
-  height: "100vh",
-  zIndex: 99999,
-  borderRadius: 0,
-  overflow: "auto",
-  boxShadow: "none",
-  padding: "35px",
-  background: "rgba(255,255,255,0.98)",
-  userSelect: "auto",
-}}
+    style={alertPanelStyle}
   >
     <div
       onMouseDown={handleAlertMouseDown}
@@ -3262,43 +3524,31 @@ setData(mappedData);
         justifyContent: "space-between",
         alignItems: "center",
         marginBottom: 16,
-        cursor: "move",
+        cursor: isMobileViewport ? "default" : "move",
       }}
     >
       <div style={{ fontSize: 18, fontWeight: 700 }}>
         ERP Scheduler Alerts
       </div>
-      <div style={{ fontSize: 13, opacity: 0.7 }}>Drag</div>
+      {!isMobileViewport && <div style={{ fontSize: 13, opacity: 0.7 }}>Drag</div>}
     </div>
 
     <div
   style={{
     display: "grid",
-    gridTemplateColumns: "repeat(auto-fit,minmax(260px,1fr))",
-  gap: 24,
-  marginBottom: 20,
+    gridTemplateColumns: isMobileViewport ? "1fr" : "repeat(auto-fit,minmax(260px,1fr))",
+  gap: isMobileViewport ? 10 : 24,
+  marginBottom: isMobileViewport ? 12 : 20,
 }}
 >
   {uploadNotificationCount > 0 && (
     <div
       className="erp-alert-tile-blink"
-      style={{
-        background: "#16a34a",
-        color: "#fff",
-        borderRadius: 20,
-        padding: "30px",
-        minHeight: "220px",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        alignItems: "flex-start",
-        boxShadow: "0 14px 40px rgba(0,0,0,0.25)",
-        animation: "pulseBlink 1.2s infinite",
-      }}
+      style={alertTileStyle("#16a34a")}
     >
       <div
         style={{
-          fontSize: "38px",
+          fontSize: isMobileViewport ? "20px" : "38px",
           fontWeight: 900,
           lineHeight: 1.1,
         }}
@@ -3308,9 +3558,9 @@ setData(mappedData);
 
       <div
         style={{
-          fontSize: "26px",
+          fontSize: isMobileViewport ? "16px" : "26px",
           fontWeight: 700,
-          marginTop: 14,
+          marginTop: isMobileViewport ? 6 : 14,
         }}
       >
         Implementation Pictures
@@ -3318,9 +3568,9 @@ setData(mappedData);
 
       <div
         style={{
-          fontSize: "64px",
+          fontSize: isMobileViewport ? "30px" : "64px",
           fontWeight: 900,
-          marginTop: 18,
+          marginTop: isMobileViewport ? 8 : 18,
         }}
       >
         {uploadNotificationCount}
@@ -3339,23 +3589,11 @@ setData(mappedData);
       <div
         key={rule.notificationType}
         className="erp-alert-tile-blink"
-        style={{
-          background: rule.color,
-          color: rule.textColor || "#fff",
-          borderRadius: 20,
-          padding: "30px",
-          minHeight: "220px",
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "center",
-          alignItems: "flex-start",
-          boxShadow: "0 14px 40px rgba(0,0,0,0.25)",
-          animation: "pulseBlink 1.2s infinite",
-        }}
+        style={alertTileStyle(rule.color, rule.textColor || "#fff")}
       >
         <div
           style={{
-            fontSize: "42px",
+            fontSize: isMobileViewport ? "22px" : "42px",
             fontWeight: 900,
             lineHeight: 1,
           }}
@@ -3365,9 +3603,9 @@ setData(mappedData);
 
         <div
           style={{
-            fontSize: "28px",
+            fontSize: isMobileViewport ? "17px" : "28px",
             fontWeight: 700,
-            marginTop: 14,
+            marginTop: isMobileViewport ? 6 : 14,
           }}
         >
           {rule.notificationType}
@@ -3375,9 +3613,9 @@ setData(mappedData);
 
         <div
           style={{
-            fontSize: "64px",
+            fontSize: isMobileViewport ? "30px" : "64px",
             fontWeight: 900,
-            marginTop: 18,
+            marginTop: isMobileViewport ? 8 : 18,
           }}
         >
           {alertCount}
@@ -3461,7 +3699,7 @@ setData(mappedData);
       </div>
     </div>
 
-    <div style={{ marginTop: 16, fontSize: 15, lineHeight: 1.65 }}>
+    <div style={{ marginTop: 16, fontSize: isMobileViewport ? 13 : 15, lineHeight: 1.65 }}>
       <div style={{ fontWeight: 700, marginBottom: 6 }}>
         Showing {activeNotificationJobs.length} alert(s)
       </div>
@@ -3515,9 +3753,9 @@ setData(mappedData);
     variant="success"
     onClick={() => setIsAlertAccepted(true)}
     style={{
-      padding: "10px 34px",
+      padding: isMobileViewport ? "8px 22px" : "10px 34px",
       fontWeight: 700,
-      fontSize: 16,
+      fontSize: isMobileViewport ? 14 : 16,
     }}
   >
     OK
@@ -3908,7 +4146,7 @@ setData(mappedData);
                                             <Form.Control className="form-control file-choose" type="file" onChange={handleFileChange} />
                                             <br />
                                             <h4>Excel Data:</h4>
-                                            {Array.isArray(headers) && Array.isArray(data) && headers.length > 0 && data.length > 0 ? (
+                                            {Array.isArray(headers) && Array.isArray(uploadData) && headers.length > 0 && uploadData.length > 0 ? (
                                               <div className="table-responsive responsivetable">
                                                 <ExcelTable className="table-bordered align-middle table-nowrap mb-0">
                                                   <thead className="sticky-header table-light">
@@ -3919,7 +4157,7 @@ setData(mappedData);
                                                     </tr>
                                                   </thead>
                                                   <tbody>
-                                                    {data.map((row, rowIndex) => (
+                                                    {uploadData.map((row, rowIndex) => (
                                                       <tr key={rowIndex}>
                                                         {headers.map((header, colIndex) => (
                                                           <td key={colIndex}>
@@ -4066,7 +4304,8 @@ setData(mappedData);
                         columnDefs={columnDefs}
                         defaultColDef={defaultColDef}
                         pagination={true}
-                        paginationPageSize={50}
+                        paginationPageSize={4000}
+                        paginationPageSizeSelector={false}
                         // onSelectionChanged={onSelectionChanged}
                         //  getRowNodeId={row => row.id}
                         domLayout="normal"
@@ -4126,6 +4365,32 @@ setData(mappedData);
                   toast.success("Production Location updated");
                 }).catch((error) => {
                   toast.error("Failed to update Production Location");
+                  console.error("API error:", error);
+                });
+              }
+
+              if (params.colDef.field === 'billingLocation') {
+                const id = params.data.id;
+                const newLocation = params.newValue;
+                const billingLocationUrl =
+                  config?.JobSummary?.URL?.UpdateBillingLocation
+                 
+
+                if (!billingLocationUrl) {
+                  toast.error("Billing Location update URL is missing");
+                  return;
+                }
+
+                axios.post(billingLocationUrl, {
+                  id,
+                  BillingLocation: newLocation,
+                  billingLocation: newLocation,
+                  employeename: userName,
+                  rolename: rolename
+                }).then(() => {
+                  toast.success("Billing Location updated");
+                }).catch((error) => {
+                  toast.error("Failed to update Billing Location");
                   console.error("API error:", error);
                 });
               }

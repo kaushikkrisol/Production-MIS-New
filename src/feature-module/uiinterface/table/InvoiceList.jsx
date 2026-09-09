@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Form, Spinner } from "react-bootstrap";
 import axios from "axios";
 import { Edit3, FileText, Plus, Printer, RefreshCw, Search } from "react-feather";
 import { Link, useNavigate } from "react-router-dom";
 import { AgGridReact } from "ag-grid-react";
-import { AllCommunityModule, ModuleRegistry } from "ag-grid-community";
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 import config from "../../../config";
@@ -14,6 +13,21 @@ const GST_RATE = 18;
 const INVOICE_EWAY_STORAGE_KEY = "invoiceEwayBillByNo";
 
 const toText = (value) => (value === undefined || value === null ? "" : String(value));
+
+const MONTH_INDEX = {
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
+};
 
 const toNumber = (value) => {
   const normalized = typeof value === "string" ? value.replace(/,/g, "").replace(/[^\d.-]/g, "") : value;
@@ -29,11 +43,60 @@ const formatMoney = (value) =>
 
 const formatDate = (value) => {
   if (!value) return "-";
-  const dateValue = value?.$date || value;
-  const date = new Date(dateValue);
-  if (Number.isNaN(date.getTime())) return toText(value);
+  const date = parseFlexibleDate(value);
+  if (!date || Number.isNaN(date.getTime())) return toText(value);
   return date.toLocaleDateString("en-IN");
 };
+
+const parseFlexibleDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  const dateValue = value?.$date || value;
+  if (dateValue instanceof Date) return Number.isNaN(dateValue.getTime()) ? null : dateValue;
+
+  const text = String(dateValue).trim();
+  if (!text) return null;
+
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const monthMatch = text.match(/^(\d{1,2})[-/\s]([A-Za-z]{3,})[-/\s](\d{4})$/);
+  if (monthMatch) {
+    const [, day, monthText, year] = monthMatch;
+    const monthIndex = MONTH_INDEX[monthText.slice(0, 3).toLowerCase()];
+    if (monthIndex !== undefined) {
+      const parsed = new Date(Number(year), monthIndex, Number(day));
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+  }
+
+  const numericMatch = text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (numericMatch) {
+    const [, day, month, year] = numericMatch;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+const formatDateForInput = (value, fallback = "") => {
+  const date = parseFlexibleDate(value);
+  if (!date) return fallback;
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const getCurrentLocalIsoDate = () => formatDateForInput(new Date(), new Date().toISOString().split("T")[0]);
 
 const getResponseRows = (data) => {
   if (Array.isArray(data)) return data;
@@ -77,6 +140,14 @@ const getFirstArray = (...values) => {
     if (parsed.length) return parsed;
   }
   return [];
+};
+
+const firstNonEmpty = (...values) => {
+  for (const value of values) {
+    const text = toText(value).trim();
+    if (text) return text;
+  }
+  return "";
 };
 
 const hasInvoiceHeaderSignal = (invoice) =>
@@ -252,17 +323,20 @@ const locationCompanyMap = {
   south: "Commercial Reprographers (Bangalore)",
 };
 
+const getCompanyFromLocation = (location) => {
+  const locationText = toText(location).toLowerCase();
+  const match = Object.entries(locationCompanyMap).find(([key]) => locationText.includes(key));
+  return match ? match[1] : "-";
+};
+
 const getInvoiceCompanies = (productionLocation, billingLocation) => {
-  const locationText = [productionLocation, billingLocation]
-    .filter(Boolean)
-    .join(", ")
-    .toLowerCase();
+  const locationText = toText(billingLocation || productionLocation).toLowerCase();
+  const match = Object.entries(locationCompanyMap).find(([location]) => locationText.includes(location));
+  if (match) return match[1];
 
-  const companies = Object.entries(locationCompanyMap)
-    .filter(([location]) => locationText.includes(location))
-    .map(([, company]) => company);
-
-  return [...new Set(companies)].join(", ") || "-";
+  const fallbackText = toText(productionLocation || billingLocation).toLowerCase();
+  const fallbackMatch = Object.entries(locationCompanyMap).find(([location]) => fallbackText.includes(location));
+  return fallbackMatch ? fallbackMatch[1] : "-";
 };
 
 const normalizeInvoiceTypeText = (value) =>
@@ -272,13 +346,46 @@ const normalizeInvoiceTypeText = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
-const getInvoiceTypeLabel = (value) => normalizeInvoiceTypeText(value);
+const getInvoiceTypeLabel = (value) => {
+  const normalized = normalizeInvoiceTypeText(value).toLowerCase();
+  if (
+    normalized.includes("productiontobilling") ||
+    normalized.includes("production to billing") ||
+    normalized.includes("internal bill") ||
+    normalized.includes("internal invoice")
+  ) {
+    return "Internal Bill";
+  }
+
+  if (
+    normalized.includes("invoice to customer") ||
+    normalized.includes("invoicetocustomer") ||
+    normalized.includes("billing to customer") ||
+    normalized.includes("billingtocustomer")
+  ) {
+    return "Tax Invoice";
+  }
+
+  return normalizeInvoiceTypeText(value);
+};
 
 const hasCreditNoteSignal = (...values) =>
   values.some((value) => normalizeInvoiceTypeText(value).toLowerCase().includes("credit note"));
 
+const hasExplicitCreditNoteReference = (...values) =>
+  values.some((value) => {
+    const normalized = normalizeInvoiceTypeText(value).toLowerCase();
+    return (
+      normalized.includes("credit note") ||
+      normalized.startsWith("cn") ||
+      normalized.includes("cn no") ||
+      normalized.includes("creditnote")
+    );
+  });
+
 const isCreditNoteInvoice = (invoice) =>
-  hasCreditNoteSignal(
+  !isInternalBillInvoice(invoice) &&
+  (hasCreditNoteSignal(
     invoice?._invoiceType,
     invoice?.InvoiceType,
     invoice?.invoiceType,
@@ -289,7 +396,64 @@ const isCreditNoteInvoice = (invoice) =>
     invoice?.invoiceStatus,
     invoice?.Notes,
     invoice?.notes
-  ) || Boolean(toText(invoice?.ParentInvoiceNo || invoice?.parentInvoiceNo).trim());
+  ) ||
+    hasExplicitCreditNoteReference(
+      invoice?.CreditNoteNo,
+      invoice?.creditNoteNo,
+      invoice?.CNNo,
+      invoice?.cnNo,
+      invoice?.DocumentNo,
+      invoice?.documentNo
+    ));
+
+const isInternalBillInvoice = (invoice) => {
+  const invoiceType = normalizeInvoiceTypeText(invoice?.InvoiceType || invoice?.invoiceType).toLowerCase();
+  return (
+    invoiceType.includes("production to billing") ||
+    invoiceType.includes("internalbill") ||
+    invoiceType.includes("internal bill") ||
+    invoiceType.includes("internal invoice")
+  );
+};
+
+const getInvoiceClientName = (invoice, productionLocation, billingLocation, billTo = []) => {
+  const savedClientBillAs = toText(invoice?.ClientBillAs || invoice?.clientBillAs).trim();
+  if (savedClientBillAs) {
+    return savedClientBillAs;
+  }
+
+  const storedBillToCompany =
+    toText(invoice?.BillToCompanyName || invoice?.billToCompanyName || invoice?.BillToCompany || invoice?.billToCompany).trim();
+  if (storedBillToCompany) {
+    return storedBillToCompany;
+  }
+
+  const billToCompanyFromAddress = toText(
+    billTo?.[0]?.companyName ||
+      billTo?.[0]?.CompanyName ||
+      billTo?.[0]?.name ||
+      billTo?.[0]?.Name ||
+      billTo?.[0]?.clientName ||
+      billTo?.[0]?.ClientName
+  ).trim();
+  if (billToCompanyFromAddress) {
+    return billToCompanyFromAddress;
+  }
+
+  if (isInternalBillInvoice(invoice)) {
+    const billingTargetLocation = firstNonEmpty(invoice?.BillToLocation, invoice?.billToLocation, billingLocation);
+    const billingTargetCompany = getCompanyFromLocation(billingTargetLocation);
+    if (billingTargetCompany && billingTargetCompany !== "-") return billingTargetCompany;
+
+    const productionCompany = getCompanyFromLocation(productionLocation);
+    if (productionCompany && productionCompany !== "-") return productionCompany;
+
+    const billingCompany = getCompanyFromLocation(billingLocation || invoice?.BillToLocation || invoice?.billToLocation);
+    if (billingCompany && billingCompany !== "-") return billingCompany;
+  }
+
+  return toText(invoice?.Client || invoice?.client || "");
+};
 
 const normalizeInvoice = (invoice, index) => {
   const items = getFirstArray(
@@ -304,9 +468,22 @@ const normalizeInvoice = (invoice, index) => {
   );
   const billTo = getFirstArray(invoice?.BillTo, invoice?.billTo, invoice?.BillToList, invoice?.billToList);
   const shipTo = getFirstArray(invoice?.ShipTo, invoice?.shipTo, invoice?.ShipToList, invoice?.shipToList);
-  const productionLocation = toText(invoice?.ProductionLocation || invoice?.productionLocation || "");
-  const billingLocation = toText(invoice?.BillingLocation || invoice?.billingLocation || "");
+  const productionLocation = toText(
+    invoice?.ProductionLocation ||
+      invoice?.productionLocation ||
+      invoice?.BillFromLocation ||
+      invoice?.billFromLocation ||
+      ""
+  );
+  const billingLocation = toText(
+    invoice?.BillingLocation ||
+      invoice?.billingLocation ||
+      invoice?.BillToLocation ||
+      invoice?.billToLocation ||
+      ""
+  );
   const calculatedGrandTotal = getInvoiceGrandTotal(invoice, items);
+  const internalBill = isInternalBillInvoice(invoice);
 
   return {
     ...invoice,
@@ -316,11 +493,11 @@ const normalizeInvoice = (invoice, index) => {
     _invoiceDate: invoice?.InvoiceDate || invoice?.invoiceDate || "",
     _itrNo: toText(invoice?.ItrNo || invoice?.ITRNo || invoice?.itrNo || invoice?.ITR || invoice?.itr || ""),
     _jobCards: toText(invoice?.JobCards || invoice?.jobCards || ""),
-    _client: toText(invoice?.ClientBillAs || invoice?.clientBillAs || invoice?.Client || invoice?.client || ""),
     _project: toText(invoice?.ProjectName || invoice?.projectName || ""),
     _productionLocation: productionLocation,
     _billingLocation: billingLocation,
-    _company: getInvoiceCompanies(productionLocation, billingLocation),
+    _client: getInvoiceClientName(invoice, productionLocation, billingLocation, billTo),
+    _company: internalBill ? getCompanyFromLocation(productionLocation) : getInvoiceCompanies(productionLocation, billingLocation),
     _status: toText(
       invoice?.Status ||
         invoice?.status ||
@@ -415,28 +592,56 @@ const getStoredInvoiceStatusByNo = () => {
   }
 };
 
-const mapDraftAddress = (address, index, fallbackPrefix) => ({
+const mapDraftAddress = (address, index, fallbackPrefix, { preserveSavedValues = false } = {}) => ({
   id: `${fallbackPrefix.toLowerCase().replace(/\s+/g, "-")}-${index + 1}-${Date.now()}`,
   label: toText(address?.Label || address?.label || address?.Title || address?.title || `${fallbackPrefix} ${index + 1}`),
   name: toText(address?.CustomerName || address?.customerName || address?.Name || address?.name),
   address: toText(address?.Address || address?.address),
   gstNo: toText(address?.GstNo || address?.gstNo || address?.GSTNo || address?.gstNo),
+  ...(preserveSavedValues
+    ? {
+        _manualName: true,
+        _manualAddress: true,
+        _manualGstNo: true,
+      }
+    : {}),
 });
+
+const isManualDraftChargeItem = (item = {}) => {
+  const lineType = toText(item?.Type || item?.type || item?.lineType).trim().toLowerCase();
+  const isChargeType = ["installation", "implementation", "layouting", "transportation", "transport", "adaption", "adaptation", "charge"].includes(lineType);
+  const isEstimateCharge = ["1", "true", "yes"].includes(
+    toText(item?.IsEstimateCharge ?? item?.isEstimateCharge).trim().toLowerCase()
+  );
+  const description = toText(
+    item?.InvoiceDescription || item?.invoiceDescription || item?.Description || item?.description
+  ).toLowerCase();
+  const hasDimensions = Boolean(
+    Number(item?.InvoiceWidth || item?.invoiceWidth || item?.Width || item?.width || 0) ||
+      Number(item?.InvoiceHeight || item?.invoiceHeight || item?.Height || item?.height || 0)
+  );
+
+  return isChargeType && !isEstimateCharge && (description.includes("charge") || !hasDimensions);
+};
 
 const mapDraftItem = (item, index) => ({
   id: `draft-item-${index + 1}-${Date.now()}`,
-  selected: false,
-  groupByMedia: false,
+  selected: true,
+  groupByMedia: Boolean(item?.groupByMedia),
   jobNo: toText(item?.JobNo || item?.jobNo),
   lineType: toText(item?.Type || item?.type || item?.lineType || "media").toLowerCase() || "media",
+  _manualEntry: isManualDraftChargeItem(item),
   storeName: toText(item?.StoreName || item?.storeName || item?.SalonAddress || item?.salonAddress),
   city: toText(item?.City || item?.city),
   description: toText(item?.InvoiceDescription || item?.invoiceDescription || item?.Description || item?.description || item?.NameSubCode || item?.nameSubCode),
   media: toText(item?.InvoiceMedia || item?.invoiceMedia || item?.Media || item?.media || item?.ExternalMedia || item?.externalMedia),
   hsnCode: toText(item?.InvoiceHsn || item?.invoiceHsn || item?.Hsn || item?.HSN || item?.HsnCode || item?.HSNCode || item?.hsnCode || item?.hsn),
   qty: toText(item?.InvoiceQty || item?.invoiceQty || item?.Qty || item?.qty || item?.Quantity || item?.quantity),
+  unit: toText(item?.InvoiceUnit || item?.invoiceUnit || item?.Unit || item?.unit || item?.UOM || item?.uom),
   width: toText(item?.InvoiceWidth || item?.invoiceWidth || item?.Width || item?.width),
   height: toText(item?.InvoiceHeight || item?.invoiceHeight || item?.Height || item?.height || item?.Length || item?.length),
+  billingWidth: toText(item?.InvoiceBillingWidth || item?.invoiceBillingWidth || item?.BillingWidth || item?.billingWidth || item?.InvoiceWidth || item?.invoiceWidth || item?.Width || item?.width),
+  billingHeight: toText(item?.InvoiceBillingHeight || item?.invoiceBillingHeight || item?.BillingHeight || item?.billingHeight || item?.InvoiceHeight || item?.invoiceHeight || item?.Height || item?.height || item?.Length || item?.length),
   rate: toText(item?.InvoiceRate || item?.invoiceRate || item?.Rate || item?.rate),
   manualAmount: toText(
     item?.InvoiceAmount ||
@@ -561,23 +766,29 @@ const mergeStoredEwayBill = (invoice) => {
 
 const buildDraftDataFromInvoice = (invoice) => {
   const invoiceWithEway = mergeStoredEwayBill(invoice);
-  const billTo = invoice._billTo.length ? invoice._billTo.map((address, index) => mapDraftAddress(address, index, "Bill To")) : [];
-  const shipTo = invoice._shipTo.length ? invoice._shipTo.map((address, index) => mapDraftAddress(address, index, "Ship To")) : [];
+  const billTo = invoice._billTo.length
+    ? invoice._billTo.map((address, index) => mapDraftAddress(address, index, "Bill To", { preserveSavedValues: true }))
+    : [];
+  const shipTo = invoice._shipTo.length
+    ? invoice._shipTo.map((address, index) => mapDraftAddress(address, index, "Ship To", { preserveSavedValues: true }))
+    : [];
   const items = invoice._items.length ? invoice._items.map(mapDraftItem) : [];
-  const invoiceDate = new Date(invoice._invoiceDate);
+  const invoiceDate = parseFlexibleDate(invoice._invoiceDate);
 
   return {
     invoiceNo: invoice._invoiceNo || "",
-    invoiceDate: Number.isNaN(invoiceDate.getTime()) ? new Date().toISOString().split("T")[0] : invoiceDate.toISOString().split("T")[0],
+    invoiceDate: formatDateForInput(invoiceDate, getCurrentLocalIsoDate()),
     jobCardNo: invoice._jobCards || "",
     selectedJobIds: invoice._jobCards ? invoice._jobCards.split(",").map((jobNo) => `loaded-draft|${jobNo.trim()}`).filter(Boolean) : [],
     billTo: billTo.length ? billTo : [mapDraftAddress({}, 0, "Bill To")],
     shipTo: shipTo.length ? shipTo : [mapDraftAddress({}, 0, "Ship To")],
     items: items.length ? items : [mapDraftItem({}, 0)],
-    groupByMedia: false,
-    groupByStore: false,
-    groupByCity: false,
-    groupByDescription: false,
+    allowWithoutChallan: Boolean(invoice?.allowWithoutChallan || invoice?.AllowWithoutChallan),
+    billFromLocation: toText(invoice?.BillFromLocation || invoice?.billFromLocation || invoice?._productionLocation),
+    groupByMedia: Boolean(invoice?.groupByMedia || invoice?.GroupByMedia),
+    groupByStore: Boolean(invoice?.groupByStore || invoice?.GroupByStore),
+    groupByCity: Boolean(invoice?.groupByCity || invoice?.GroupByCity),
+    groupByDescription: Boolean(invoice?.groupByDescription || invoice?.GroupByDescription),
     clientName: invoice._client || "",
     poNumber: toText(invoice?.PoNo || invoice?.poNo),
     poDescription: toText(invoice?.PoDescription || invoice?.poDescription),
@@ -591,6 +802,7 @@ const buildDraftDataFromInvoice = (invoice) => {
 };
 
 const InvoiceList = () => {
+  const initialLoadStartedRef = useRef(false);
   const [invoices, setInvoices] = useState([]);
   const [searchText, setSearchText] = useState("");
   const [fromDate, setFromDate] = useState("");
@@ -623,6 +835,9 @@ const InvoiceList = () => {
   }, []);
 
   useEffect(() => {
+    if (initialLoadStartedRef.current) return;
+
+    initialLoadStartedRef.current = true;
     loadInvoices();
   }, [loadInvoices]);
 
@@ -640,9 +855,8 @@ const InvoiceList = () => {
 
   const getDateOnlyTime = (value) => {
     if (!value) return null;
-    const dateValue = value?.$date || value;
-    const date = new Date(dateValue);
-    if (Number.isNaN(date.getTime())) return null;
+    const date = parseFlexibleDate(value);
+    if (!date || Number.isNaN(date.getTime())) return null;
     date.setHours(0, 0, 0, 0);
     return date.getTime();
   };
@@ -704,6 +918,7 @@ const InvoiceList = () => {
     }
 
     invoiceData = mergeStoredEwayBill(invoiceData);
+    localStorage.removeItem("invoicePreviewBuilderData");
     localStorage.setItem("invoiceDraftData", JSON.stringify(buildDraftDataFromInvoice(invoiceData)));
     navigate(all_routes.invoicepreviewbuilder);
   };

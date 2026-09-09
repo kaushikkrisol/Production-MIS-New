@@ -231,18 +231,6 @@ const Implementation = () => {
     }
   }, []);
 
-    const buildItemDetails = (row) => {
-    const parts = [
-      row.media,
-      row.lamination,
-      row.mounting,
-      row.implementation,
-      row.nameSubCode || row.visualCode,
-    ].filter(Boolean);
-
-    return parts.join(" - ");
-  };
-
   const toTrimmedText = (value) => String(value ?? "").trim();
 
   const firstNonEmpty = (...values) => {
@@ -251,6 +239,29 @@ const Implementation = () => {
       if (text) return text;
     }
     return "";
+  };
+
+  const buildItemDetails = (row) => {
+    const simplifiedName = firstNonEmpty(
+      row?.simplifiedProductName,
+      row?.SimplifiedProductName,
+      row?.productAsPerRateCard,
+      row?.ProductAsPerRateCard,
+      row?.nameSubCode,
+      row?.NameSubCode
+    );
+
+    if (simplifiedName) return simplifiedName;
+
+    const parts = [
+      row?.media,
+      row?.lamination,
+      row?.mounting,
+      row?.implementation,
+      row?.visualCode,
+    ].filter(Boolean);
+
+    return parts.join(" - ");
   };
 
   const buildCustomerBillingAddress = (customer, row) => {
@@ -419,6 +430,14 @@ const Implementation = () => {
             {
               sno: 1,
               details: buildItemDetails(row),
+              simplifiedProductName: firstNonEmpty(
+                row?.simplifiedProductName,
+                row?.SimplifiedProductName,
+                row?.productAsPerRateCard,
+                row?.ProductAsPerRateCard,
+                row?.nameSubCode,
+                row?.NameSubCode
+              ),
               hsnCode: pricing.hsnCode,
               unitPrice: pricing.unitPrice,
               totalSqFt: pricing.totalSqFt,
@@ -450,6 +469,14 @@ const Implementation = () => {
           jobNo: row.jobNo || "",
           sno: index + 1,
           details: buildItemDetails(row),
+          simplifiedProductName: firstNonEmpty(
+            row?.simplifiedProductName,
+            row?.SimplifiedProductName,
+            row?.productAsPerRateCard,
+            row?.ProductAsPerRateCard,
+            row?.nameSubCode,
+            row?.NameSubCode
+          ),
           hsnCode: pricing.hsnCode,
           unitPrice: pricing.unitPrice,
           totalSqFt: pricing.totalSqFt,

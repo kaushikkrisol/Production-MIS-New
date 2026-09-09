@@ -146,7 +146,6 @@ const getDeliveryChallanMeta = (row) => {
 };
 
 const Delivery = () => {
-  const [data, setData] = useState([]);
   const [locationData, setLocationData] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -156,7 +155,7 @@ const Delivery = () => {
   const [handTempoDelivery, setHandTempoDelivery] = useState("");
   const [deliverPersonName, setDeliverPersonName] = useState([]);
   const [deliverPersonNameSelect, setDeliverPersonNameSelect] = useState("");
-  const [customers, setCustomers] = useState([]);
+  const [customers, setCustomers] = useState(() => mergeFallbackCustomers([]));
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [username, setUsername] = useState("");
@@ -182,6 +181,8 @@ const Delivery = () => {
   const [topToastVariant, setTopToastVariant] = useState("danger");
 
   const gridRef = useRef();
+  const deliveryRequestRef = useRef(null);
+  const loadedDeliveryKeyRef = useRef("");
 
   const triggerTopToast = useCallback((message, variant = "danger") => {
     setTopToastMessage(message);
@@ -198,9 +199,9 @@ const Delivery = () => {
   }, []);
 
   const fetchCustomerDetails = useCallback(async () => {
-    try {
-      if (!locationId) return;
+    if (!locationId) return;
 
+    try {
       const response = await axios.post(
         config.JobSummary.URL.Getallcustomer,
         { locationid: locationId },
@@ -210,7 +211,8 @@ const Delivery = () => {
         }
       );
 
-      setCustomers(mergeFallbackCustomers(response.data));
+      const data = response.data;
+      setCustomers(mergeFallbackCustomers(Array.isArray(data) ? data : data?.data || data?.items || []));
     } catch (error) {
       console.error(
         "Error fetching customer data:",
@@ -219,48 +221,118 @@ const Delivery = () => {
     }
   }, [locationId]);
 
+  const fetchDeliveryByLocation = useCallback(
+    async ({ forceRefresh = false } = {}) => {
+      if (!locationId || !username) return;
+
+      const requestKey = `${locationId}|${username}`;
+
+      if (!forceRefresh && loadedDeliveryKeyRef.current === requestKey) {
+        return;
+      }
+
+      if (!forceRefresh && deliveryRequestRef.current) {
+        return deliveryRequestRef.current;
+      }
+
+      const request = (async () => {
+        try {
+          setLoading(true);
+          setError(null);
+
+          const payload = { locationId, username };
+          const response = await axios.post(
+            config.Delivery.URL.GetAllDeliveryAccToLocation,
+            payload,
+            {
+              timeout: 15000,
+              headers: { "Content-Type": "application/json" },
+            }
+          );
+
+          const rows = Array.isArray(response.data)
+            ? response.data
+            : Array.isArray(response.data?.data)
+            ? response.data.data
+            : [];
+
+          const normalizedRows = rows.map((row, index) => ({
+            ...row,
+            __rowKey: String(
+              row.id ||
+                row.deliveryid ||
+                `${row.jobNo || "delivery"}-${index}`
+            ),
+          }));
+
+          setLocationData(normalizedRows);
+          setSelectedRows([]);
+          loadedDeliveryKeyRef.current = requestKey;
+
+          const timestampMap = {};
+          normalizedRows.forEach((row) => {
+            const iso =
+              row.deliveryTimestampUtc ||
+              row.DeliveryTimestampUtc ||
+              row.deliveryTimestamp ||
+              row.DeliveryTimestamp ||
+              "";
+
+            if (iso && row.id) {
+              timestampMap[row.id] = iso;
+            }
+          });
+
+          setRowTimestamps(timestampMap);
+        } catch (err) {
+          console.error("Error fetching delivery data:", err);
+          setError(
+            err?.response?.data?.message ||
+              err?.response?.data ||
+              "Error fetching delivery data"
+          );
+        } finally {
+          setLoading(false);
+          deliveryRequestRef.current = null;
+        }
+      })();
+
+      deliveryRequestRef.current = request;
+      return request;
+    },
+    [locationId, username]
+  );
+
   useEffect(() => {
-    if (locationId && username) {
-      fetchDeliveryJobs();
-      fetchDeliveryByLocation();
-      fetchCustomerDetails();
-    }
-  }, [locationId, username, fetchCustomerDetails]);
+    if (!locationId || !username) return;
 
-  const fetchDeliveryJobs = async () => {
-    try {
-      setLoading(true);
-      const res = await axios.post(config.Delivery.URL.Getalldelivery);
-      setData(res.data || []);
-    } catch (err) {
-      setError("Error fetching job data");
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchDeliveryByLocation();
 
-  const fetchDeliveryByLocation = async () => {
-    try {
-      const payload = { locationId, username };
-      const res = await axios.post(config.Delivery.URL.GetAllDeliveryAccToLocation, payload);
-      const rows = res.data || [];
-      setLocationData(rows);
+    let idleId;
+    let timeoutId;
 
-      const map = {};
-      rows.forEach((r) => {
-        const iso =
-          r.deliveryTimestampUtc ||
-          r.DeliveryTimestampUtc ||
-          r.deliveryTimestamp ||
-          r.DeliveryTimestamp ||
-          "";
-        if (iso && r.id) map[r.id] = iso;
+    if (typeof window !== "undefined" && window.requestIdleCallback) {
+      idleId = window.requestIdleCallback(fetchCustomerDetails, {
+        timeout: 1200,
       });
-      setRowTimestamps(map);
-    } catch (err) {
-      setError("Error fetching location data");
+    } else {
+      timeoutId = window.setTimeout(fetchCustomerDetails, 150);
     }
-  };
+
+    return () => {
+      if (idleId && window.cancelIdleCallback) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId) {
+        window.clearTimeout(timeoutId);
+      }
+    };
+  }, [
+    locationId,
+    username,
+    fetchDeliveryByLocation,
+    fetchCustomerDetails,
+  ]);
 
   useEffect(() => {
     if (!locationId) return;
@@ -271,7 +343,10 @@ const Delivery = () => {
       .catch(console.error);
   }, [locationId]);
 
-  const filteredUserNames = [...new Set(deliverPersonName.map((u) => u))];
+  const filteredUserNames = useMemo(
+    () => [...new Set(deliverPersonName.filter(Boolean))],
+    [deliverPersonName]
+  );
 
   const handleDeliverNameChange = (e) => {
     setDeliverPersonNameSelect(e.target.value);
@@ -280,6 +355,11 @@ const Delivery = () => {
   const getSelectedExactRows = useCallback(() => {
     const nodes = gridRef.current?.api?.getSelectedNodes?.() || [];
     return nodes.map((n) => n.data).filter((r) => r?.id);
+  }, []);
+
+  const clearSelectedRows = useCallback(() => {
+    gridRef.current?.api?.deselectAll();
+    setSelectedRows([]);
   }, []);
 
   const formatDisplayDate = (dateVal) => {
@@ -409,7 +489,7 @@ const Delivery = () => {
       const firstRow = selectedData[0];
       const customer = findCustomerRecord(customers, firstRow);
       const items = selectedData.map((row, index) => {
-        const pricing = buildChallanItemPricing(row);
+        const pricing = buildChallanItemPricing(row, customer);
 
         return {
           rowId: row.deliveryid || row.id || "",
@@ -733,8 +813,10 @@ const handleCreateDeliveryChallan = async () => {
     );
 
     setShowChallanModal(false);
+    clearSelectedRows();
     window.open(`/deliverychallan/`, "_blank");
-    await fetchDeliveryByLocation();
+    await fetchDeliveryByLocation({ forceRefresh: true });
+    clearSelectedRows();
 
     triggerTopToast(
       `Delivery challan created: ${savedChallan.challanNo || savedChallan.ChallanNo}`,
@@ -947,9 +1029,8 @@ const handleCreateDeliveryChallan = async () => {
   }, []);
 
   const handleClearSelection = useCallback(() => {
-    gridRef.current?.api?.deselectAll();
-    setSelectedRows([]);
-  }, []);
+    clearSelectedRows();
+  }, [clearSelectedRows]);
 
   const handleOpenInvoicePreview = useCallback(() => {
     const selectedData = getSelectedExactRows();
@@ -980,7 +1061,7 @@ const handleCreateDeliveryChallan = async () => {
       const meta = getDeliveryChallanMeta(row);
       const customer = findCustomerRecord(customers, row);
       const branchDetails = getCompanyBranchDetails(row?.region || row?.productionLocation);
-      const pricing = buildChallanItemPricing(row);
+      const pricing = buildChallanItemPricing(row, customer);
 
       localStorage.setItem(
         "challanPreviewData",
@@ -1209,7 +1290,7 @@ const handleCreateDeliveryChallan = async () => {
             <Col md={3} className="d-flex gap-2 flex-wrap">
               <Button onClick={handleAddDeliveryJob}>Add</Button>
             
-              <Button variant="outline-secondary" onClick={() => window.location.reload()}>
+              <Button variant="outline-secondary" onClick={() => fetchDeliveryByLocation({ forceRefresh: true })} disabled={loading}>
                 <FaSyncAlt />
               </Button>
               <Button onClick={handleExportExcel}>Excel</Button>
@@ -1259,6 +1340,10 @@ const handleCreateDeliveryChallan = async () => {
               setRowTimestamps,
               // saveTimestamp,
             }}
+            getRowId={(params) => params.data.__rowKey}
+            animateRows={false}
+            rowBuffer={8}
+            suppressCellFocus={true}
           />
         </div>
 

@@ -74,7 +74,7 @@ export const SidebarData = [
           { label: "Designer Dashboard", link: "/designer-dashboard" },
           {
         label: "CS Dashboard",
-        link: "https://productiondashboard.comart.in/",
+        link: "https://productiondashboard.comart.in",
       },
            {
   label: "Timesheet",
@@ -1066,7 +1066,7 @@ export const SidebarData = [
   showSubRoute: false,
   icon: <Icon.Columns />,
   submenuItems: [
-    { label: "Job Entry", link: "/jobs" },
+    { label: "Estimate / Job Card Creation", link: "/jobs" },
     { label: "CS", link: "/data-tables" },
     { label: "Design", link: "/designn" },
     { label: "Printing", link: "/production" },
@@ -1115,6 +1115,8 @@ export const SidebarData = [
         submenuItems: [
           { label: "Store Master", link: "/storemaster" },
           { label: "Product Media Rates", link: "/product-media-rate-master" },
+          { label: "BOQ Master", link: "/element-group-master" },
+          {label: "Media Master", link: "/media-master" },
         ],
       },
       {

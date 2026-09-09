@@ -8,6 +8,13 @@ const branchDirectory = {
     companyPhone: "02271000211",
     companyGst: "27AAAFC4913E1ZW",
     companyLogo: COMPANY_LOGO,
+    bankDetails: {
+      bankName: "",
+      branch: "",
+      accountNo: "",
+      ifsc: "",
+      upiId: "",
+    },
   },
   south: {
     companyName: "Commercial Reprographers (BANGALORE)",
@@ -16,6 +23,13 @@ const branchDirectory = {
     companyPhone: "02271000211",
     companyGst: "29AAAFC4913E1ZS",
     companyLogo: COMPANY_LOGO,
+    bankDetails: {
+      bankName: "",
+      branch: "",
+      accountNo: "",
+      ifsc: "",
+      upiId: "",
+    },
   },
   east: {
     companyName: "Commercial Reprographers (Kolkata)",
@@ -24,6 +38,13 @@ const branchDirectory = {
     companyPhone: "02271000211",
     companyGst: "19AAAFC4913E1ZT",
     companyLogo: COMPANY_LOGO,
+    bankDetails: {
+      bankName: "",
+      branch: "",
+      accountNo: "",
+      ifsc: "",
+      upiId: "",
+    },
   },
   north: {
     companyName: "Commercial Reprographers (GURGOAN)",
@@ -32,6 +53,13 @@ const branchDirectory = {
     companyPhone: "02271000211",
     companyGst: "06AAAFC4913E1Z0",
     companyLogo: COMPANY_LOGO,
+    bankDetails: {
+      bankName: "",
+      branch: "",
+      accountNo: "",
+      ifsc: "",
+      upiId: "",
+    },
   },
   southhyd: {
     companyName: "Commercial Reprographers (HYDREBAD)",
@@ -40,6 +68,13 @@ const branchDirectory = {
     companyPhone: "02271000211",
     companyGst: "36AAAFC4913E2ZW",
     companyLogo: COMPANY_LOGO,
+    bankDetails: {
+      bankName: "",
+      branch: "",
+      accountNo: "",
+      ifsc: "",
+      upiId: "",
+    },
   },
   chennai: {
     companyName: "Commercial Reprographers (CHENNAI)",
@@ -48,6 +83,13 @@ const branchDirectory = {
     companyPhone: "02271000211",
     companyGst: "33AAAFC4913E1Z3",
     companyLogo: COMPANY_LOGO,
+    bankDetails: {
+      bankName: "",
+      branch: "",
+      accountNo: "",
+      ifsc: "",
+      upiId: "",
+    },
   },
 };
 
@@ -56,27 +98,83 @@ const normalizeLocation = (value) =>
     .toLowerCase()
     .replace(/\s+/g, "");
 
+const matchesAnyLocation = (normalized, values = []) =>
+  values.some((value) => normalized.includes(normalizeLocation(value)));
+
 export const getCompanyBranchDetails = (location) => {
   const normalized = normalizeLocation(location);
 
-  if (normalized.includes("southhyd") || normalized.includes("hyd")) {
+  if (
+    matchesAnyLocation(normalized, [
+      "southhyd",
+      "hyd",
+      "hyderabad",
+      "hydrabad",
+      "telangana",
+    ])
+  ) {
     return branchDirectory.southhyd;
   }
 
-  if (normalized.includes("chennai")) {
+  if (
+    matchesAnyLocation(normalized, [
+      "chennai",
+      "tamil nadu",
+      "tamilnadu",
+      "nungambakkam",
+    ])
+  ) {
     return branchDirectory.chennai;
   }
 
-  if (normalized.includes("south")) {
+  if (
+    matchesAnyLocation(normalized, [
+      "south",
+      "bangalore",
+      "bengaluru",
+      "karnataka",
+      "konena agrahara",
+    ])
+  ) {
     return branchDirectory.south;
   }
 
-  if (normalized.includes("east")) {
+  if (
+    matchesAnyLocation(normalized, [
+      "east",
+      "kolkata",
+      "west bengal",
+      "westbengal",
+      "nabapally",
+      "rajdanga",
+      "kasba",
+    ])
+  ) {
     return branchDirectory.east;
   }
 
-  if (normalized.includes("north")) {
+  if (
+    matchesAnyLocation(normalized, [
+      "north",
+      "gurgaon",
+      "gurugram",
+      "haryana",
+      "udyog vihar",
+    ])
+  ) {
     return branchDirectory.north;
+  }
+
+  if (
+    matchesAnyLocation(normalized, [
+      "west",
+      "mumbai",
+      "maharashtra",
+      "nanachowk",
+      "kennedy bridge",
+    ])
+  ) {
+    return branchDirectory.west;
   }
 
   return branchDirectory.west;

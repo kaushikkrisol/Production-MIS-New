@@ -88,6 +88,46 @@ const formatJobDate = (value) => {
   }).replace(/ /g, '/');
 };
 
+const getPrintingRowSortTime = (row) => {
+  const candidates = [
+    row?.lstupdatedt,
+    row?.entereddat,
+    row?.printingStartTimestampUtc,
+    row?.entereddt,
+    row?.date,
+  ];
+
+  for (const value of candidates) {
+    if (!value) continue;
+    const parsed = new Date(value);
+    if (!Number.isNaN(parsed.getTime())) return parsed.getTime();
+  }
+
+  return 0;
+};
+
+const normalizeFieldKey = (value) => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+
+const TOTAL_SQFT_KEYS = [
+  'totalSqFt',
+  'TotalSqFt',
+  'Total SQ.Ft.',
+  'Total SQ.Ft',
+  'Total Sq.ft',
+  'Total Sq.ft.',
+  'Total Sq.f',
+  'Total Sq Ft',
+  'Total Sqft',
+  'Sq.Ft',
+  'Sq.Ft.',
+  'Sq Ft',
+  'Sqft',
+  'Print SQ.Ft.',
+  'Print SQ.Ft',
+];
+
+const isExcelDateFormat = (format) => /[dmy]/i.test(String(format || ''));
+
 const Production = () => {
   const storedUserInfo = useMemo(() => getStoredUserInfo(), []);
   const username = storedUserInfo.username;
@@ -97,7 +137,7 @@ const Production = () => {
   const [BulkAdd, setBulkAdd] = useState(false);
   const [headers, setHeaders] = useState([]);
   const [selectedTotals, setSelectedTotals] = useState({ qty: 0, width: 0, length: 0, totalSqFt: 0 });
-  const [data, setData] = useState(() => readPrintingCache(storedUserInfo.locationId) || []);
+  const [data, setData] = useState([]);
 
   const [open, setOpen] = useState(false);
   const toggle = () => setOpen(!open);
@@ -162,7 +202,16 @@ const Production = () => {
   const getRowValue = (row, keys) => {
     if (!row) return undefined;
     const matchedKey = keys.find(key => row[key] != null && String(row[key]).trim() !== '');
-    return matchedKey ? row[matchedKey] : undefined;
+    if (matchedKey) return row[matchedKey];
+
+    const normalizedKeys = new Set(keys.map(normalizeFieldKey));
+    const rowKey = Object.keys(row).find(key => (
+      normalizedKeys.has(normalizeFieldKey(key)) &&
+      row[key] != null &&
+      String(row[key]).trim() !== ''
+    ));
+
+    return rowKey ? row[rowKey] : undefined;
   };
   const calcMediaSqFt = (w, l) => {
     const W = toNum(w), L = toNum(l);
@@ -175,6 +224,11 @@ const Production = () => {
       : getRowValue(row, ['length', 'Length', 'LENGTH']);
   };
   const calcActualSqFt = (row) => {
+    const uploadedTotalSqFt = getRowValue(row, TOTAL_SQFT_KEYS);
+    if (uploadedTotalSqFt != null && String(uploadedTotalSqFt).trim() !== '') {
+      return toNum(uploadedTotalSqFt);
+    }
+
     const width = toNum(getRowValue(row, ['width', 'Width', 'WIDTH']));
     const length = toNum(getPrintLength(row));
     const qty = toNum(getRowValue(row, ['qty', 'Qty', 'QTY']));
@@ -183,7 +237,7 @@ const Production = () => {
       return (width * length * qty) / 144;
     }
 
-    return toNum(getRowValue(row, ['totalSqFt', 'TotalSqFt', 'Total SQ.Ft.', 'Total Sq.ft', 'Total Sq.f']));
+    return 0;
   };
 
   // compute wastage / show red popup when invalid
@@ -315,25 +369,33 @@ const wastePopupBottomStyle = {
     const fetchId = latestFetchIdRef.current + 1;
     latestFetchIdRef.current = fetchId;
 
-    const cachedRows = force ? null : readPrintingCache(locationId);
-    if (cachedRows && isMountedRef.current) {
-      setData(cachedRows);
-    }
-
-    const shouldShowLoader = showLoader && !cachedRows;
+    const shouldShowLoader = showLoader;
     if (shouldShowLoader && isMountedRef.current) setLoading(true);
 
     let request = force ? null : printingRequests.get(requestKey);
 
     if (!request) {
-      const payload = { location_id: locationId };
+      const payload = locationId
+        ? { location_id: locationId, locationId, locationid: locationId }
+        : {};
       request = axios
         .post(config.Printing.URL.Getallprinting, payload, {
-          timeout: 10000,
+          timeout: 30000,
           headers: { 'Content-Type': 'application/json' }
         })
         .then(response => {
-          const rows = Array.isArray(response.data) ? response.data : [];
+          const responseData = response.data;
+          const rows = (Array.isArray(responseData)
+            ? responseData
+            : Array.isArray(responseData?.items)
+              ? responseData.items
+              : Array.isArray(responseData?.data)
+                ? responseData.data
+                : Array.isArray(responseData?.lstdata)
+                  ? responseData.lstdata
+                  : [])
+            .slice()
+            .sort((a, b) => getPrintingRowSortTime(b) - getPrintingRowSortTime(a));
           lastFullPrintingDataRef.current = rows;
           writePrintingCache(locationId, rows);
           return rows;
@@ -364,7 +426,9 @@ const wastePopupBottomStyle = {
     }
   }, [locationId]);
 
-  useEffect(() => { fetchPrinting(); }, [fetchPrinting]);
+  useEffect(() => {
+    fetchPrinting({ force: true });
+  }, [fetchPrinting]);
 
   const filteredData1 = data;
 
@@ -376,6 +440,7 @@ const wastePopupBottomStyle = {
     if (BulkAdd) {
       setBulkAdd(false);
       setHeaders([]);
+      setPrintingData([]);
     } else {
       setBulkAdd(true);
     }
@@ -400,7 +465,7 @@ const wastePopupBottomStyle = {
         headers.forEach((header, i) => {
           let cellValue = row[i];
           const cell = worksheet[XLSX.utils.encode_cell({ r: rIdx + 1, c: i })];
-          if (cell && cell.t === 'n' && cell.z) {
+          if (cell && cell.t === 'n' && isExcelDateFormat(cell.z)) {
             const date = XLSX.SSF.parse_date_code(cell.v);
             if (date) cellValue = new Date(Date.UTC(date.y, date.m - 1, date.d)).toISOString().split('T')[0];
           }
@@ -410,17 +475,23 @@ const wastePopupBottomStyle = {
       }).filter(row => Object.values(row).some(value => value !== '' && value !== null && value !== undefined));
 
       setHeaders(headers);
-      // setData(data);
+      setPrintingData(data);
     };
     reader.readAsBinaryString(file);
   };
 
   const submitDataToAPI = async (e) => {
     e.preventDefault();
+    if (!printingData.length) {
+      setError('Please select an Excel file before uploading.');
+      return;
+    }
+
     try {
       setLoading(true);
-      await axios.post(config.Printing.URL.AddPrinting, data, { timeout: 60000 });
+      await axios.post(config.Printing.URL.AddPrinting, printingData, { timeout: 60000 });
       setHeaders([]);
+      setPrintingData([]);
       setBulkAdd(false);
       await fetchPrinting({ force: true, showLoader: false });
     } catch (error) {
@@ -878,7 +949,7 @@ const wastePopupBottomStyle = {
                               <Form.Control className="form-control" type="file" onChange={handleFileChange} />
                               <br />
                               <h4>Excel Data:</h4>
-                              {Array.isArray(headers) && Array.isArray(data) && headers.length > 0 && data.length > 0 ? (
+                              {Array.isArray(headers) && Array.isArray(printingData) && headers.length > 0 && printingData.length > 0 ? (
                                 <div className="table-responsive responsivetable">
                                   <ExcelTable className="table-bordered align-middle table-nowrap mb-0">
                                     <thead className="sticky-header table-light">

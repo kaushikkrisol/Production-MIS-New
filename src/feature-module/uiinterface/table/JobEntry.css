@@ -1,13 +1,36 @@
 .job-entry-page {
-  min-height: 100vh;
+  height: calc(100vh - 5rem);
+  min-height: calc(100vh - 5rem);
   overflow-x: hidden;
-  overflow-y: auto;
+  overflow-y: hidden;
   background: #f4f6f9;
   color: #1f2937;
   font-family: Inter, "Segoe UI", Arial, sans-serif;
-  margin-left: 17rem;
+  width: calc(100% - 260px);
+  max-width: calc(100% - 260px);
+  margin-left: 260px;
+  margin-right: 0;
   margin-top: 5rem;
   padding-bottom: 24px;
+  transition: margin-left 0.2s ease, width 0.2s ease, max-width 0.2s ease;
+}
+
+body.mini-sidebar .job-entry-page,
+html[data-layout-style="collapsed"] .job-entry-page {
+  width: calc(100% - 90px);
+  max-width: calc(100% - 90px);
+  margin-left: 90px;
+  margin-right: 0;
+}
+
+@media (max-width: 991px) {
+  .job-entry-page,
+  body.mini-sidebar .job-entry-page,
+  html[data-layout-style="collapsed"] .job-entry-page {
+    width: 100%;
+    max-width: 100%;
+    margin-left: 0;
+  }
 }
 
 .job-entry-tabs {
@@ -49,15 +72,34 @@
 }
 
 .job-entry-shell {
-  padding: 13px 28px 32px;
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 18px 28px;
+  overflow: hidden;
 }
 
 .job-entry-topbar {
+  flex: 0 0 auto;
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
   gap: 20px;
   padding: 12px 0 12px;
+}
+
+.job-entry-shell > .job-current-info,
+.job-entry-shell > .job-lines-wrap,
+.job-entry-shell > .estimate-lines-wrap,
+.job-entry-shell > .job-shortcuts {
+  flex: 0 0 auto;
+}
+
+.job-entry-shell > .job-lines-wrap,
+.job-entry-shell > .estimate-lines-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .job-entry-title h1 {
@@ -121,6 +163,7 @@
 .job-lines-wrap {
   width: 100%;
   overflow: hidden;
+  min-height: 0;
 }
 
 .job-lines-scroll {
@@ -344,6 +387,17 @@
 .job-secondary-btn:disabled {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+.job-primary-btn:disabled,
+.job-primary-btn.job-action-send-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  background: #b8c2d6;
+  border-color: #b8c2d6;
+  color: #ffffff;
+  pointer-events: none;
+  box-shadow: none;
 }
 
 .job-new-job-top {
@@ -1385,4 +1439,1438 @@
 .job-mail-charge-actions button:hover {
   border-color: #2f5ed9;
   background: #eef3ff;
+}
+/* =========================================
+   FIX JOB ENTRY TABLE HEIGHT AND SCROLLBAR
+   ========================================= */
+
+.job-lines-wrap {
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+  margin-bottom: 8px !important;
+}
+
+.job-lines-scroll {
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 420px !important;
+
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+
+  display: block !important;
+  position: relative !important;
+
+  padding: 0 !important;
+  margin: 0 !important;
+
+  scrollbar-width: auto;
+  scrollbar-color: #8a94a3 #edf1f5;
+}
+
+.job-lines-table {
+  width: max-content !important;
+  min-width: 100% !important;
+  height: auto !important;
+  margin: 0 !important;
+  border-collapse: collapse;
+}
+
+/* Keep rows at normal height */
+.job-lines-table thead,
+.job-lines-table tbody {
+  height: auto !important;
+}
+
+.job-lines-table tr {
+  height: auto !important;
+  min-height: 40px !important;
+}
+
+/* Horizontal scrollbar styling */
+.job-lines-scroll::-webkit-scrollbar {
+  width: 12px;
+  height: 14px;
+}
+
+.job-lines-scroll::-webkit-scrollbar-track {
+  background: #edf1f5;
+  border-radius: 8px;
+}
+
+.job-lines-scroll::-webkit-scrollbar-thumb {
+  background: #8a94a3;
+  border-radius: 8px;
+  border: 3px solid #edf1f5;
+}
+
+.job-lines-scroll::-webkit-scrollbar-thumb:hover {
+  background: #687386;
+}
+
+/* Footer immediately below scrollbar */
+.job-entry-footer {
+  position: static !important;
+  width: 100%;
+  height: auto !important;
+  min-height: 0 !important;
+  margin-top: 8px !important;
+  padding-top: 0 !important;
+}
+
+
+/* Fix deadline columns and date inputs */
+.job-lines-table th,
+.job-lines-table td {
+  overflow: visible !important;
+  vertical-align: middle !important;
+}
+
+.job-lines-table th:nth-child(24),
+.job-lines-table td:nth-child(24),
+.job-lines-table th:nth-child(25),
+.job-lines-table td:nth-child(25) {
+  min-width: 185px !important;
+  width: 185px !important;
+  max-width: 185px !important;
+}
+
+.job-lines-table input[type="datetime-local"],
+.job-lines-table input[type="date"] {
+  display: block !important;
+  width: 100% !important;
+  min-width: 165px !important;
+  height: 38px !important;
+  padding: 6px 8px !important;
+  box-sizing: border-box !important;
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+
+.job-lines-table tbody tr {
+  min-height: 48px !important;
+  height: 48px !important;
+}
+
+.job-lines-table td {
+  min-height: 48px !important;
+  height: 48px !important;
+  padding: 5px 7px !important;
+}
+
+/* Prevent sticky/header overlay from covering deadline values */
+.job-lines-scroll {
+  padding-top: 0 !important;
+}
+
+.job-lines-table thead {
+  position: relative !important;
+  z-index: 2;
+}
+
+.job-lines-table tbody {
+  position: relative !important;
+  z-index: 1;
+}
+
+/* =========================================
+   DEADLINE DATE PICKER - FINAL FIX
+   ========================================= */
+.job-lines-table td:has(.job-deadline-picker-wrapper) {
+  overflow: visible !important;
+  padding: 4px 7px !important;
+  vertical-align: middle !important;
+}
+
+.job-deadline-picker-wrapper,
+.job-deadline-picker-wrapper .react-datepicker__input-container {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.job-lines-table .job-deadline-picker-input {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  padding: 0 10px !important;
+  border: 1px solid #cfd6e2 !important;
+  border-radius: 4px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  font-size: 12px !important;
+  line-height: 34px !important;
+  text-align: left !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+.job-lines-table .job-deadline-picker-input:focus {
+  border-color: #2f5ed9 !important;
+  box-shadow: 0 0 0 2px rgba(47, 94, 217, 0.15) !important;
+  outline: none !important;
+}
+
+.job-col-deadline {
+  width: 220px !important;
+  min-width: 220px !important;
+}
+
+.job-deadline-picker-popper {
+  z-index: 99999 !important;
+}
+
+.react-datepicker-popper {
+  z-index: 99999 !important;
+}
+
+#root .react-datepicker__portal {
+  z-index: 99999 !important;
+}
+
+
+/* =========================================
+   COMPACT JOB ENTRY COLUMNS - FINAL OVERRIDE
+   ========================================= */
+.job-lines-table {
+  width: max-content !important;
+  min-width: 1660px !important;
+  table-layout: fixed !important;
+}
+
+.job-col-select { width: 36px !important; }
+.job-col-store { width: 180px !important; }
+.job-col-branding { width: 72px !important; }
+.job-col-small { width: 60px !important; }
+.job-col-machine { width: 64px !important; }
+.job-col-print-ready { width: 64px !important; }
+.job-col-medium { width: 96px !important; }
+.job-col-element { width: 72px !important; }
+.job-col-visual { width: 60px !important; min-width: 60px !important; }
+.job-col-qty { width: 40px !important; min-width: 40px !important; }
+.job-col-number { width: 54px !important; }
+.job-col-charge { width: 64px !important; }
+.job-col-flag { width: 52px !important; }
+.job-col-implementation { width: 76px !important; }
+.job-col-deadline { width: 104px !important; min-width: 104px !important; }
+.job-col-remarks { width: 104px !important; }
+
+.job-lines-table th {
+  padding: 0 6px !important;
+  font-size: 9px !important;
+  letter-spacing: 0.25px !important;
+}
+
+.job-lines-table td {
+  padding: 3px 5px !important;
+  height: 40px !important;
+  min-height: 40px !important;
+}
+
+.job-salon-details-cell {
+  vertical-align: top !important;
+}
+
+.job-salon-details-cell .job-cell-select__control {
+  min-height: 28px !important;
+  height: 28px !important;
+}
+
+.job-salon-meta {
+  display: grid;
+  grid-template-columns: 62px minmax(0, 1fr);
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.job-lines-table tbody tr {
+  height: 58px !important;
+  min-height: 58px !important;
+}
+
+.job-lines-table td > input,
+.job-lines-table td > select {
+  height: 30px !important;
+  padding: 0 5px !important;
+  font-size: 11px !important;
+}
+
+.job-lines-table .job-deadline-picker-input {
+  height: 30px !important;
+  line-height: 30px !important;
+  padding: 0 6px !important;
+  font-size: 11px !important;
+}
+
+.job-lines-table th:nth-child(24),
+.job-lines-table td:nth-child(24),
+.job-lines-table th:nth-child(25),
+.job-lines-table td:nth-child(25) {
+  width: 165px !important;
+  min-width: 165px !important;
+  max-width: 165px !important;
+}
+/* Header */
+.job-entry-table th {
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 10px;
+    white-space: nowrap;
+}
+
+/* Body */
+.job-entry-table td {
+    font-size: 14px;
+    padding: 6px 8px;
+    vertical-align: middle;
+}
+
+/* Inputs */
+.job-entry-table input,
+.job-entry-table select,
+.job-entry-table textarea,
+.job-entry-table .react-select__control {
+    min-height: 38px !important;
+    height: 38px !important;
+    font-size: 14px !important;
+}
+
+/* React Select */
+.react-select__value-container {
+    padding: 2px 8px !important;
+}
+
+.react-select__single-value {
+    font-size: 14px !important;
+}
+
+.react-select__indicators {
+    height: 38px;
+}
+
+/* Row */
+.job-entry-table tr {
+    height: 42px;
+}
+
+.city-col{
+    width:70px;
+    min-width:70px;
+}
+
+.desc-col{
+    width:140px;
+}
+
+.store-col{
+    width:220px;
+}
+
+.address-col{
+    width:180px;
+}
+
+.brand-col{
+    width:120px;
+}
+
+.prod-col,
+.bill-col{
+    width:90px;
+}
+
+.machine-col{
+    width:130px;
+}
+
+.printready-col{
+    width:120px;
+}
+
+.media-col{
+    width:120px;
+}
+
+.element-col{
+    width:130px;
+}
+
+.visual-col{
+    width:90px;
+}
+
+.qty-col{
+    width:60px;
+}
+
+.width-col,
+.height-col{
+    width:70px;
+}
+
+.billing-width-col,
+.billing-height-col{
+    width:85px;
+}
+
+.sqft-col{
+    width:90px;
+}
+
+.rate-col{
+    width:80px;
+}
+
+.amount-col{
+    width:100px;
+}
+
+.lamination-col,
+.mounting-col,
+.impl-col{
+    width:120px;
+}
+
+.deadline-col{
+    width:130px;
+}
+
+.remarks-col{
+    width:180px;
+}
+/* Fix compact table header wrapping and React Select dropdown overlap */
+.job-lines-table th {
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.15 !important;
+  vertical-align: middle !important;
+  padding: 7px 8px !important;
+}
+.job-lines-table td {
+  overflow: hidden !important;
+  vertical-align: middle !important;
+}
+.job-col-city { width: 105px !important; }
+.job-col-store { width: 190px !important; }
+.job-col-address { width: 190px !important; }
+.job-col-branding { width: 140px !important; }
+.job-lines-table th:nth-child(3), .job-lines-table td:nth-child(3) { width: 150px !important; min-width: 150px !important; }
+.job-cell-select__menu-portal { z-index: 20000 !important; }
+.job-cell-select__menu { z-index: 20000 !important; min-width: 220px !important; }
+.job-cell-select__menu-list { max-height: 240px !important; }
+.job-cell-select__option { white-space: normal !important; line-height: 1.25 !important; }
+
+/* =========================================================
+   FINAL JOB ENTRY TABLE FIX
+   Keep this block at the very end of the CSS file.
+   It overrides earlier duplicate/conflicting table rules.
+   ========================================================= */
+
+.job-lines-wrap {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  margin-bottom: 8px !important;
+  overflow: hidden !important;
+  border: 1px solid #d9dee8;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.job-lines-scroll {
+  display: block !important;
+  position: relative !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: 420px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  scrollbar-gutter: stable;
+  overscroll-behavior: contain;
+}
+
+.job-lines-table {
+  width: max-content !important;
+  min-width: 100% !important;
+  height: auto !important;
+  margin: 0 !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+}
+
+/* Column widths */
+.job-lines-table col.job-col-select {
+  width: 38px !important;
+  min-width: 38px !important;
+  max-width: 38px !important;
+}
+
+.job-lines-table col.job-col-city {
+  width: 78px !important;
+  min-width: 78px !important;
+}
+
+.job-lines-table col.job-col-store {
+  width: 118px !important;
+  min-width: 118px !important;
+}
+
+.job-lines-table col.job-col-address {
+  width: 150px !important;
+  min-width: 150px !important;
+}
+
+.job-lines-table col.job-col-branding {
+  width: 92px !important;
+  min-width: 92px !important;
+}
+
+.job-lines-table col.job-col-description {
+  width: 105px !important;
+  min-width: 105px !important;
+  max-width: 105px !important;
+}
+
+.job-lines-table col.job-col-small {
+  width: 84px !important;
+  min-width: 84px !important;
+}
+
+.job-lines-table col.job-col-machine {
+  width: 82px !important;
+  min-width: 82px !important;
+}
+
+.job-lines-table col.job-col-print-ready {
+  width: 82px !important;
+  min-width: 82px !important;
+}
+
+/* Media uses job-col-medium in the JSX colgroup. */
+.job-lines-table col.job-col-medium {
+  width: 175px !important;
+  min-width: 175px !important;
+  max-width: 175px !important;
+}
+
+.job-lines-table col.job-col-element {
+  width: 96px !important;
+  min-width: 96px !important;
+}
+
+.job-lines-table col.job-col-visual {
+  width: 76px !important;
+  min-width: 76px !important;
+}
+
+.job-lines-table col.job-col-qty {
+  width: 46px !important;
+  min-width: 46px !important;
+  max-width: 46px !important;
+}
+
+.job-lines-table col.job-col-unit {
+  width: 76px !important;
+  min-width: 76px !important;
+  max-width: 76px !important;
+}
+
+.job-lines-table col.job-col-number {
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+}
+
+.job-lines-table col.job-col-charge {
+  width: 82px !important;
+  min-width: 82px !important;
+}
+
+.job-lines-table col.job-col-flag {
+  width: 74px !important;
+  min-width: 74px !important;
+  max-width: 74px !important;
+}
+
+.job-lines-table col.job-col-implementation {
+  width: 125px !important;
+  min-width: 125px !important;
+}
+
+.job-lines-table col.job-col-deadline {
+  width: 175px !important;
+  min-width: 175px !important;
+  max-width: 175px !important;
+}
+
+.job-lines-table col.job-col-remarks {
+  width: 185px !important;
+  min-width: 185px !important;
+}
+
+.job-lines-table th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  height: 38px !important;
+  padding: 5px 7px !important;
+  border-right: 1px solid #dfe4ec;
+  border-bottom: 1px solid #dfe4ec;
+  background: #edf1f7;
+  color: #667085;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.15 !important;
+  text-align: left;
+  white-space: normal !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  vertical-align: middle !important;
+}
+
+.job-lines-table .job-group-row th {
+  top: 0;
+  z-index: 4;
+  height: 26px !important;
+  font-size: 10px !important;
+}
+
+.job-lines-table thead tr:nth-child(2) th {
+  top: 26px;
+}
+
+.job-lines-table tbody tr,
+.job-lines-table td {
+  height: 42px !important;
+  min-height: 42px !important;
+}
+
+.job-lines-table td {
+  padding: 4px 5px !important;
+  border-right: 1px solid #e3e7ee;
+  border-bottom: 1px solid #e3e7ee;
+  background: #ffffff;
+  overflow: visible !important;
+  vertical-align: middle !important;
+  box-sizing: border-box;
+}
+
+.job-lines-table td > input,
+.job-lines-table td > select,
+.job-lines-table td > textarea {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  padding: 0 6px !important;
+  box-sizing: border-box !important;
+  font-size: 12px !important;
+}
+
+/* React Select inside job table */
+.job-lines-table .job-cell-select__control {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 32px !important;
+  height: 32px !important;
+  box-sizing: border-box !important;
+}
+
+.job-lines-table .job-cell-select__value-container {
+  min-width: 0 !important;
+  height: 30px !important;
+  padding: 0 5px !important;
+  overflow: hidden !important;
+  flex-wrap: nowrap !important;
+}
+
+.job-lines-table .job-cell-select__single-value,
+.job-lines-table .job-cell-select__placeholder {
+  max-width: 100% !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+}
+
+.job-lines-table .job-cell-select__indicators {
+  height: 30px !important;
+  flex-shrink: 0 !important;
+}
+
+.job-lines-table .job-cell-select__indicator,
+.job-lines-table .job-cell-select__clear-indicator,
+.job-lines-table .job-cell-select__dropdown-indicator {
+  padding: 3px !important;
+}
+
+.job-cell-select__menu-portal,
+.job-cell-select__menu,
+.react-datepicker-popper,
+.job-deadline-picker-popper,
+#root .react-datepicker__portal {
+  z-index: 99999 !important;
+}
+
+.job-cell-select__menu {
+  min-width: 240px !important;
+}
+
+.job-cell-select__menu-list {
+  max-height: 260px !important;
+}
+
+.job-cell-select__option {
+  white-space: normal !important;
+  line-height: 1.25 !important;
+}
+
+.job-lines-table .job-deadline-picker-wrapper,
+.job-lines-table .job-deadline-picker-wrapper .react-datepicker-wrapper,
+.job-lines-table .job-deadline-picker-wrapper .react-datepicker__input-container {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+}
+
+.job-lines-table .job-deadline-picker-input {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  padding: 0 7px !important;
+  border: 1px solid #cfd6e2 !important;
+  border-radius: 4px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  font-size: 11px !important;
+  line-height: 32px !important;
+  box-sizing: border-box !important;
+  white-space: nowrap !important;
+}
+
+.job-entry-footer {
+  position: static !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  margin-top: 8px !important;
+  padding-top: 0 !important;
+}
+
+/* =========================================================
+   FINAL EXISTING ESTIMATE GRID WIDTHS
+   Keep this block LAST in the file.
+   Columns: Select, Region, Salon, Article, Media, Prod W,
+   Prod H, Sq.Ft, Qty, Billing W, Billing H, Billable Sq.Ft,
+   Rate, HSN, Description, Amount
+   ========================================================= */
+
+.job-lines-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+
+.job-lines-scroll {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+}
+
+.job-lines-table {
+  width: max-content !important;
+  min-width: 100% !important;
+  max-width: none !important;
+  table-layout: auto !important;
+  border-collapse: collapse !important;
+}
+
+/* Explicit fixed widths for every visible estimate column */
+.estimate-lines-table th:nth-child(1),
+.estimate-lines-table td:nth-child(1) {
+  width: 42px !important;
+  min-width: 42px !important;
+  max-width: 42px !important;
+}
+
+.estimate-lines-table th:nth-child(2),
+.estimate-lines-table td:nth-child(2) {
+  width: 94px !important;
+  min-width: 94px !important;
+  max-width: 94px !important;
+}
+
+.estimate-lines-table th:nth-child(3),
+.estimate-lines-table td:nth-child(3) {
+  width: 210px !important;
+  min-width: 210px !important;
+  max-width: 210px !important;
+}
+
+.estimate-lines-table th:nth-child(4),
+.estimate-lines-table td:nth-child(4) {
+  width: 112px !important;
+  min-width: 112px !important;
+  max-width: 112px !important;
+}
+
+.estimate-lines-table th:nth-child(5),
+.estimate-lines-table td:nth-child(5) {
+  width: 182px !important;
+  min-width: 182px !important;
+  max-width: 182px !important;
+}
+
+.estimate-lines-table th:nth-child(6),
+.estimate-lines-table td:nth-child(6),
+.estimate-lines-table th:nth-child(7),
+.estimate-lines-table td:nth-child(7) {
+  width: 86px !important;
+  min-width: 86px !important;
+  max-width: 86px !important;
+}
+
+.estimate-lines-table th:nth-child(8),
+.estimate-lines-table td:nth-child(8) {
+  width: 76px !important;
+  min-width: 76px !important;
+  max-width: 76px !important;
+}
+
+.estimate-lines-table th:nth-child(9),
+.estimate-lines-table td:nth-child(9) {
+  width: 54px !important;
+  min-width: 54px !important;
+  max-width: 54px !important;
+}
+
+.estimate-lines-table th:nth-child(10),
+.estimate-lines-table td:nth-child(10),
+.estimate-lines-table th:nth-child(11),
+.estimate-lines-table td:nth-child(11) {
+  width: 78px !important;
+  min-width: 78px !important;
+  max-width: 78px !important;
+}
+
+.estimate-lines-table th:nth-child(12),
+.estimate-lines-table td:nth-child(12) {
+  width: 86px !important;
+  min-width: 86px !important;
+  max-width: 86px !important;
+}
+
+.estimate-lines-table th:nth-child(13),
+.estimate-lines-table td:nth-child(13) {
+  width: 90px !important;
+  min-width: 90px !important;
+  max-width: 90px !important;
+}
+
+.estimate-lines-table th:nth-child(14),
+.estimate-lines-table td:nth-child(14) {
+  width: 74px !important;
+  min-width: 74px !important;
+  max-width: 74px !important;
+}
+
+.estimate-lines-table th:nth-child(15),
+.estimate-lines-table td:nth-child(15) {
+  width: 96px !important;
+  min-width: 96px !important;
+  max-width: 96px !important;
+}
+
+.estimate-lines-table th:nth-child(16),
+.estimate-lines-table td:nth-child(16) {
+  width: 92px !important;
+  min-width: 92px !important;
+  max-width: 92px !important;
+}
+
+.estimate-lines-table th,
+.estimate-lines-table td {
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.job-lines-table th {
+  height: 44px !important;
+  padding: 6px 7px !important;
+  font-size: 11px !important;
+  line-height: 1.15 !important;
+  white-space: normal !important;
+  word-break: normal !important;
+}
+
+.job-lines-table td {
+  height: 44px !important;
+  padding: 4px 5px !important;
+}
+
+.job-lines-table td > input,
+.job-lines-table td > select,
+.job-lines-table td > textarea {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* React Select: use the full cell width without clipping the icons */
+.job-lines-table .job-cell-select__control {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  box-sizing: border-box !important;
+}
+
+.job-lines-table .job-cell-select__value-container {
+  min-width: 0 !important;
+  padding: 0 6px !important;
+  overflow: hidden !important;
+  flex-wrap: nowrap !important;
+}
+
+.job-lines-table .job-cell-select__single-value,
+.job-lines-table .job-cell-select__placeholder {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 12px !important;
+}
+
+.job-lines-table .job-cell-select__indicators {
+  flex: 0 0 auto !important;
+  height: 32px !important;
+}
+
+.job-lines-table .job-cell-select__indicator-separator {
+  display: none !important;
+}
+
+.job-lines-table .job-cell-select__clear-indicator,
+.job-lines-table .job-cell-select__dropdown-indicator {
+  padding: 4px !important;
+}
+
+/* Portal menu should be wider than the compact cell and never be clipped */
+.job-cell-select__menu-portal {
+  z-index: 100000 !important;
+}
+
+.job-cell-select__menu {
+  width: 300px !important;
+  min-width: 300px !important;
+  max-width: 420px !important;
+  z-index: 100000 !important;
+}
+
+.job-cell-select__menu-list {
+  max-height: 280px !important;
+  overflow-y: auto !important;
+}
+
+.job-cell-select__option {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.3 !important;
+}
+
+/* Responsive overrides kept at the end so they win over earlier duplicate rules. */
+@media (max-width: 1200px) {
+  .job-entry-page {
+    height: auto;
+    min-height: calc(100vh - 4.5rem);
+    overflow-y: auto;
+  }
+
+  .job-entry-shell {
+    height: auto;
+    min-height: calc(100vh - 4.5rem);
+    overflow: visible;
+    padding: 12px 16px 24px;
+  }
+
+  .job-entry-topbar {
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .job-entry-actions {
+    justify-content: flex-start;
+  }
+
+  .job-entry-actions > * {
+    max-width: 100%;
+  }
+
+  .job-icon-group {
+    flex-wrap: wrap;
+  }
+
+  .job-entry-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .job-existing-job-grid,
+  .job-entry-footer {
+    grid-template-columns: 1fr;
+  }
+
+  .job-draft-details {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 991px) {
+  .job-entry-page {
+    margin-top: 60px;
+    padding-bottom: 16px;
+  }
+
+  .job-entry-shell {
+    padding: 12px 14px 22px;
+  }
+
+  .job-entry-title h1 {
+    font-size: 18px;
+  }
+
+  .job-entry-title p {
+    line-height: 1.5;
+  }
+
+  .job-entry-actions {
+    gap: 10px;
+  }
+
+  .job-primary-btn,
+  .job-secondary-btn,
+  .job-new-job-top,
+  .job-wide-add,
+  .job-new-store {
+    min-width: 0;
+  }
+
+  .job-primary-btn,
+  .job-secondary-btn,
+  .job-top-action-btn {
+    flex: 1 1 220px;
+  }
+
+  .job-entry-summary {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .job-entry-summary div {
+    border-right: 0;
+    border-bottom: 1px solid #e5e8ee;
+  }
+
+  .job-entry-summary div:last-child {
+    border-bottom: 0;
+  }
+
+  .job-current-info {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .job-lines-scroll,
+  .estimate-lines-scroll {
+    max-height: 60vh !important;
+  }
+
+  .job-mail-panel,
+  .job-draft-panel {
+    width: min(96vw, 100%);
+    max-height: calc(100vh - 24px);
+  }
+}
+
+@media (max-width: 767px) {
+  .job-entry-page {
+    min-height: calc(100vh - 60px);
+  }
+
+  .job-entry-shell {
+    padding: 10px 12px 20px;
+  }
+
+  .job-entry-form-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .job-entry-form-grid > label > input,
+  .job-entry-form-grid > label > select,
+  .job-date-input input {
+    height: 40px;
+  }
+
+  .job-entry-actions,
+  .job-icon-group,
+  .job-draft-card-actions,
+  .job-mail-footer-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .job-primary-btn,
+  .job-secondary-btn,
+  .job-icon-group button,
+  .job-mail-ghost,
+  .job-mail-footer-actions button,
+  .job-draft-card-actions button {
+    width: 100%;
+  }
+
+  .job-icon-group button {
+    min-width: 0;
+  }
+
+  .job-shortcuts {
+    text-align: left;
+    line-height: 1.5;
+  }
+
+  .job-draft-header,
+  .job-mail-header,
+  .job-mail-footer,
+  .job-draft-list,
+  .job-mail-body {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .job-draft-details {
+    grid-template-columns: 1fr;
+  }
+
+  .job-mail-attachment {
+    align-items: flex-start;
+  }
+
+  .job-float-toggle,
+  .job-print-float {
+    right: 4px;
+  }
+}
+
+@media (max-width: 575px) {
+  .job-entry-page {
+    margin-top: 60px;
+  }
+
+  .job-entry-shell {
+    padding: 10px 10px 18px;
+  }
+
+  .job-entry-title h1 {
+    font-size: 17px;
+  }
+
+  .job-entry-title p,
+  .job-current-info,
+  .job-save-status {
+    font-size: 11px;
+  }
+
+  .job-lines-wrap {
+    border-radius: 6px;
+  }
+
+  .job-lines-scroll,
+  .estimate-lines-scroll {
+    max-height: 56vh !important;
+  }
+
+  .job-mail-backdrop,
+  .job-draft-backdrop {
+    padding: 12px;
+  }
+
+  .job-mail-header,
+  .job-draft-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .job-mail-preview table,
+  .current-job-rows-container table {
+    min-width: 720px;
+  }
+}
+
+/* =========================================================
+   FINAL ESTIMATE TABLE COLUMN FIX
+   Keep this block at the very end of JobEntry.css.
+   Uses colgroup classes, so hidden/new-job columns cannot
+   shift the Media width as nth-child selectors did.
+   ========================================================= */
+
+.estimate-lines-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+  min-height: 0 !important;
+}
+
+.estimate-lines-scroll {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: auto !important;
+  min-height: 280px !important;
+  max-height: calc(100vh - 410px) !important;
+  padding-bottom: 2px !important;
+  overscroll-behavior: contain !important;
+  scrollbar-gutter: stable !important;
+}
+
+.estimate-lines-table {
+  width: 100% !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+}
+
+.estimate-lines-table col.estimate-col-select { width: 36px !important; }
+.estimate-lines-table col.estimate-col-region { width: 58px !important; }
+.estimate-lines-table col.estimate-col-salon { width: 150px !important; }
+.estimate-lines-table col.estimate-col-article { width: 72px !important; }
+.estimate-lines-table col.estimate-col-media { width: 145px !important; }
+.estimate-lines-table col.estimate-col-production-width { width: 36px !important; }
+.estimate-lines-table col.estimate-col-production-height { width: 40px !important; }
+.estimate-lines-table col.estimate-col-sqft { width: 40px !important; }
+.estimate-lines-table col.estimate-col-qty { width: 38px !important; }
+.estimate-lines-table col.estimate-col-billing-width { width: 40px !important; }
+.estimate-lines-table col.estimate-col-billing-height { width: 40px !important; }
+.estimate-lines-table col.estimate-col-billable-sqft { width: 52px !important; }
+.estimate-lines-table col.estimate-col-rate { width: 34px !important; }
+.estimate-lines-table col.estimate-col-description { width: 92px !important; }
+.estimate-lines-table col.estimate-col-amount { width: 72px !important; }
+
+.estimate-lines-table th.estimate-article-cell,
+.estimate-lines-table td.estimate-article-cell {
+  width: 72px !important;
+  min-width: 72px !important;
+  max-width: 72px !important;
+}
+
+.estimate-lines-table th.estimate-media-cell,
+.estimate-lines-table td.estimate-media-cell {
+  width: 145px !important;
+  min-width: 145px !important;
+  max-width: 145px !important;
+}
+
+.estimate-lines-table th,
+.estimate-lines-table td {
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.estimate-lines-table th:nth-child(2),
+.estimate-lines-table td:nth-child(2) {
+  width: 74px !important;
+  min-width: 74px !important;
+  max-width: 74px !important;
+}
+
+.estimate-lines-table th:nth-child(3),
+.estimate-lines-table td:nth-child(3) {
+  width: 92px !important;
+  min-width: 92px !important;
+  max-width: 92px !important;
+}
+
+.estimate-lines-table th:nth-child(4),
+.estimate-lines-table td:nth-child(4) {
+  width: 150px !important;
+  min-width: 150px !important;
+  max-width: 150px !important;
+}
+
+.estimate-lines-table th:nth-child(5),
+.estimate-lines-table td:nth-child(5) {
+  width: 72px !important;
+  min-width: 72px !important;
+  max-width: 72px !important;
+}
+
+.estimate-lines-table th:nth-child(6),
+.estimate-lines-table td:nth-child(6) {
+  width: 145px !important;
+  min-width: 145px !important;
+  max-width: 145px !important;
+}
+
+.estimate-lines-table td > input,
+.estimate-lines-table td > select,
+.estimate-lines-table td > textarea,
+.estimate-lines-table .job-cell-select__control {
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.estimate-lines-table td:nth-child(7) > input,
+.estimate-lines-table td:nth-child(8) > input,
+.estimate-lines-table td:nth-child(9) > input,
+.estimate-lines-table td:nth-child(10) > input,
+.estimate-lines-table td:nth-child(11) > input,
+.estimate-lines-table td:nth-child(12) > input,
+.estimate-lines-table td:nth-child(13) > input,
+.estimate-lines-table td:nth-child(14) > input,
+.estimate-lines-table td:nth-child(15) > input {
+  text-align: right !important;
+  padding-left: 2px !important;
+  padding-right: 2px !important;
+  font-variant-numeric: tabular-nums;
+  font-size: 9px !important;
+}
+
+.estimate-lines-table th:nth-child(7),
+.estimate-lines-table th:nth-child(8),
+.estimate-lines-table th:nth-child(9),
+.estimate-lines-table th:nth-child(10),
+.estimate-lines-table th:nth-child(11),
+.estimate-lines-table th:nth-child(12),
+.estimate-lines-table th:nth-child(13),
+.estimate-lines-table th:nth-child(14),
+.estimate-lines-table th:nth-child(15),
+.estimate-lines-table td:nth-child(7),
+.estimate-lines-table td:nth-child(8),
+.estimate-lines-table td:nth-child(9),
+.estimate-lines-table td:nth-child(10),
+.estimate-lines-table td:nth-child(11),
+.estimate-lines-table td:nth-child(12),
+.estimate-lines-table td:nth-child(13),
+.estimate-lines-table td:nth-child(14),
+.estimate-lines-table td:nth-child(15) {
+  text-align: right !important;
+  padding-right: 4px !important;
+  padding-left: 2px !important;
+}
+
+.estimate-lines-table th:nth-child(7),
+.estimate-lines-table td:nth-child(7) {
+  padding-right: 3px !important;
+  padding-left: 1px !important;
+}
+
+.estimate-lines-table th:nth-child(2),
+.estimate-lines-table th:nth-child(3),
+.estimate-lines-table th:nth-child(4),
+.estimate-lines-table th:nth-child(5),
+.estimate-lines-table th:nth-child(6),
+.estimate-lines-table td:nth-child(2),
+.estimate-lines-table td:nth-child(3),
+.estimate-lines-table td:nth-child(4),
+.estimate-lines-table td:nth-child(5),
+.estimate-lines-table td:nth-child(6) {
+  text-align: left !important;
+}
+
+.estimate-lines-table td.estimate-article-cell > input {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 32px !important;
+  padding: 0 3px !important;
+  font-size: 9px !important;
+  text-align: left !important;
+}
+
+.estimate-lines-table td.estimate-media-cell > .job-cell-select__control {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 36px !important;
+  height: 36px !important;
+}
+
+.estimate-lines-table td.estimate-media-cell .job-cell-select__single-value,
+.estimate-lines-table td.estimate-media-cell .job-cell-select__placeholder {
+  font-size: 10px !important;
+}
+
+.estimate-lines-table .job-cell-select__control {
+  min-height: 36px !important;
+  height: 36px !important;
+  font-size: 10px !important;
+}
+
+.estimate-lines-table .job-cell-select__value-container {
+  min-width: 0 !important;
+  padding: 0 6px !important;
+  overflow: hidden !important;
+  flex-wrap: nowrap !important;
+}
+
+.estimate-lines-table .job-cell-select__single-value,
+.estimate-lines-table .job-cell-select__placeholder {
+  max-width: 100% !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-size: 9px !important;
+}
+
+.estimate-lines-table .job-cell-select__indicators {
+  flex: 0 0 auto !important;
+}
+
+.estimate-lines-table .job-cell-select__indicator-separator {
+  display: none !important;
+}
+
+/* The Media menu can be wider than its cell, but it must not
+   change the table width or be clipped by the scroll wrapper. */
+.job-cell-select__menu-portal {
+  z-index: 999999 !important;
+}
+
+.job-cell-select__menu {
+  width: 340px !important;
+  min-width: 340px !important;
+  max-width: min(440px, calc(100vw - 32px)) !important;
+  z-index: 999999 !important;
+}
+
+.job-cell-select__menu-list {
+  max-height: 300px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+.job-cell-select__option {
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  line-height: 1.3 !important;
 }

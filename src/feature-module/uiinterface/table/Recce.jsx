@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row, Table } from "react-bootstrap";
 import axios from "axios";
 import CreatableSelect from "react-select/creatable";
@@ -341,6 +341,9 @@ const Recce = () => {
   const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
   const [isLoadingStores, setIsLoadingStores] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const didLoadRecceRowsRef = useRef(false);
+  const didLoadCustomersRef = useRef(false);
+  const didLoadMediaRowsRef = useRef(false);
 
   const fetchRecceRows = async () => {
     setIsLoadingRows(true);
@@ -361,10 +364,15 @@ const Recce = () => {
   };
 
   useEffect(() => {
+    if (didLoadRecceRowsRef.current) return;
+    didLoadRecceRowsRef.current = true;
     fetchRecceRows();
   }, []);
 
   useEffect(() => {
+    if (didLoadCustomersRef.current) return;
+    didLoadCustomersRef.current = true;
+
     const loadCustomers = async () => {
       const user = getLoggedInUser();
       const locationId = user?.location_id || user?.locationId || "";
@@ -397,6 +405,9 @@ const Recce = () => {
   }, []);
 
   useEffect(() => {
+    if (didLoadMediaRowsRef.current) return;
+    didLoadMediaRowsRef.current = true;
+
     const loadMediaRows = async () => {
       try {
         const response = await axios.get(config.ProductMediaRateMaster.URL.GetAll, {

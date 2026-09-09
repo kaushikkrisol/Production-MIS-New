@@ -7,6 +7,21 @@ import { COMPANY_LOGO, getCompanyBranchDetails } from "./companyBranches";
 
 const GST_RATE_FALLBACK = 18;
 
+const MONTH_INDEX = {
+  jan: 0,
+  feb: 1,
+  mar: 2,
+  apr: 3,
+  may: 4,
+  jun: 5,
+  jul: 6,
+  aug: 7,
+  sep: 8,
+  oct: 9,
+  nov: 10,
+  dec: 11,
+};
+
 const GST_STATE_ALIASES = {
   "01": ["jammuandkashmir", "jammu", "kashmir"],
   "02": ["himachalpradesh", "himachal"],
@@ -61,13 +76,50 @@ const formatAmount = (value) =>
     maximumFractionDigits: 2,
   });
 
+const parseFlexibleDate = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+
+  const dateValue = value?.$date || value;
+  if (dateValue instanceof Date) return Number.isNaN(dateValue.getTime()) ? null : dateValue;
+
+  const text = String(dateValue).trim();
+  if (!text) return null;
+
+  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoMatch) {
+    const [, year, month, day] = isoMatch;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const monthMatch = text.match(/^(\d{1,2})[-/\s]([A-Za-z]{3,})[-/\s](\d{4})$/);
+  if (monthMatch) {
+    const [, day, monthText, year] = monthMatch;
+    const monthIndex = MONTH_INDEX[monthText.slice(0, 3).toLowerCase()];
+    if (monthIndex !== undefined) {
+      const parsed = new Date(Number(year), monthIndex, Number(day));
+      return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }
+  }
+
+  const numericMatch = text.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (numericMatch) {
+    const [, day, month, year] = numericMatch;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const parsed = new Date(text);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const formatDate = (value) => {
   if (!value) return "-";
 
-  const dateValue = value?.$date || value;
-  const date = new Date(dateValue);
+  const date = parseFlexibleDate(value);
 
-  if (Number.isNaN(date.getTime())) return toText(value) || "-";
+  if (!date || Number.isNaN(date.getTime())) return toText(value) || "-";
 
   return date.toLocaleDateString("en-IN", {
     day: "2-digit",
@@ -131,11 +183,45 @@ const getInvoiceDocumentType = (data) => {
     )
   ).toLowerCase();
 
+  const hasExplicitCreditNoteReference = [
+    data?.CreditNoteNo,
+    data?.creditNoteNo,
+    data?.CNNo,
+    data?.cnNo,
+    data?.DocumentNo,
+    data?.documentNo,
+  ].some((value) => {
+    const normalized = normalizeDocumentTypeText(value).toLowerCase();
+    return (
+      normalized.includes("credit note") ||
+      normalized.startsWith("cn") ||
+      normalized.includes("cn no") ||
+      normalized.includes("creditnote")
+    );
+  });
+
   if (
     typeText.includes("credit note") ||
-    firstValue(data?.ParentInvoiceNo, data?.parentInvoiceNo, data?.OriginalInvoiceNo, data?.originalInvoiceNo)
+    hasExplicitCreditNoteReference
   ) {
     return "Credit Note";
+  }
+
+  if (
+    typeText.includes("internal invoice") ||
+    typeText.includes("production to billing") ||
+    typeText.includes("internal bill")
+  ) {
+    return "Internal Bill";
+  }
+
+  if (
+    typeText.includes("invoice to customer") ||
+    typeText.includes("invoicetocustomer") ||
+    typeText.includes("billing to customer") ||
+    typeText.includes("billingtocustomer")
+  ) {
+    return "Tax Invoice";
   }
 
   return "Tax Invoice";
@@ -267,7 +353,13 @@ const normalizeAddress = (entry, fallbackLabel) => {
   const gstNo = firstValue(entry?.gstNo, entry?.GstNo, entry?.GSTNo, extractGstNo(rawAddress));
   const addressLines = splitAddressLines(rawAddress).filter((line) => {
     const normalized = line.toLowerCase();
-    return line !== name && !normalized.includes("gst no") && !normalized.includes("gstin");
+    return (
+      line !== name &&
+      !normalized.includes("gst no") &&
+      !normalized.includes("gstin") &&
+      !normalized.includes("pan :") &&
+      !normalized.startsWith("pan:")
+    );
   });
 
   return {
@@ -408,22 +500,24 @@ const normalizeInvoiceRow = (item, index, dataGstRate, invoiceData) => {
     type: firstValue(item?.type, item?.Type, item?.lineType),
     jobNo: firstValue(item?.jobNo, item?.JobNo, invoiceData?._jobCards, invoiceData?.JobCards, invoiceData?.jobCards),
     description: firstValue(
-      item?.description,
-      item?.Description,
       item?.InvoiceDescription,
       item?.invoiceDescription,
+      item?.description,
+      item?.Description,
       item?.NameSubCode,
       item?.nameSubCode,
+      item?.InvoiceMedia,
+      item?.invoiceMedia,
       item?.media,
       item?.Media,
       "Service"
     ),
-    media: firstValue(item?.media, item?.Media, item?.InvoiceMedia, item?.invoiceMedia),
-    hsnCode: firstValue(item?.hsnCode, item?.HsnCode, item?.HSNCode, item?.InvoiceHsn, item?.invoiceHsn, item?.Hsn, item?.hsn),
-    qty: firstValue(item?.qty, item?.Qty, item?.InvoiceQty, item?.invoiceQty, item?.Quantity, item?.quantity, "1"),
-    width: firstValue(item?.width, item?.Width, item?.InvoiceWidth, item?.invoiceWidth),
-    height: firstValue(item?.height, item?.Height, item?.InvoiceHeight, item?.invoiceHeight, item?.Length, item?.length),
-    rate: toNumber(item?.rate || item?.Rate || item?.InvoiceRate || item?.invoiceRate),
+    media: firstValue(item?.InvoiceMedia, item?.invoiceMedia, item?.media, item?.Media),
+    hsnCode: firstValue(item?.InvoiceHsn, item?.invoiceHsn, item?.hsnCode, item?.HsnCode, item?.HSNCode, item?.Hsn, item?.hsn),
+    qty: firstValue(item?.InvoiceQty, item?.invoiceQty, item?.qty, item?.Qty, item?.Quantity, item?.quantity, "1"),
+    width: firstValue(item?.InvoiceBillingWidth, item?.invoiceBillingWidth, item?.InvoiceWidth, item?.invoiceWidth, item?.width, item?.Width),
+    height: firstValue(item?.InvoiceBillingHeight, item?.invoiceBillingHeight, item?.InvoiceHeight, item?.invoiceHeight, item?.height, item?.Height, item?.Length, item?.length),
+    rate: toNumber(item?.InvoiceRate || item?.invoiceRate || item?.rate || item?.Rate),
     taxableValue,
     gstRate,
     gstAmount,
@@ -508,6 +602,9 @@ const normalizeInvoiceData = (payload) => {
   const calculatedGstTotal = invoiceRows.reduce((sum, row) => sum + toNumber(row.gstAmount), 0);
   const calculatedGrandTotal = invoiceRows.reduce((sum, row) => sum + toNumber(row.lineTotal), 0);
   const region = firstValue(
+    // A saved invoice branch must override a legacy/general Region value.
+    data?.BillFromLocation,
+    data?.billFromLocation,
     data?._region,
     data?.Region,
     data?.region,
@@ -530,6 +627,8 @@ const normalizeInvoiceData = (payload) => {
   );
   const companyDetails = {
     companyName: firstValue(
+      data?.BillFromCompanyName,
+      data?.billFromCompanyName,
       data?.companyDetails?.companyName,
       data?.CompanyName,
       data?.companyName,
@@ -537,23 +636,63 @@ const normalizeInvoiceData = (payload) => {
       "Commercial Reprographers"
     ),
     companyAddress: firstValue(
+      data?.BillFromCompanyAddress,
+      data?.billFromCompanyAddress,
       data?.companyDetails?.companyAddress,
       data?.CompanyAddress,
       data?.companyAddress,
       branchDetails.companyAddress
     ),
     companyPhone: firstValue(data?.companyDetails?.companyPhone, data?.CompanyPhone, data?.companyPhone, branchDetails.companyPhone),
-    companyGst: firstValue(data?.companyDetails?.companyGst, data?.CompanyGst, data?.companyGst, branchDetails.companyGst),
+    companyGst: firstValue(data?.BillFromCompanyGst, data?.billFromCompanyGst, data?.companyDetails?.companyGst, data?.CompanyGst, data?.companyGst, branchDetails.companyGst),
     companyLogo,
     companyPan: firstValue(data?.companyDetails?.companyPan, data?.CompanyPan, data?.companyPan),
   };
 
+  const invoiceType = getInvoiceDocumentType(data);
+  const internalBillToLocation = firstValue(
+    data?.BillToLocation,
+    data?.billToLocation,
+    data?.BillingLocation,
+    data?.billingLocation
+  );
+  const internalBillToBranchDetails = getCompanyBranchDetails(internalBillToLocation || region);
+
   const billToList = firstArray(data?._billTo, data?.BillTo, data?.billTo, data?.billToList).map((entry) =>
     normalizeAddress(entry, "Customer Detail")
   );
-  const shipToList = firstArray(data?._shipTo, data?.ShipTo, data?.shipTo, data?.shipToList).map((entry) =>
+  const rawShipToList = firstArray(data?._shipTo, data?.ShipTo, data?.shipTo, data?.shipToList).map((entry) =>
     normalizeAddress(entry, "Ship To")
   );
+  const internalBillToList =
+    invoiceType === "Internal Bill"
+      ? [
+          {
+            label: "Customer Detail",
+            name: firstValue(
+              data?.BillToCompanyName,
+              data?.billToCompanyName,
+              internalBillToBranchDetails.companyName
+            ),
+            address: firstValue(
+              data?.BillToCompanyAddress,
+              data?.billToCompanyAddress,
+              internalBillToBranchDetails.companyAddress
+            ),
+            gstNo: firstValue(
+              data?.BillToCompanyGst,
+              data?.billToCompanyGst,
+              internalBillToBranchDetails.companyGst
+            ),
+            phone: firstValue(
+              data?.BillToCompanyPhone,
+              data?.billToCompanyPhone,
+              internalBillToBranchDetails.companyPhone
+            ),
+            placeOfSupply: firstValue(internalBillToLocation, data?.BillingLocation, data?.billingLocation, region),
+          },
+        ]
+      : [];
   const bankDetails = data?.bankDetails || data?.BankDetails || {};
   const invoiceSubtotal = toNumber(data?.SubTotal || data?.subTotal || data?.invoiceSubtotal) || calculatedSubtotal;
   const invoiceGstTotal = toNumber(data?.GstTotal || data?.gstTotal || data?.invoiceGstTotal) || calculatedGstTotal;
@@ -561,7 +700,21 @@ const normalizeInvoiceData = (payload) => {
     toNumber(data?._grandTotal || data?.GrandTotal || data?.grandTotal || data?.invoiceGrandTotal) ||
     calculatedGrandTotal ||
     invoiceSubtotal + invoiceGstTotal;
-  const invoiceType = getInvoiceDocumentType(data);
+  
+  const shipToSource =
+    invoiceType === "Tax Invoice"
+      ? rawShipToList.length
+        ? rawShipToList
+        : billToList
+      : internalBillToList.length
+        ? internalBillToList
+        : rawShipToList.length
+          ? rawShipToList
+          : billToList;
+  const shipToList = shipToSource.map((entry, index) => ({
+    ...entry,
+    label: entry.label || `Ship To ${index + 1}`,
+  }));
   const isCreditNote = invoiceType.toLowerCase() === "credit note";
   const ewayBill = normalizeEwayBillDetails(data);
 
@@ -634,17 +787,29 @@ const normalizeInvoiceData = (payload) => {
     invoiceSubtotal,
     invoiceGstTotal,
     invoiceGrandTotal,
-    billToList,
+    billToList: internalBillToList.length ? internalBillToList : billToList,
     shipToList,
     notes: firstValue(data?.Notes, data?.notes),
     bankDetails: {
-      bankName: firstValue(bankDetails?.bankName, bankDetails?.BankName, data?.BankName, data?.bankName),
-      branch: firstValue(bankDetails?.branch, bankDetails?.Branch, data?.BankBranch, data?.bankBranch),
-      accountNo: firstValue(bankDetails?.accountNo, bankDetails?.AccountNo, data?.AccountNo, data?.accountNo),
-      ifsc: firstValue(bankDetails?.ifsc, bankDetails?.IFSC, data?.IFSC, data?.ifsc),
-      upiId: firstValue(bankDetails?.upiId, bankDetails?.UPIId, data?.UPIId, data?.upiId),
+      bankName: firstValue(bankDetails?.bankName, bankDetails?.BankName, data?.BankName, data?.bankName, branchDetails.bankDetails?.bankName, branchDetails.bankName),
+      branch: firstValue(bankDetails?.branch, bankDetails?.Branch, data?.BankBranch, data?.bankBranch, branchDetails.bankDetails?.branch, branchDetails.bankBranch),
+      accountNo: firstValue(bankDetails?.accountNo, bankDetails?.AccountNo, data?.AccountNo, data?.accountNo, branchDetails.bankDetails?.accountNo, branchDetails.accountNo),
+      ifsc: firstValue(bankDetails?.ifsc, bankDetails?.IFSC, data?.IFSC, data?.ifsc, branchDetails.bankDetails?.ifsc, branchDetails.ifsc),
+      upiId: firstValue(bankDetails?.upiId, bankDetails?.UPIId, data?.UPIId, data?.upiId, branchDetails.bankDetails?.upiId, branchDetails.upiId),
     },
   };
+};
+
+const readStoredPreviewData = (storageKey) => {
+  const raw = localStorage.getItem(storageKey);
+  if (!raw) return null;
+
+  try {
+    return JSON.parse(raw);
+  } catch (error) {
+    console.error(`Failed to parse ${storageKey}`, error);
+    return null;
+  }
 };
 
 const DataRow = ({ label, value }) => (
@@ -659,6 +824,18 @@ const InvoicePrintPreview = () => {
   const [apiInvoice, setApiInvoice] = useState(null);
   const [isLoadingInvoice, setIsLoadingInvoice] = useState(Boolean(routeInvoiceNo));
   const [loadError, setLoadError] = useState("");
+  const [previewRevision, setPreviewRevision] = useState(0);
+
+  useEffect(() => {
+    const handlePreviewUpdate = (event) => {
+      if (event.key === "invoicePrintPreviewData") {
+        setPreviewRevision((revision) => revision + 1);
+      }
+    };
+
+    window.addEventListener("storage", handlePreviewUpdate);
+    return () => window.removeEventListener("storage", handlePreviewUpdate);
+  }, []);
 
   useEffect(() => {
     const invoiceNo = String(routeInvoiceNo || "").trim();
@@ -673,9 +850,19 @@ const InvoicePrintPreview = () => {
       .then((response) => {
         if (!isMounted) return;
         setApiInvoice(response.data);
+        const storedPreview = readStoredPreviewData("invoicePrintPreviewData");
+        const storedPreviewInvoiceNo = String(
+          storedPreview?.invoiceNo ||
+            storedPreview?.InvoiceNo ||
+            storedPreview?.CustomerInvoiceNo ||
+            storedPreview?.customerInvoiceNo ||
+            storedPreview?._invoiceNo ||
+            ""
+        ).trim();
 
-        localStorage.setItem("invoicePrintPreviewData", JSON.stringify(response.data));
-        localStorage.removeItem("invoiceDraftData");
+        if (!storedPreviewInvoiceNo || storedPreviewInvoiceNo !== invoiceNo) {
+          localStorage.setItem("invoicePrintPreviewData", JSON.stringify(response.data));
+        }
       })
       .catch((error) => {
         if (!isMounted) return;
@@ -692,8 +879,6 @@ const InvoicePrintPreview = () => {
   }, [routeInvoiceNo]);
 
   const previewData = useMemo(() => {
-    if (apiInvoice) return normalizeInvoiceData(apiInvoice);
-
     const readPreview = (storageKey) => {
       const raw = localStorage.getItem(storageKey);
       if (!raw) return null;
@@ -707,10 +892,20 @@ const InvoicePrintPreview = () => {
     };
 
     const primaryPreview = readPreview("invoicePrintPreviewData");
+    const normalizedRouteInvoiceNo = String(routeInvoiceNo || "").trim();
+    const localPreviewMatchesRoute =
+      primaryPreview &&
+      (!normalizedRouteInvoiceNo ||
+        String(primaryPreview.invoiceNo || "").trim() === normalizedRouteInvoiceNo);
+
+    if (localPreviewMatchesRoute) return primaryPreview;
+
+    if (apiInvoice) return normalizeInvoiceData(apiInvoice);
+
     if (primaryPreview) return primaryPreview;
 
     return readPreview("invoiceDraftData");
-  }, [apiInvoice]);
+  }, [apiInvoice, previewRevision, routeInvoiceNo]);
 
   if (isLoadingInvoice && !previewData) {
     return (
@@ -1000,8 +1195,17 @@ const InvoicePrintPreview = () => {
           grid-template-columns: 1fr;
           min-height: 132px;
         }
+        .classic-bank-ship-row {
+          display: grid;
+          grid-template-columns: 62% 38%;
+          min-height: 132px;
+        }
         .classic-bank-details {
           padding-bottom: 5px;
+        }
+        .classic-bank-ship-row .classic-bank-details {
+          border-right: 1px solid #555;
+          padding-bottom: 0;
         }
         .classic-bank-details table th,
         .classic-bank-details table td {
@@ -1011,6 +1215,21 @@ const InvoicePrintPreview = () => {
         .classic-bank-details table th {
           width: 100px;
           font-weight: 400;
+        }
+        .classic-ship-panel {
+          display: grid;
+          grid-template-rows: 1fr auto;
+          min-height: 132px;
+        }
+        .classic-ship-panel-body {
+          padding: 6px;
+        }
+        .classic-ship-panel-signature {
+          border-top: 1px solid #555;
+          text-align: center;
+          padding: 4px;
+          font-weight: 800;
+          font-size: 8px;
         }
         .classic-tax-summary table th,
         .classic-tax-summary table td {
@@ -1051,29 +1270,14 @@ const InvoicePrintPreview = () => {
           font-weight: 800;
         }
         .classic-terms-sign {
-          display: grid;
-          grid-template-columns: 62% 38%;
           border-top: 1px solid #555;
         }
         .classic-terms {
           min-height: 82px;
-          border-right: 1px solid #555;
         }
         .classic-terms ul {
           margin: 4px 8px 4px 18px;
           padding: 0;
-        }
-        .classic-customer-sign {
-          display: grid;
-          grid-template-rows: 1fr auto;
-          min-height: 82px;
-        }
-        .classic-customer-sign div:last-child {
-          border-top: 1px solid #555;
-          text-align: center;
-          padding: 4px;
-          font-weight: 800;
-          font-size: 8px;
         }
         .classic-footer-note {
           padding: 7px 8px;
@@ -1340,17 +1544,33 @@ const InvoicePrintPreview = () => {
               </div>
 
               <div className="classic-bank-details">
-                <div className="classic-section-title">Bank Details</div>
-                <div className="classic-bank-grid">
-                  <table>
-                    <tbody>
-                      <DataRow label="Name" value={bankDetails.bankName} />
-                      <DataRow label="Branch" value={bankDetails.branch} />
-                      <DataRow label="Acc. Number" value={bankDetails.accountNo} />
-                      <DataRow label="IFSC" value={bankDetails.ifsc} />
-                      <DataRow label="UPI ID" value={bankDetails.upiId} />
-                    </tbody>
-                  </table>
+                <div className="classic-bank-ship-row">
+                  <div className="classic-bank-details">
+                    <div className="classic-section-title">Bank Details</div>
+                    <div className="classic-bank-grid">
+                      <table>
+                        <tbody>
+                          <DataRow label="Name" value={bankDetails.bankName} />
+                          <DataRow label="Branch" value={bankDetails.branch} />
+                          <DataRow label="Acc. Number" value={bankDetails.accountNo} />
+                          <DataRow label="IFSC" value={bankDetails.ifsc} />
+                          <DataRow label="UPI ID" value={bankDetails.upiId} />
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  <div className="classic-ship-panel">
+                    <div>
+                      <div className="classic-section-title">Ship To</div>
+                      <div className="classic-ship-panel-body">
+                        <strong>{shipTo.name || "-"}</strong>
+                        <div>{shipTo.address || "-"}</div>
+                        {shipTo.gstNo ? <div>GSTIN: {shipTo.gstNo}</div> : null}
+                        {projectName ? <div>Project: {projectName}</div> : null}
+                      </div>
+                    </div>
+                    <div className="classic-ship-panel-signature">Customer Signature</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1394,18 +1614,6 @@ const InvoicePrintPreview = () => {
                 <li>Goods once sold will not be taken back.</li>
                 {notes ? <li>{notes}</li> : null}
               </ul>
-            </div>
-            <div className="classic-customer-sign">
-              <div>
-                <div className="classic-section-title">Ship To</div>
-                <div style={{ padding: 6 }}>
-                  <strong>{shipTo.name || "-"}</strong>
-                  <div>{shipTo.address || "-"}</div>
-                  {shipTo.gstNo ? <div>GSTIN: {shipTo.gstNo}</div> : null}
-                  {projectName ? <div>Project: {projectName}</div> : null}
-                </div>
-              </div>
-              <div>Customer Signature</div>
             </div>
           </section>
 

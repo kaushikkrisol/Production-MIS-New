@@ -1,10 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Col, Form, Row, Table } from "react-bootstrap";
 import axios from "axios";
-import Select from "react-select";
 import config from "../../../config";
-import hsnRateData from "../../../core/json/hsnRateData.json";
+import erpMasterData from "../../../core/json/erpMasterData.json";
+import productRateData from "../../../core/json/productRateData.json";
 import { mergeFallbackCustomers } from "./customerFallbacks";
+import Select from "react-select";
 
 const STORAGE_KEY = "productMediaRateMasterRows";
 
@@ -19,7 +20,9 @@ const emptyForm = {
   ratePerSqft: "",
   internalMedia: "",
   externalMedia: "",
-    mediaType: "MEDIA",
+  mediaType: "MEDIA",
+  productAsPerRateCard: "",
+  simplifiedProductName: "",
 
 };
 
@@ -48,6 +51,21 @@ const getCustomerGstNo = (customer) =>
       ""
   ).trim();
 
+const getCustomerPanCard = (customer) =>
+  String(
+    customer?.panCard ??
+      customer?.PanCard ??
+      customer?.panNo ??
+      customer?.PANNo ??
+      customer?.pan_number ??
+      customer?.PAN_NO ??
+      customer?.pan ??
+      customer?.PAN ??
+      getPanFromGstin(getCustomerGstNo(customer))
+  )
+    .trim()
+    .toUpperCase();
+
 const getPanFromGstin = (gstin) => {
   const clean = String(gstin || "").trim().toUpperCase();
   return clean.length >= 12 ? clean.substring(2, 12) : "";
@@ -55,6 +73,30 @@ const getPanFromGstin = (gstin) => {
 
 const getSelectedOption = (options, value) =>
   options.find((option) => option.value === value) || null;
+
+const getMasterGroup = (key) =>
+  Array.isArray(erpMasterData?.groups?.[key]) ? erpMasterData.groups[key] : [];
+
+const getMasterValues = (key) =>
+  getMasterGroup(key)
+    .map((item) => String(item?.value || item?.label || "").trim())
+    .filter(Boolean);
+
+const uniqueOptionValues = (values = []) => {
+  const seen = new Set();
+
+  return values.filter((value) => {
+    const normalized = String(value || "").trim().toLowerCase();
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+};
+
+const getMasterOptionValues = (key, fallback = []) => {
+  const masterValues = getMasterValues(key);
+  return uniqueOptionValues(masterValues.length ? masterValues : fallback);
+};
 
 const getRowsFromResponse = (data) => {
   if (Array.isArray(data)) return data;
@@ -94,6 +136,8 @@ const toApiPayload = (row, mode) => {
     ratePerSqft: Number(row.ratePerSqft || 0),
     internalMedia: row.internalMedia,
     externalMedia: row.externalMedia,
+    productAsPerRateCard: row.productAsPerRateCard || row.externalMedia,
+    simplifiedProductName: row.simplifiedProductName || row.internalMedia,
     Del_index: row.Del_index || "1",
   };
 
@@ -113,29 +157,6 @@ const toApiPayload = (row, mode) => {
 
   return payload;
 };
-
-const seedRows = () =>
-  (Array.isArray(hsnRateData) ? hsnRateData : []).map((item, index) => ({
-    id: `seed-${index}`,
-    customerId: "",
-    customerName: "",
-    gstNo: "",
-    panNo: "",
-    productCode: item.productCode || `PM-${String(index + 1).padStart(4, "0")}`,
-    hsnCode: item.hsnCode || "",
-    ratePerSqft: item.ratePerSqft ?? "",
-    internalMedia: item.media || "",
-    externalMedia: item.externalMedia || item.media || "",
-  }));
-
-const hsnSheetRows = (Array.isArray(hsnRateData) ? hsnRateData : []).map(
-  (item, index) => ({
-    id: `hsn-sheet-${index}`,
-    media: item.media || "",
-    hsnCode: item.hsnCode || "",
-    ratePerSqft: item.ratePerSqft ?? "",
-  })
-);
 
 const normalizeRateRow = (row, index = 0, customers = []) => {
   const customerId = String(
@@ -211,10 +232,38 @@ const normalizeRateRow = (row, index = 0, customers = []) => {
       row?.hsnCode ?? row?.HsnCode ?? row?.HSNCode ?? row?.hsn ?? row?.HSN ?? "",
     ratePerSqft:
       row?.ratePerSqft ?? row?.RatePerSqft ?? row?.rate ?? row?.Rate ?? "",
+    productAsPerRateCard:
+      row?.productAsPerRateCard ??
+      row?.ProductAsPerRateCard ??
+      row?.externalMedia ??
+      row?.ExternalMedia ??
+      row?.media ??
+      row?.Media ??
+      "",
+    simplifiedProductName:
+      row?.simplifiedProductName ??
+      row?.SimplifiedProductName ??
+      row?.internalMedia ??
+      row?.InternalMedia ??
+      row?.media ??
+      row?.Media ??
+      "",
     internalMedia:
-      row?.internalMedia ?? row?.InternalMedia ?? row?.media ?? row?.Media ?? "",
+      row?.internalMedia ??
+      row?.InternalMedia ??
+      row?.simplifiedProductName ??
+      row?.SimplifiedProductName ??
+      row?.media ??
+      row?.Media ??
+      "",
     externalMedia:
-      row?.externalMedia ?? row?.ExternalMedia ?? row?.media ?? row?.Media ?? "",
+      row?.externalMedia ??
+      row?.ExternalMedia ??
+      row?.productAsPerRateCard ??
+      row?.ProductAsPerRateCard ??
+      row?.media ??
+      row?.Media ??
+      "",
     mediaType: String(
     row?.mediaType ??
       row?.MediaType ??
@@ -229,13 +278,60 @@ const normalizeRateRow = (row, index = 0, customers = []) => {
   };
 };
 
+const workbookRateRows = (Array.isArray(productRateData) ? productRateData : []).map(
+  (item, index) =>
+    normalizeRateRow(
+      {
+        id: `workbook-${index}`,
+        customerName: item.customerName || "",
+        productAsPerRateCard: item.productAsPerRateCard || "",
+        simplifiedProductName: item.simplifiedProductName || "",
+        ratePerSqft: item.ratePerSqft ?? "",
+      },
+      index,
+      []
+    )
+);
+
+const rateCardRowKey = (row) =>
+  [
+    String(row?.customerName || "").trim().toLowerCase(),
+    String(row?.productAsPerRateCard || row?.externalMedia || "").trim().toLowerCase(),
+    String(row?.simplifiedProductName || row?.internalMedia || "").trim().toLowerCase(),
+    String(row?.ratePerSqft ?? "").trim().toLowerCase(),
+  ].join("|");
+
+const mergeWorkbookRateRows = (sourceRows = [], customers = []) => {
+  const sourceMap = new Map();
+
+  sourceRows.forEach((row, index) => {
+    const normalized = normalizeRateRow(row, index, customers);
+    sourceMap.set(rateCardRowKey(normalized), normalized);
+  });
+
+  return workbookRateRows.map((baseRow, index) => {
+    const matchedRow = sourceMap.get(rateCardRowKey(baseRow));
+    return normalizeRateRow(
+      {
+        ...baseRow,
+        ...matchedRow,
+        id: matchedRow?.id || baseRow.id || `workbook-${index}`,
+      },
+      index,
+      customers
+    );
+  });
+};
+
 const ProductMediaRateMaster = () => {
+  const customerLoadStartedRef = useRef(false);
+  const initialRatesLoadStartedRef = useRef(false);
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(emptyForm);
-  const [searchText, setSearchText] = useState("");
   const [hsnSearchText, setHsnSearchText] = useState("");
   const [message, setMessage] = useState("");
   const [customers, setCustomers] = useState([]);
+  const [customersLoaded, setCustomersLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -247,11 +343,8 @@ const ProductMediaRateMaster = () => {
           timeout: 10000,
         });
 
-        const apiRows = getRowsFromResponse(response.data).map((row, index) =>
-          normalizeRateRow(row, index, customers)
-        );
-
-        setRows(apiRows.length ? apiRows : seedRows());
+        const apiRows = getRowsFromResponse(response.data);
+        setRows(mergeWorkbookRateRows(apiRows, customers));
         return true;
       } catch (error) {
         console.error("Error fetching product media rates", error);
@@ -259,12 +352,10 @@ const ProductMediaRateMaster = () => {
         const savedRows = localStorage.getItem(STORAGE_KEY);
         if (savedRows) {
           try {
-            const parsed = JSON.parse(savedRows).map((row, index) =>
-              normalizeRateRow(row, index, customers)
-            );
-            setRows(parsed);
+            const parsed = JSON.parse(savedRows);
+            setRows(mergeWorkbookRateRows(parsed, customers));
             if (showFallbackMessage) {
-              setMessage("Could not load rates from API. Showing saved local rates.");
+              setMessage("Could not load rates from API. Showing product rates only.");
             }
             return false;
           } catch (parseError) {
@@ -272,9 +363,9 @@ const ProductMediaRateMaster = () => {
           }
         }
 
-        setRows(seedRows());
+        setRows(workbookRateRows);
         if (showFallbackMessage) {
-          setMessage("Could not load rates from API. Showing default rates.");
+          setMessage("Could not load rates from API. Showing product rates only.");
         }
         return false;
       } finally {
@@ -285,6 +376,9 @@ const ProductMediaRateMaster = () => {
   );
 
   useEffect(() => {
+    if (customerLoadStartedRef.current) return;
+
+    customerLoadStartedRef.current = true;
     const fetchCustomers = async () => {
       try {
         const users = JSON.parse(localStorage.getItem("users") || "{}");
@@ -312,6 +406,8 @@ const ProductMediaRateMaster = () => {
       } catch (error) {
         console.error("Error fetching customers", error);
         setCustomers(mergeFallbackCustomers([]));
+      } finally {
+        setCustomersLoaded(true);
       }
     };
 
@@ -319,8 +415,11 @@ const ProductMediaRateMaster = () => {
   }, []);
 
   useEffect(() => {
+    if (!customersLoaded || initialRatesLoadStartedRef.current) return;
+
+    initialRatesLoadStartedRef.current = true;
     fetchProductMediaRates();
-  }, [fetchProductMediaRates]);
+  }, [customersLoaded, fetchProductMediaRates]);
 
   useEffect(() => {
     if (rows.length) {
@@ -328,56 +427,32 @@ const ProductMediaRateMaster = () => {
     }
   }, [rows]);
 
-  const filteredRows = useMemo(() => {
-  const query = searchText.trim().toLowerCase();
-  const selectedCustomerId = String(form.customerId || "").trim();
-  const selectedCustomerName = String(form.customerName || "").trim().toLowerCase();
-
-  let list = rows;
-
-  // If customer selected, show only that customer's rates
-  if (selectedCustomerId || selectedCustomerName) {
-    list = list.filter((row) => {
-      const rowCustomerId = String(row.customerId || "").trim();
-      const rowCustomerName = String(row.customerName || "").trim().toLowerCase();
-
-      return (
-        (selectedCustomerId && rowCustomerId === selectedCustomerId) ||
-        (selectedCustomerName && rowCustomerName === selectedCustomerName)
-      );
-    });
-  }
-
-  if (!query) return list;
-
-  return list.filter((row) =>
-    [
-      row.customerName,
-      row.gstNo,
-      row.panNo,
-      row.productCode,
-      row.hsnCode,
-      row.ratePerSqft,
-      row.internalMedia,
-      row.externalMedia,
-    ]
-      .join(" ")
-      .toLowerCase()
-      .includes(query)
-  );
-}, [rows, searchText, form.customerId, form.customerName]);
-
   const filteredHsnSheetRows = useMemo(() => {
     const query = hsnSearchText.trim().toLowerCase();
-    if (!query) return hsnSheetRows;
+    if (!query) return workbookRateRows;
 
-    return hsnSheetRows.filter((row) =>
-      [row.media, row.hsnCode, row.ratePerSqft]
+    return workbookRateRows.filter((row) =>
+      [
+        row.customerName,
+        row.productAsPerRateCard,
+        row.simplifiedProductName,
+        row.ratePerSqft,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(query)
     );
   }, [hsnSearchText]);
+
+  const selectedCustomerHasRate = useMemo(() => {
+    const selectedCustomerName = String(form.customerName || "").trim().toLowerCase();
+    if (!selectedCustomerName) return false;
+
+    return workbookRateRows.some(
+      (row) =>
+        String(row.customerName || "").trim().toLowerCase() === selectedCustomerName
+    );
+  }, [form.customerName]);
 
   const mediaTypeOptions = [
   { value: "MEDIA", label: "Media" },
@@ -387,12 +462,11 @@ const ProductMediaRateMaster = () => {
 
   const customerOptions = useMemo(
     () => [
-      { value: "", label: "General Rate" },
       ...customers.map((customer) => {
         const customerId = getCustomerId(customer);
         const customerName = getCustomerName(customer);
         const gstNo = getCustomerGstNo(customer);
-        const panNo = getPanFromGstin(gstNo);
+        const panNo = getCustomerPanCard(customer);
 
         return {
           value: customerId,
@@ -414,7 +488,9 @@ const ProductMediaRateMaster = () => {
 
       const customerName = selectedCustomer ? getCustomerName(selectedCustomer) : "";
       const gstNo = selectedCustomer ? getCustomerGstNo(selectedCustomer) : "";
-      const panNo = getPanFromGstin(gstNo);
+      const panNo = selectedCustomer
+        ? getCustomerPanCard(selectedCustomer)
+        : getPanFromGstin(gstNo);
 
       setForm((prev) => ({
         ...prev,
@@ -423,6 +499,13 @@ const ProductMediaRateMaster = () => {
         gstNo,
         panNo,
       }));
+      if (selectedCustomer && !workbookRateRows.some((row) => String(row.customerName || "").trim().toLowerCase() === String(customerName || "").trim().toLowerCase())) {
+        setMessage(
+          `Product rate is not available for ${customerName || "this customer"}. Please add product rate for this customer first.`
+        );
+      } else {
+        setMessage("");
+      }
       return;
     }
 
@@ -436,6 +519,24 @@ const ProductMediaRateMaster = () => {
       return;
     }
 
+    if (field === "internalMedia" || field === "simplifiedProductName") {
+      setForm((prev) => ({
+        ...prev,
+        internalMedia: value,
+        simplifiedProductName: value,
+      }));
+      return;
+    }
+
+    if (field === "externalMedia") {
+      setForm((prev) => ({
+        ...prev,
+        externalMedia: value,
+        productAsPerRateCard: value,
+      }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -445,16 +546,20 @@ const ProductMediaRateMaster = () => {
   };
 
   const validateForm = () => {
+    if (!String(form.customerId || "").trim()) return "Please select customer name.";
+    if (!selectedCustomerHasRate) {
+      return `Product rate is not available for ${form.customerName || "this customer"}. Please add product rate for this customer first.`;
+    }
     if (!String(form.productCode || "").trim()) return "Please enter product code.";
     if (!String(form.hsnCode || "").trim()) return "Please enter HSN code.";
     if (!String(form.ratePerSqft || "").trim())
-      return "Please enter rate per sqft.";
-    if (!String(form.internalMedia || "").trim())
-      return "Please enter internal media.";
-    if (!String(form.externalMedia || "").trim())
-      return "Please enter external media.";
+      return "Please enter rate per PSF / PU.";
+    if (!String(form.simplifiedProductName || "").trim())
+      return "Please select simplified product name.";
+    if (!String(form.productAsPerRateCard || form.externalMedia || "").trim())
+      return "Please enter product as per rate card.";
     if (Number(form.ratePerSqft) < 0 || Number.isNaN(Number(form.ratePerSqft))) {
-      return "Rate per sqft must be a valid number.";
+      return "Rate per PSF / PU must be a valid number.";
     }
     return "";
   };
@@ -481,8 +586,10 @@ const ProductMediaRateMaster = () => {
       hsnCode: String(form.hsnCode).trim(),
       mediaType: String(form.mediaType || "MEDIA").trim(),
       ratePerSqft: Number(form.ratePerSqft),
-      internalMedia: String(form.internalMedia).trim(),
-      externalMedia: String(form.externalMedia).trim(),
+      internalMedia: String(form.internalMedia || form.simplifiedProductName || "").trim(),
+      externalMedia: String(form.externalMedia || form.productAsPerRateCard || "").trim(),
+      simplifiedProductName: String(form.simplifiedProductName || form.internalMedia || "").trim(),
+      productAsPerRateCard: String(form.productAsPerRateCard || form.externalMedia || "").trim(),
     };
 
     try {
@@ -512,62 +619,18 @@ const ProductMediaRateMaster = () => {
     }
   };
 
-  const handleEdit = (row) => {
-    setForm({
-      id: row.id,
-      customerId: row.customerId || "",
-      customerName: row.customerName || "",
-      gstNo: row.gstNo || "",
-      panNo: row.panNo || getPanFromGstin(row.gstNo || ""),
-      productCode: row.productCode || "",
-      hsnCode: row.hsnCode || "",
-      ratePerSqft: row.ratePerSqft ?? "",
-      internalMedia: row.internalMedia || "",
-      externalMedia: row.externalMedia || "",
-      mediaType: row.mediaType || "MEDIA",
-    });
-    setMessage("");
-  };
-
   const handleUseHsnSheetRow = (row) => {
     setForm((prev) => ({
       ...prev,
       productCode: prev.productCode || "",
       hsnCode: row.hsnCode || "",
       ratePerSqft: row.ratePerSqft ?? "",
-      internalMedia: row.media || "",
-      externalMedia: row.media || "",
+      internalMedia: row.media || row.simplifiedProductName || "",
+      externalMedia: row.media || row.productAsPerRateCard || "",
+      productAsPerRateCard: row.productAsPerRateCard || row.media || "",
+      simplifiedProductName: row.simplifiedProductName || row.media || "",
     }));
     setMessage("HSN sheet row copied to the rate form.");
-  };
-
-  const handleDelete = async (rowId) => {
-    try {
-      setIsSaving(true);
-      const selectedRow = rows.find((row) => row.id === rowId) || { id: rowId };
-
-      await axios.post(
-        config.ProductMediaRateMaster.URL.Delete,
-        toApiPayload({ ...selectedRow, id: rowId, Del_index: "0" }, "delete"),
-        {
-          timeout: 10000,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-
-      await fetchProductMediaRates({ showFallbackMessage: false });
-      if (form.id === rowId) resetForm();
-      setMessage("Product media rate deleted.");
-    } catch (error) {
-      console.error("Error deleting product media rate", error);
-      setMessage(
-        error?.response?.data?.message ||
-          error?.message ||
-          "Failed to delete product media rate."
-      );
-    } finally {
-      setIsSaving(false);
-    }
   };
 
   return (
@@ -598,8 +661,8 @@ const ProductMediaRateMaster = () => {
           <div>
             <h4 className="mb-1">Product Media Rate Master</h4>
             <p className="text-muted mb-0">
-              Maintain product code, HSN code, rate per sqft, internal media,
-              external media, GST, and PAN.
+              Maintain product code, HSN code, rate per PSF / PU, simplified
+              product name, product as per rate card, GST, and PAN.
             </p>
           </div>
           <Button variant="outline-secondary" onClick={resetForm}>
@@ -633,15 +696,34 @@ const ProductMediaRateMaster = () => {
                     <Form.Label>Customer Name</Form.Label>
                     <Select
                       classNamePrefix="rate-select"
+                      className="w-100"
                       isClearable={false}
                       options={customerOptions}
                       value={getSelectedOption(customerOptions, form.customerId)}
+                      formatOptionLabel={(option) => (
+                        <div>
+                          <div>{option.label}</div>
+                          {(option.gstNo || option.panNo) && (
+                            <small className="text-muted">
+                              {option.gstNo ? `GST: ${option.gstNo}` : ""}
+                              {option.gstNo && option.panNo ? " | " : ""}
+                              {option.panNo ? `PAN: ${option.panNo}` : ""}
+                            </small>
+                          )}
+                        </div>
+                      )}
                       onChange={(option) =>
                         handleChange("customerId", option?.value || "")
                       }
                       placeholder="Search customer"
                     />
                   </Form.Group>
+                  {String(form.customerId || "").trim() &&
+                    !selectedCustomerHasRate && (
+                      <div className="text-danger small mt-2">
+                        Product rate is not available for this customer. Please add product rate for this customer first.
+                      </div>
+                    )}
                 </Col>
 
                 <Col md={3}>
@@ -680,7 +762,7 @@ const ProductMediaRateMaster = () => {
                   </Form.Group>
                 </Col>
 
-                <Col md={3}>
+                {/* <Col md={3}>
                   <Form.Group>
                     <Form.Label>HSN Code</Form.Label>
                     <Form.Control
@@ -689,11 +771,11 @@ const ProductMediaRateMaster = () => {
                       placeholder="Enter HSN code"
                     />
                   </Form.Group>
-                </Col>
+                </Col> */}
 
                 <Col md={3}>
                   <Form.Group>
-                    <Form.Label>Rate </Form.Label>
+                    <Form.Label>Rate per PSF / PU</Form.Label>
                     <Form.Control
                       type="number"
                       min="0"
@@ -709,39 +791,40 @@ const ProductMediaRateMaster = () => {
 
                 <Col md={3}>
                   <Form.Group>
-                    <Form.Label> Media</Form.Label>
+                    <Form.Label>Simplified Product Name</Form.Label>
                     <Form.Control
-                      value={form.internalMedia}
+                      value={form.simplifiedProductName}
                       onChange={(e) =>
-                        handleChange("internalMedia", e.target.value)
+                        handleChange("simplifiedProductName", e.target.value)
                       }
-                      placeholder="media"
+                      placeholder="Enter simplified product name"
                     />
                   </Form.Group>
                 </Col>
-               <Col md={3}>
+               {/* <Col md={3}>
   <Form.Group>
     <Form.Label>Media Type</Form.Label>
-    <Select
-      options={mediaTypeOptions}
-      value={mediaTypeOptions.find(
-        (x) => x.value === form.mediaType
-      )}
-      onChange={(option) =>
-        handleChange("mediaType", option?.value || "MEDIA")
-      }
-    />
+    <Form.Select
+      value={form.mediaType}
+      onChange={(e) => handleChange("mediaType", e.target.value)}
+    >
+      {mediaTypeOptions.map((option) => (
+        <option key={option.value} value={option.value}>
+          {option.label}
+        </option>
+      ))}
+    </Form.Select>
   </Form.Group>
-</Col>
+</Col> */}
                 <Col md={6}>
                   <Form.Group>
-                    <Form.Label>Description</Form.Label>
+                    <Form.Label>Product as per Rate card</Form.Label>
                     <Form.Control
                       value={form.externalMedia}
                       onChange={(e) =>
                         handleChange("externalMedia", e.target.value)
                       }
-                      placeholder="External/client media name"
+                      placeholder="Enter product name as per rate card"
                     />
                   </Form.Group>
                 </Col>
@@ -759,94 +842,20 @@ const ProductMediaRateMaster = () => {
           </Card.Body>
         </Card>
 
-        <Card className="rate-master-card">
-          <Card.Body>
-            <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-              <h5 className="mb-0">Product Media Rate List</h5>
-              <Form.Control
-                style={{ maxWidth: 320 }}
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                placeholder="Search customer/GST/PAN/product/media/HSN"
-              />
-            </div>
-
-            <Table responsive className="rate-master-table">
-              <thead>
-                <tr>
-                  <th>Customer Name</th>
-                  <th>GST Number</th>
-                  <th>PAN Number</th>
-                  <th>Product Code</th>
-                  <th>HSN Code</th>
-                  <th>Rate / Sqft</th>
-                  <th>Internal Media</th>
-                  <th>External Media</th>
-                  <th>Media Type</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRows.length ? (
-                  filteredRows.map((row) => (
-                    <tr key={row.id}>
-                      <td>{row.customerName || "General Rate"}</td>
-                      <td>{row.gstNo || "-"}</td>
-                      <td>{row.panNo || "-"}</td>
-                      <td>{row.productCode || "-"}</td>
-                      <td>{row.hsnCode || "-"}</td>
-                      <td>{row.ratePerSqft ?? "-"}</td>
-                      <td>{row.internalMedia || "-"}</td>
-                      <td>{row.externalMedia || "-"}</td>
-                      <td>{row.mediaType || row.MediaType || "-"}</td>
-                      <td>
-                        <div className="d-flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline-primary"
-                            onClick={() => handleEdit(row)}
-                            disabled={isSaving}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline-danger"
-                            onClick={() => handleDelete(row.id)}
-                            disabled={isSaving}
-                          >
-                            Delete
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={9} className="text-center text-muted">
-                      No product media rates found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </Card.Body>
-        </Card>
-
         <Card className="rate-master-card mt-3">
           <Card.Body>
             <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
               <div>
-                <h5 className="mb-0">HSN Rate Sheet</h5>
+                <h5 className="mb-0">Product Rate Sheet</h5>
                 <div className="text-muted small">
-                  {filteredHsnSheetRows.length} shown from {hsnSheetRows.length} default HSN row(s)
+                  {filteredHsnSheetRows.length} shown from {workbookRateRows.length} product row(s)
                 </div>
               </div>
               <Form.Control
                 style={{ maxWidth: 320 }}
                 value={hsnSearchText}
                 onChange={(e) => setHsnSearchText(e.target.value)}
-                placeholder="Search media/HSN/rate"
+                placeholder="Search customer/product/rate"
               />
             </div>
 
@@ -854,9 +863,10 @@ const ProductMediaRateMaster = () => {
               <thead>
                 <tr>
                   <th style={{ width: 80 }}>Sr No</th>
-                  <th>Media</th>
-                  <th>HSN Code</th>
-                  <th>Rate / Sqft</th>
+                  <th>Customer Name</th>
+                  <th>Product as per Rate card</th>
+                  <th>Simplified Product Name</th>
+                  <th>Rate per PSF / PU</th>
                   <th style={{ width: 110 }}>Action</th>
                 </tr>
               </thead>
@@ -865,8 +875,9 @@ const ProductMediaRateMaster = () => {
                   filteredHsnSheetRows.map((row, index) => (
                     <tr key={row.id}>
                       <td>{index + 1}</td>
-                      <td>{row.media || "-"}</td>
-                      <td>{row.hsnCode || "-"}</td>
+                      <td>{row.customerName || "-"}</td>
+                      <td>{row.productAsPerRateCard || "-"}</td>
+                      <td>{row.simplifiedProductName || "-"}</td>
                       <td>{row.ratePerSqft ?? "-"}</td>
                       <td>
                         <Button
@@ -882,7 +893,7 @@ const ProductMediaRateMaster = () => {
                 ) : (
                   <tr>
                     <td colSpan={5} className="text-center text-muted">
-                      No HSN sheet rows found.
+                      No product rate rows found.
                     </td>
                   </tr>
                 )}

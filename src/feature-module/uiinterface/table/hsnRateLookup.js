@@ -1,4 +1,35 @@
 import hsnRateData from "../../../core/json/hsnRateData.json";
+import productRateData from "../../../core/json/productRateData.json";
+import { normalizeCustomerName } from "./customerFallbacks";
+
+const productKey = (value) => String(value || "").toLowerCase()
+  .replace(/self adhesive vinyl/g, "sav")
+  .replace(/front\s*lit/g, "")
+  .replace(/sun\s*board/g, "sb")
+  .replace(/(\d+)\s*mm/g, "$1mm")
+  .replace(/\bmounting\b/g, "")
+  .replace(/[^a-z0-9]+/g, " ")
+  .trim().split(/\s+/).filter(Boolean).sort().join(" ");
+
+const findCustomerProduct = (row, customer, media) => {
+  const customerName = normalizeCustomerName(customer?.customeR_NAME || customer?.customerName || row?.customerName || row?.client);
+  if (!customerName) return null;
+  const candidates = productRateData.filter((item) => normalizeCustomerName(item.customerName) === customerName);
+  const keys = [productKey(media)];
+  if (/\bsav\b/i.test(media || "") && /\d+\s*mm\s*(sb|sun\s*board)/i.test(media || "") &&
+      /^(glossy|gloss|matt|matte)$/i.test(String(row?.lamination || "").trim())) {
+    keys.push(productKey(`${media} lamination`));
+  }
+  // Prefer the complete specification including lamination.
+  for (const key of keys.reverse()) {
+    const matches = candidates.filter((item) => [item.productAsPerRateCard, item.simplifiedProductName].some((name) => productKey(name) === key));
+    if (!matches.length) continue;
+    const rates = new Set(matches.map((item) => Number(item.ratePerSqft)));
+    if (rates.size === 1 && Number.isFinite([...rates][0]) && [...rates][0] > 0) return matches[0];
+    return null;
+  }
+  return null;
+};
 
 const normalizeMedia = (value) =>
   String(value || "")
@@ -86,7 +117,7 @@ export const getHsnRateDetails = (media, fallbackHsnCode = "") => {
   };
 };
 
-export const buildChallanItemPricing = (row) => {
+export const buildChallanItemPricing = (row, customer) => {
   const quantity = firstNumber(row?.qty, row?.Qty, row?.QTY, row?.quantity, row?.Quantity);
   const fallbackHsnCode =
     row?.hsnCode ??
@@ -112,7 +143,14 @@ export const buildChallanItemPricing = (row) => {
     row?.Description ||
     row?.details ||
     row?.Details;
-  const { hsnCode, unitPrice: lookupUnitPrice, media } = getHsnRateDetails(mediaSource, fallbackHsnCode);
+  const product = findCustomerProduct(row, customer, mediaSource);
+  const productHsnMedia = product?.simplifiedProductName
+    ?.replace(/frontlit/gi, "Front Lit")
+    .replace(/\s+\d+\s*mm\s*SB\b/gi, "").trim();
+  const lookup = getHsnRateDetails(productHsnMedia || mediaSource, fallbackHsnCode);
+  const hsnCode = String(fallbackHsnCode || product?.hsnCode || lookup.hsnCode || "").trim();
+  const lookupUnitPrice = product ? Number(product.ratePerSqft) : lookup.unitPrice;
+  const media = product?.simplifiedProductName || lookup.media;
   const totalSqFt = getSqFt(row);
   const unitPrice = rowRate || (totalSqFt > 0 && rowAmount > 0 ? roundAmount(rowAmount / totalSqFt) : lookupUnitPrice);
   const lineJobValue = rowAmount || roundAmount(unitPrice * totalSqFt);

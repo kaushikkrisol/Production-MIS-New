@@ -1,14 +1,16 @@
-import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import FeatherIcon from "feather-icons-react";
 import { LogOut, Search, Settings, User, XCircle } from "react-feather";
 import { all_routes } from "../../Router/all_routes";
 
 const Header = () => {
   const route = all_routes;
+  const location = useLocation();
   const [toggle, SetToggle] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [username, setUserName] = useState('');
+  const lastSidebarToggleRef = useRef(0);
 
   const isElementVisible = (element) => {
     return element.offsetWidth > 0 || element.offsetHeight > 0;
@@ -67,21 +69,51 @@ const Header = () => {
       );
     };
   }, []);
-  const handlesidebar = () => {
-    document.body.classList.toggle("mini-sidebar");
-    SetToggle((current) => !current);
+  const handlesidebar = (event) => {
+    event?.preventDefault();
+    lastSidebarToggleRef.current = Date.now();
+    const nextMiniSidebar = !document.body.classList.contains("mini-sidebar");
+    document.body.classList.toggle("mini-sidebar", nextMiniSidebar);
+    document.body.classList.remove("expand-menu");
+    SetToggle(nextMiniSidebar);
   };
   const expandMenu = () => {
     document.body.classList.remove("expand-menu");
   };
   const expandMenuOpen = () => {
+    if (!document.body.classList.contains("mini-sidebar")) {
+      return;
+    }
+    if (Date.now() - lastSidebarToggleRef.current < 250) {
+      return;
+    }
     document.body.classList.add("expand-menu");
   };
-  const sidebarOverlay = () => {
-    document?.querySelector(".main-wrapper")?.classList?.toggle("slide-nav");
-    document?.querySelector(".sidebar-overlay")?.classList?.toggle("opened");
-    document?.querySelector("html")?.classList?.toggle("menu-opened");
+  const closeMobileSidebar = () => {
+    document?.querySelector(".main-wrapper")?.classList?.remove("slide-nav");
+    document?.querySelector(".sidebar-overlay")?.classList?.remove("opened");
+    document?.querySelector("html")?.classList?.remove("menu-opened");
   };
+
+  const sidebarOverlay = (event) => {
+    event?.preventDefault();
+    const wrapper = document?.querySelector(".main-wrapper");
+    const overlay = document?.querySelector(".sidebar-overlay");
+    const html = document?.querySelector("html");
+    const shouldOpen = !wrapper?.classList?.contains("slide-nav");
+
+    wrapper?.classList?.toggle("slide-nav", shouldOpen);
+    overlay?.classList?.toggle("opened", shouldOpen);
+    html?.classList?.toggle("menu-opened", shouldOpen);
+  };
+
+  useEffect(() => {
+    closeMobileSidebar();
+  }, [location.pathname]);
+
+  useEffect(() => {
+    SetToggle(document.body.classList.contains("mini-sidebar"));
+  }, []);
 
   let pathname = location.pathname;
 
@@ -183,6 +215,19 @@ const Header = () => {
             <span />
           </span>
         </Link>
+        <div
+          className="sidebar-overlay"
+          role="button"
+          tabIndex={0}
+          aria-label="Close menu"
+          onClick={closeMobileSidebar}
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              closeMobileSidebar();
+            }
+          }}
+        />
         {/* Header Menu */}
         <ul className="nav user-menu">
           {/* Search */}

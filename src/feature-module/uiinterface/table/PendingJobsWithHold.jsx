@@ -72,7 +72,7 @@ const PendingJobsWithHold = () => {
     try {
       const response = await axios.post(
         config.Printing.URL.GetCompletedPrinting,
-        {}, // body
+        { locationId: "production" },
         {
           timeout: 15000,
           headers: { "Content-Type": "application/json" },
